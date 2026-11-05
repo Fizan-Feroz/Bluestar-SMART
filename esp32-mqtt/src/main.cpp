@@ -167,13 +167,13 @@ void sendBlueStarRecord(const String &key, const String &value) {
     payload.push_back(static_cast<uint8_t>(fullRecord[i]));
   }
   
-  Serial.printf("[AC TX] Sending Record: %s\n", fullRecord.c_str());
+  dbgPrintf("[AC TX] Sending Record: %s\n", fullRecord.c_str());
   queueTuyaFrame(CMD_DP_SET, payload);
 }
 
 // Handshake
 void sendHandshake() {
-  Serial.println("[AC] Sending Tuya Handshake to AC...");
+  dbgPrintln("[AC] >>> Sending Tuya Handshake to AC...");
   queueTuyaFrame(CMD_PRODUCT_QUERY);
   queueTuyaFrame(CMD_WORKING_MODE);
   queueTuyaFrame(CMD_NET_STATUS, {NET_STATUS_CLOUD});
@@ -227,11 +227,13 @@ void publishState() {
   char buffer[512];
   size_t n = serializeJson(doc, buffer);
   mqttClient.publish(TOPIC_STATUS, (const uint8_t*)buffer, n, true); // Retain flag true
+  dbgPrintf("[MQTT TX] Published State: %s\n", buffer);
   lastMqttPublishTime = millis();
 }
 
 // Process incoming AC records
 void handleBlueStarKey(const String &key, const String &value) {
+  dbgPrintf("[AC RX DECODED] Key: %s | Value: %s\n", key.c_str(), value.c_str());
   bool stateChanged = false;
 
   if (key == "01") {
@@ -339,13 +341,14 @@ void handleBlueStarKey(const String &key, const String &value) {
 void parseBlueStarRecord(const String &rec) {
   if (!rec.startsWith("*") || !rec.endsWith("#") || rec.length() < 9) return;
   
+  dbgPrintf("[AC RX STR] %s\n", rec.c_str());
   String body = rec.substring(0, rec.length() - 5);
   String crcExpectedStr = rec.substring(rec.length() - 5, rec.length() - 1);
   uint16_t crcCalc = crc16_modbus(body.c_str(), body.length());
   char crcBuf[5];
   snprintf(crcBuf, sizeof(crcBuf), "%04X", crcCalc);
   if (crcExpectedStr != String(crcBuf)) {
-    Serial.println("[AC WARN] CRC mismatch!");
+    dbgPrintln("[AC WARN] CRC mismatch!");
     return;
   }
   
@@ -436,6 +439,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   jsonBuf[length] = '\0';
 
   Serial.printf("[MQTT RX] %s: %s\n", topic, jsonBuf);
+  dbgPrintf("[MQTT RX] %s: %s\n", topic, jsonBuf);
 
   JsonDocument doc;
   DeserializationError err = deserializeJson(doc, jsonBuf);
@@ -572,7 +576,11 @@ void processTelnet() {
       if (telnetClient) telnetClient.stop();
       telnetClient = telnetServer.available();
       telnetClient.println("\n=== Blue Star AC MQTT Console (Port 23) ===");
-      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [r]eboot ESP");
+      telnetClient.printf("WiFi: Connected (RSSI: %d dBm) | MQTT: %s (State: %d)\n",
+                          WiFi.RSSI(),
+                          mqttClient.connected() ? "CONNECTED" : "DISCONNECTED",
+                          mqttClient.state());
+      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [i]nfo, [r]eboot ESP");
     } else {
       WiFiClient rejectClient = telnetServer.available();
       rejectClient.stop();
@@ -594,6 +602,11 @@ void processTelnet() {
       telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 62)...");
       sendBlueStarRecord("24", "0");
       sendBlueStarRecord("62", "0");
+    } else if (c == 'i' || c == 'I') {
+      telnetClient.printf("\n[INFO] WiFi RSSI: %d dBm | IP: %s\n", WiFi.RSSI(), WiFi.localIP().toString().c_str());
+      telnetClient.printf("[INFO] MQTT: %s (rc=%d) | Broker: %s:%d\n", mqttClient.connected() ? "CONNECTED" : "DISCONNECTED", mqttClient.state(), mqtt_server, mqtt_port);
+      telnetClient.printf("[INFO] AC Power: %s | Mode: %d | Fan: %d | Target: %.1f C | Room: %.1f C\n", acPower ? "ON" : "OFF", acMode, acFan, targetTemp, roomTemp);
+      telnetClient.printf("[INFO] Comp: %ld Hz | Coil: %.1f C | AC Hours: %.1f | Comp Hours: %.1f\n", compressorHz, coilTemp, acRunHours, compRunHours);
     }
   }
 }
