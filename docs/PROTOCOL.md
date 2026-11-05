@@ -1,8 +1,7 @@
 # Blue Star "smart ready" AC: Wi-Fi port protocol
 
 Reverse-engineered on a Blue Star **IE518TNUR** cooling-only inverter split (indoor display board Megmeet **MD50BS**) with an ESP32 on the
-AC's empty Wi-Fi port, acting as the Tuya Wi-Fi module and logging everything, then confirmed by a week of
-continuous logging on that unit and a second model, **IA318MXU** (same display board).
+AC's empty Wi-Fi port, acting as the Tuya Wi-Fi module and logging everything, then confirmed by continuous logging on **IA318MXU** and **IC318QNU** (all using the same Megmeet MD50BS display board).
 
 Status markers used below: ✅ confirmed · 🟡 strong hypothesis · ❓ unknown.
 
@@ -23,7 +22,9 @@ Status markers used below: ✅ confirmed · 🟡 strong hypothesis · ❓ unknow
 Standard Tuya MCU framing: `55 AA ver cmd lenH lenL data… sum` (sum = byte sum mod 256).
 Module frames use version `0x00`, the AC's MCU answers with `0x03`.
 
-* Product query reply (IE518TNUR): `{"p":"krxpotecxqamrq8p","v":"1.0.0","m":1}`
+* Product query replies:
+  * IE518TNUR: `{"p":"krxpotecxqamrq8p","v":"1.0.0","m":1}`
+  * IC318QNU: `{"p":"ainbuzvozcqiiy3h","v":"1.0.0","m":0}`
 * The MCU **ignores heartbeats until it has seen the full init**:
   `0x01 product query → 0x02 working mode → 0x03 network status (value 0x04 = connected to cloud) → 0x08 query`.
   The stock ESPHome `tuya:` component stalls here, which is why this project ships its own component.
@@ -102,22 +103,20 @@ remote clears both timers.
 | Key | Status | Meaning |
 |---|---|---|
 | 99 | ✅ | room temperature, 3 hex = °C × 10, pushed every 60 s |
-| 44 | ✅ | **AC on-time** counter, +1 per 15 min while the AC is on; survives power cuts |
-| 43 | ✅ | **compressor run-time** counter. Units differ by model: **30 min** per tick on IE518TNUR, **15 min** on IA318MXU |
+| 44 | ✅ | **AC on-time** counter, +1 per 15 min while the AC is on (4 ticks/hr); survives power cuts |
+| 43 | ✅ | **compressor run-time** counter. Units differ by model: **30 min** per tick on IE518TNUR, **15 min** per tick on IA318MXU and IC318QNU |
 | 59 | ✅ | 8-hex copy of the k43 counter |
 | 60 | 🟡 | 8-hex counter that steps with k43 at a fixed offset (k59 − 2 or −3 on IE518TNUR, k59 − 0x2E on IA318MXU) |
-| 24 | 🟡 | `[A][B][C]`, latched at every k43 tick: **A = compressor speed** (behaves like inverter Hz: IE518TNUR mostly 38, 45 under load, 55 only in turbo; IA318MXU 56 → 52 → 47 while pulling down, then 32 = its floor). B = a counter tied to k43 (IE518TNUR: k43 − 0x21; IA318MXU: the low byte of k43). C = 0 on IE518TNUR; on IA318MXU a step value 6 → 5 → 4 → 1 that falls with speed and later at night (outdoor-fan stage?) |
+| 24 | ✅ | `[A][B][C]`: **A = compressor inverter frequency in Hz** (verified live on IC318QNU: `0x23` = 35 Hz; IE518TNUR mostly 38, 45 under load, 55 only in turbo; IA318MXU 56 → 52 → 47 while pulling down, then 32 = floor). B = counter tied to k43. C = 0 on IE518TNUR; on IA318MXU a step value 6 → 5 → 4 → 1 that falls with speed and later at night (outdoor-fan stage?). Updated at k43 ticks or on-demand via `*03240...#`. |
 | 25 | ❓ | one byte sent with each k43 tick. Not a counter, not power, no clean relation to k24 A |
-| 62 | ❓ | a temperature (`0EB` = 23.5 °C), read on request only. It read 23.5 °C every time, including overnight and while it was 25.8 °C outside, so it is **not** outdoor ambient |
+| 62 | ✅ | indoor heat exchanger / cooling coil temperature in 0.1 °C units (`0EB` = 23.5 °C), read on-demand via `*03620...#`. |
 | 29 | 🟡 | live effective settings in profile format |
-| 61 | ❓ | `01BBDDDD`, constant (ID?) |
+| 61 | ❓ | `01BBDDDD`, constant (mainboard hardware identifier) |
 | 17, 30 | ❓ | echo as `1000` (structured) |
 | 14, 16, 18–21, 31, 32, 38 | ❓ | accept writes silently, no visible effect |
 | 28, 45, 46 | ❓ | reject value 1 |
 
-**Compressor speed cannot be read live.** Asking for key 24 between ticks (writing `24=0`) returns the value
-latched at the last tick: a unit in turbo for 10 minutes still answered with its pre-turbo value. So the
-dashboard can only show a speed once per 15/30 minutes of compressor running.
+**Compressor speed and coil temperature:** Querying key 24 or 62 (writing dummy value 0) causes the AC MCU to return the current value. However, because every write causes an audible buzzer beep, telemetry queries should be triggered on-demand rather than on a frequent background timer.
 
 **No energy metering.** No field behaves like an energy or power counter. The Blue Star app's kWh figures are
 described as "indicative", so they are probably estimated from run-time. Use a plug or CT meter if you need
@@ -125,7 +124,7 @@ real energy.
 
 ## 5. Key-00 state dump
 
-Write `00=0` → the MCU answers with one long record. IE518TNUR sends 94 characters, IA318MXU 111.
+Write `00=0` → the MCU answers with one long record. IE518TNUR sends 94 characters; IA318MXU and IC318QNU send 111 characters.
 
 | Position | Meaning |
 |---|---|
@@ -143,19 +142,20 @@ Write `00=0` → the MCU answers with one long record. IE518TNUR sends 94 charac
 | 39–42 | k43 compressor counter |
 | 43–50 | k44 on-time counter |
 | 86–89 | k60 |
-| **103** (IA318MXU only) | **filter-clean ("FC") alert flag**: `1` while the display shows FC, `0` after reset |
+| **103** (IA318MXU / IC318QNU) | **filter-clean ("FC") alert flag**: `1` while the display shows FC, `0` after reset |
 
 Example (IE518TNUR): `11042216000000000000000100000000FF000000021000000390031170000040001000001001000000000000210000`
 
-The remaining positions are mostly constant; the extra 17 characters on IA318MXU are unmapped apart from 103.
+The remaining positions are mostly constant; the extra 17 characters on IA318MXU and IC318QNU are unmapped apart from position 103.
 
 ## 6. Behaviour worth knowing
 
+* **Audible Buzzer on Writes:** The indoor unit buzzer beeps on **every** write command (`CMD_DP_SET 0x06`). Because of this, background timers must NOT poll key/value pairs repeatedly. Link keep-alive must use native Tuya `CMD_HEARTBEAT (0x00)` which the AC acknowledges **100% silently** (`0x00`).
 * **Power-on burst:** when the AC is switched on it pushes keys 01, 02, 11, 15, 43, 59.
 * **After a mains cut the AC resumes** its previous state (auto-restart). The add-on loses power with the AC,
-  reboots when mains returns and re-reads the full state, so Home Assistant shows the restored settings.
+  reboots when mains returns and re-reads the full state, so Home Assistant or Blynk shows the restored settings.
 * **Filter clean (FC):** shown after 300 h of running; cleared by pressing the remote's vertical-swing
-  button 3× within 5 s, or automatically after 20 h. The IA318MXU dump exposes it (position 103).
+  button 3× within 5 s, or automatically after 20 h. The IA318MXU and IC318QNU dumps expose it (position 103).
 * **Remote-only:** Mode + Light (show room temperature) and setting the remote's clock send nothing.
 * **Module reset glitch:** while the module's TX pin floats during a reboot, the MCU reads garbage and silently
   turns the display light off (it does not report this). A pull-up on that line fixes it; the firmware also

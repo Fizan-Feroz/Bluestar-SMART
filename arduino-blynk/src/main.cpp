@@ -94,6 +94,8 @@ int acFan = 7;  // 7 = Auto
 int acVane = 6; // 6 = Off, 0 = Swing
 bool displayLight = true;
 float roomTemp = 0.0;
+long compressorHz = 0;
+float coilTemp = 0.0;
 
 uint32_t lastTxTime = 0;
 uint32_t lastRxByteTime = 0;
@@ -252,6 +254,52 @@ void handleBlueStarKey(const String &key, const String &value) {
   else if (key == "58") { // Buzzer Mute
     bool muted = (value == "1");
     Blynk.virtualWrite(V15, muted ? 1 : 0);
+  }
+  else if (key == "24") { // Compressor Inverter Speed
+    if (value.length() >= 2) {
+      long hz = strtol(value.substring(0, 2).c_str(), nullptr, 16);
+      if (!acPower) hz = 0;
+      compressorHz = hz;
+      Blynk.virtualWrite(V17, compressorHz);
+      dbgPrintf("\n[DIAG] Key 24 -> Compressor Speed: %ld Hz (Blynk V17)\n", compressorHz);
+    }
+  }
+  else if (key == "25") {
+    dbgPrintf("[DIAG] Key 25 (Outdoor Sub-telemetry): Raw = %s\n", value.c_str());
+  }
+  else if (key == "62") { // Internal coil/exchanger temp
+    long raw = strtol(value.c_str(), nullptr, 16);
+    coilTemp = raw / 10.0f;
+    Blynk.virtualWrite(V18, coilTemp);
+    dbgPrintf("\n[DIAG] Key 62 -> Coil Temp: %.1f C (Blynk V18)\n", coilTemp);
+  }
+  else if (key == "29") {
+    dbgPrintf("[DIAG] Key 29 (Operating Profile Dump): %s\n", value.c_str());
+  }
+  else if (key == "61") {
+    dbgPrintf("[DIAG] Key 61 (Mainboard Hardware ID): %s\n", value.c_str());
+  }
+  else if (key == "59") {
+    dbgPrintf("[DIAG] Key 59 (High-Res Compressor Counter): %s\n", value.c_str());
+  }
+  else if (key == "60") {
+    dbgPrintf("[DIAG] Key 60 (Secondary Offset Counter): %s\n", value.c_str());
+  }
+  else if (key == "13") {
+    int s = value.toInt();
+    const char *season = (s == 1) ? "Autumn" : (s == 2) ? "Summer" : (s == 3) ? "Monsoon" : "Off";
+    dbgPrintf("[DIAG] Key 13 (Climate Season Mode): %s (%d)\n", season, s);
+  }
+  else if (key == "08") {
+    dbgPrintf("[DIAG] Key 08 (Timer Active Flags): %s\n", value.c_str());
+  }
+  else if (key == "09") {
+    long mins = strtol(value.c_str(), nullptr, 16);
+    dbgPrintf("[DIAG] Key 09 (On-Timer Countdown): %ld minutes\n", mins);
+  }
+  else if (key == "10") {
+    long mins = strtol(value.c_str(), nullptr, 16);
+    dbgPrintf("[DIAG] Key 10 (Off-Timer Countdown): %ld minutes\n", mins);
   }
   else if (key == "44") { // Total AC On-time (Lifetime Hours)
     long raw = strtol(value.c_str(), nullptr, 16);
@@ -485,6 +533,16 @@ void processTelnet() {
     } else if (c == 's' || c == 'S') {
       telnetClient.println("\n[CMD] Sending Heartbeat...");
       queueTuyaFrame(CMD_HEARTBEAT);
+    } else if (c == 'q' || c == 'Q') {
+      telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 25, 62, 29, 61, 59, 60, 13)...");
+      sendBlueStarRecord("24", "0");
+      sendBlueStarRecord("25", "0");
+      sendBlueStarRecord("62", "0");
+      sendBlueStarRecord("29", "0");
+      sendBlueStarRecord("61", "0");
+      sendBlueStarRecord("59", "0");
+      sendBlueStarRecord("60", "0");
+      sendBlueStarRecord("13", "0");
     }
   }
 }
@@ -495,6 +553,10 @@ void processTelnet() {
 BLYNK_WRITE(V0) {
   int p = param.asInt();
   acPower = (p == 1);
+  if (!acPower) {
+    compressorHz = 0;
+    Blynk.virtualWrite(V17, 0);
+  }
   dbgPrintf("[Blynk] Power command: %d\n", p);
   sendBlueStarRecord("01", acPower ? "1" : "0");
 }
@@ -602,40 +664,38 @@ BLYNK_WRITE(V15) {
   sendBlueStarRecord("58", mute ? "1" : "0");
 }
 
+// V19: On-Demand Diagnostics Refresh (Queries Compressor Hz & Coil Temp)
+BLYNK_WRITE(V19) {
+  if (param.asInt() == 1 && acPower) {
+    dbgPrintln("[Blynk] On-demand Diagnostic Refresh requested...");
+    sendBlueStarRecord("24", "0");
+    sendBlueStarRecord("62", "0");
+  }
+}
+
 // When Blynk connects, send initial handshake if needed
 BLYNK_CONNECTED() {
   dbgPrintln("[Blynk] Connected to Blynk Cloud!");
   sendHandshake();
 }
 
-// Heartbeat & Watchdog timer routine (called every 15s)
+// Heartbeat & Watchdog timer routine (called every 15s - 100% silent)
 void periodicHeartbeat() {
-  if (millis() - lastValidFrameTime > SILENCE_REHANDSHAKE_MS) {
-    dbgPrintln("[AC] No response from AC for 3 minutes, redoing handshake...");
-    sendHandshake();
-  } else {
-    queueTuyaFrame(CMD_HEARTBEAT);
-  }
+  // Silent Tuya heartbeat - MCU answers with 0x00 without beeping
+  queueTuyaFrame(CMD_HEARTBEAT);
 }
 
-// 5-second diagnostic status beacon with Pin Activity Sniffer
+// Diagnostic status beacon (local Wi-Fi only, zero AC serial commands)
 void periodicBeacon() {
-  String activePins = "";
-  for (int p = 0; p < 32; p++) {
-    // Ignore pin 17 which is our own TX pin
-    if (p != AC_TX_PIN && pinTransitions[p] > 0) {
-      activePins += "GPIO" + String(p) + "(" + String(pinTransitions[p]) + ") ";
-      pinTransitions[p] = 0;
-    }
-  }
-  if (activePins.length() == 0) activePins = "NONE";
-  
-  dbgPrintf("[BEACON] WiFi: %d dBm | Blynk: %s | Total RX: %u | TX: %u | Pulses Seen: %s\n",
+  dbgPrintf("[BEACON] WiFi: %d dBm | Blynk: %s | Total RX: %u | TX: %u | AC State: %s, %.1f C, Fan:%d, Vane:%d\n",
             WiFi.RSSI(),
             Blynk.connected() ? "ONLINE" : "OFFLINE",
             totalRxBytes,
             totalTxFrames,
-            activePins.c_str());
+            acPower ? "ON" : "OFF",
+            targetTemp,
+            acFan,
+            acVane);
 }
 
 // ==================== SETUP & LOOP ====================
@@ -661,7 +721,7 @@ void setup() {
   
   // Periodic timers
   timer.setInterval(15000L, periodicHeartbeat);
-  timer.setInterval(5000L, periodicBeacon);
+  timer.setInterval(10000L, periodicBeacon);
   
   // Setup ArduinoOTA for wireless firmware flashing
   ArduinoOTA.setHostname("bluestar-ac");

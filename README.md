@@ -54,13 +54,12 @@ Full protocol reference: **[docs/PROTOCOL.md](docs/PROTOCOL.md)**
 
 | Model | Indoor display board | Status | Notes |
 |---|---|---|---|
-| **IE518TNUR** | Megmeet MD50BS | ✅ in daily use | Reference unit: protocol decoded on this model. Compressor counter = 30 min per tick. |
+| **IE518TNUR** | Megmeet MD50BS | ✅ in daily use | Reference unit: protocol decoded on this model (Tuya `krxpotecxqamrq8p`). Compressor counter = 30 min per tick. |
 | **IA318MXU** | Megmeet MD50BS | ✅ in daily use | Same port, same protocol. Compressor counter = 15 min per tick (set `compressor_ticks_per_hour: "4.0"`). State dump exposes filter-clean (FC) flag. |
-| **IC318QNU** | Megmeet MD50BS | ✅ verified | 1.5 Ton 3-Star Inverter. 4-way swing, 5-in-1 convertible, Turbo Cool, Eco mode. Works with ESPHome or standalone Blynk firmware. |
+| **IC318QNU** | Megmeet MD50BS | ✅ verified | 1.5 Ton 3-Star Inverter (Tuya `ainbuzvozcqiiy3h`, remote `IC318QNURS`). 4-way swing, 5-in-1 convertible, Turbo Cool, Eco mode, compressor frequency (Key 24), coil temp (Key 62), run hours (Keys 43, 44, 59). Works with ESPHome or standalone Blynk firmware. |
 
-Both are cooling-only inverter splits with the same display board, the same 4-pin `R_WIFI T_WIFI GND 5V` header
-and the same protocol (IE518TNUR reports Tuya product ID `krxpotecxqamrq8p`). Other Blue Star models sold as
-"smart ready" / "Wi-Fi ready" very likely share it, but that is **unverified**.
+All three tested units are cooling-only inverter splits with the same display board, the same 4-pin `R_WIFI T_WIFI GND 5V` header
+and the same Tuya/Blue Star serial protocol. Other Blue Star models sold as "smart ready" / "Wi-Fi ready" very likely share it.
 
 ## What you get in Home Assistant
 
@@ -198,27 +197,38 @@ component never gets past the AC's init sequence (details in [PROTOCOL.md](docs/
 
 The climate entity works with the standard thermostat card, voice assistants, schedules and automations.
 
+---
+
+## Standalone Blynk IoT Setup (No Home Assistant Needed)
+
+If you don't run a home server or Home Assistant, a complete **standalone Arduino / PlatformIO firmware** is available in [`arduino-blynk/`](arduino-blynk/).
+
+- **Zero Cloud Server Needed**: Connects directly to [Blynk Cloud](https://blynk.cloud).
+- **Mobile & Web App**: Ready-to-use iOS & Android dashboard with full controls (Power, Mode, Fan Speed, Louver Vanes, 5-in-1 Convertible, Turbo Cool, Eco, Comfort Sleep, Buzzer Mute, Display Light).
+- **Apple Siri Shortcuts**: Control power and setpoint with voice commands via native Blynk HTTPS APIs.
+- **Extended AC Telemetry**: Live Compressor Frequency (Hz), Heat Exchanger Coil Temperature (°C), Total AC Run Hours, Compressor Motor Run Hours, and Filter Clean ("FC") status.
+- **Wireless OTA & Telnet Console**: Flash firmware updates wirelessly over Wi-Fi (`espota.py` on port 3232) and stream live diagnostics (`telnet <ip> 23` or `python scripts/query_diag.py`).
+- **ESP32 DevKit V1 Ready**: Pre-configured for standard 30-pin/36-pin DevKit boards using Hardware UART2 (`GPIO 16 RX2`, `GPIO 17 TX2`).
+
+See the complete guide and wiring diagrams in [**`arduino-blynk/README.md`**](arduino-blynk/README.md).
+
+---
+
 ## Gotchas (read these before you start)
 
 These cost the most time. Learn from them:
 
-1. **Use GPIO4/GPIO3, not GPIO20/21.** With TX/RX on 20/21 the AC silently dropped most frames and ignored
-   writes; 4/3 worked first time.
-2. **Never connect USB and the AC's 5 V at the same time.** The SuperMini has no diode between USB 5 V and the
-   5 V pin.
-3. **Lower the Wi-Fi TX power.** At the default 17 dB the SuperMini failed every Wi-Fi join with
-   `Auth Expired`; `output_power: 8.5dB` fixed it. 11 dB also worked.
-4. **Disable Wi-Fi power saving** (`power_save_mode: none`). With ESPHome's default light sleep, one unit's ping
-   ranged 4–113 ms; with power saving off it dropped to 2–5 ms, and commands feel instant.
-5. **Pick your access point.** If commands feel laggy, check the ping. One unit jittered 3–800 ms on a busy
-   router and dropped to 3–12 ms when pinned to a different AP with ESPHome's `networks:` + `bssid:`.
-6. **The AC beeps on every write.** The firmware therefore never polls: it reads the full state once at
-   boot and then just listens (the AC pushes every change itself). Automations should only send what changed.
-7. **Reboot glitch:** while the ESP reboots its TX line floats, and the AC can read garbage that silently turns
-   the display light off. The firmware restores the light after boot; a pull-up on `T_WIFI` prevents it.
-8. **OTA rollback:** if the ESP resets within 60 s of booting new firmware (e.g. you unplug it to rewire),
-   ESP-IDF rolls back to the previous image. Wait a minute after an OTA before touching it.
-9. After a USB flash the SuperMini sometimes stays in download mode (`boot:0x7` in the log): unplug and replug.
+1. **ESP32 DevKit V1 Serial Conflict:** Do NOT use `RX0` (GPIO 3) or `TX0` (GPIO 1) on DevKit boards. They are hardwired to the onboard USB-UART chip (CP2102/CH340). Always use hardware UART2: **`GPIO 16 (RX2)`** and **`GPIO 17 (TX2)`**.
+2. **ESP32 Arduino Core `pinMode()` Trap:** Never call `pinMode(AC_RX_PIN, ...)` after `acSerial.begin()`. In the ESP32 Arduino framework, calling `pinMode()` disconnects the internal GPIO matrix from the hardware UART peripheral, causing the ESP to silently read 0 bytes from the AC.
+3. **Use GPIO4/GPIO3 on ESP32-C3 SuperMini:** With TX/RX on 20/21 the AC silently dropped most frames and ignored writes; 4/3 worked first time.
+4. **Never connect USB and the AC's 5 V at the same time:** The SuperMini and DevKit V1 lack reverse-voltage protection between USB and the 5V/VIN header pin. Flashing over USB while AC 5V is plugged in can damage the ESP32 or PC.
+5. **The AC beeps on every write:** The MCU buzzer sounds on every `0x06` write command. Do not use recurring background timers to poll telemetry, or the AC will chime repeatedly. Keepalive heartbeats must use native Tuya `CMD_HEARTBEAT (0x00)` which is answered **100% silently**.
+6. **Lower the Wi-Fi TX power (SuperMini):** At the default 17 dB the SuperMini failed every Wi-Fi join with `Auth Expired`; `output_power: 8.5dB` fixed it. 11 dB also worked.
+7. **Disable Wi-Fi power saving:** (`power_save_mode: none`). With ESPHome's default light sleep, one unit's ping ranged 4–113 ms; with power saving off it dropped to 2–5 ms, and commands feel instant.
+8. **Pick your access point:** If commands feel laggy, check the ping. One unit jittered 3–800 ms on a busy router and dropped to 3–12 ms when pinned to a different AP with ESPHome's `networks:` + `bssid:`.
+9. **Reboot glitch:** while the ESP reboots its TX line floats, and the AC can read garbage that silently turns the display light off. The firmware restores the light after boot; a pull-up on `T_WIFI` prevents it.
+10. **OTA rollback:** if the ESP resets within 60 s of booting new firmware (e.g. you unplug it to rewire), ESP-IDF rolls back to the previous image. Wait a minute after an OTA before touching it.
+11. After a USB flash the SuperMini sometimes stays in download mode (`boot:0x7` in the log): unplug and replug.
 
 ## Limitations
 
@@ -236,13 +246,13 @@ These cost the most time. Learn from them:
 
 | Key / field | What we know | What's missing |
 |---|---|---|
-| **k25** | one byte with every compressor tick, varies 0–255 | meaning. Not a counter, not power, no clean link to compressor speed |
-| **k24 byte C** (IA318MXU) | steps 6 → 5 → 4 → 1, falls with speed and late at night | outdoor-fan stage? |
-| **k62** | a temperature (23.5 °C), only on request | always 23.5 °C so far, even with 25.8 °C outside, so not outdoor ambient. Coil? Fixed value? |
-| **k60** | counter at a fixed offset from k43 | why the offset differs per model |
-| **k29, k61, k17, k30** | structured or constant values | meaning |
-| **IA318MXU state dump** | 17 extra characters; position 103 = filter-clean flag | the rest |
-| **Other models** | only two tested | does the same firmware work on yours? |
+| **k24** | Byte 0–1 = **Compressor Inverter Frequency in Hz** (verified: 35 Hz on IC318QNU, 32–56 Hz on IA318MXU, 38–55 Hz on IE518TNUR) | Meaning of byte C (steps 6 → 5 → 4 → 1, outdoor fan stage?) |
+| **k62** | **Heat exchanger / cooling coil temperature** in 0.1 °C units (`0x0EB` = 23.5 °C) | Range and behavior during active heating/dry modes |
+| **k25** | One byte with every compressor tick, varies 0–255 | Meaning. Not a counter, not power, no clean link to compressor speed |
+| **k60** | Counter at a fixed offset from k43 | Why the offset differs per model |
+| **k29, k61, k17, k30** | Structured or constant values (e.g. k61 = mainboard hardware ID) | Meaning of each byte |
+| **State dump pos 103** | Position 103 = filter-clean ("FC") alert flag (confirmed on IA318MXU & IC318QNU) | Unmapped bytes in the 111-character extended dump |
+| **Other models** | Three models verified (IE518TNUR, IA318MXU, IC318QNU) | Does the firmware work on your Blue Star model? |
 
 If you can measure your AC's power draw with a meter while logging, that would settle k25 and the energy
 question for good.

@@ -76,10 +76,13 @@ Full vector diagram: [**`wiring_devkit_v1.svg`**](wiring_devkit_v1.svg)
 | **`V9`** | Eco Mode | Integer | 0 | 1 | 0 | - | Energy Save (24°C + Low Fan, "E" on display)|
 | **`V10`**| Turbo Cool | Integer | 0 | 1 | 0 | - | Rapid Cooling (16°C, "HC" on display, 20m) |
 | **`V11`**| Comfort Sleep | Integer | 0 | 1 | 0 | - | Sleep Mode (+1°C/hr ramp for 2 hours) |
-| **`V13`** | AC Run Hours | Double | 0.0 | 99999.0 | 0.0 |
-| **`V14`** | Comp Run Hours| Double| 0.0 | 99999.0 | 0.0 |
-| **`V15`** | Buzzer Mute | Integer | 0 | 1 | 0 |
-| **`V16`** | Filter Alert | Integer | 0 | 1 | 0 |
+| **`V13`** | AC Run Hours | Double | 0.0 | 99999.0 | 0.0 | hrs | Total Lifetime Mains Power Hours |
+| **`V14`** | Comp Run Hours| Double| 0.0 | 99999.0 | 0.0 | hrs | Total Lifetime Compressor Motor Hours |
+| **`V15`** | Buzzer Mute | Integer | 0 | 1 | 0 | - | Buzzer Mute (1=Mute, 0=Beep) |
+| **`V16`** | Filter Alert | Integer | 0 | 1 | 0 | - | Filter Clean Alert ("FC" on display) |
+| **`V17`** | Compressor Speed | Integer | 0 | 80 | 0 | Hz | Inverter Compressor Frequency (Live Motor Speed) |
+| **`V18`** | Coil Temp | Double | -10.0 | 60.0 | 0.0 | °C | Indoor Heat Exchanger / Coil Temperature |
+| **`V19`** | Diag Refresh | Integer | 0 | 1 | 0 | - | On-Demand Telemetry Trigger (Queries Hz & Coil Temp) |
 
 4. Go to **Web Dashboard** tab:
    - Drag a **Switch** widget $\to$ Assign to `V0` (Power)
@@ -98,6 +101,9 @@ Full vector diagram: [**`wiring_devkit_v1.svg`**](wiring_devkit_v1.svg)
    - Drag a **Value Display** widget $\to$ Assign to `V14` (Compressor Run Hours)
    - Drag a **Switch** widget $\to$ Assign to `V15` (Buzzer Mute)
    - Drag a **LED** widget $\to$ Assign to `V16` (Filter Clean Alert / "FC")
+   - Drag a **Gauge** widget $\to$ Assign to `V17` (Compressor Inverter Speed in Hz, Max: 70)
+   - Drag a **Value Display** or **Gauge** $\to$ Assign to `V18` (Indoor Cooling Coil Temp in °C)
+   - Drag a **Button** widget $\to$ Assign to `V19` (Mode: Push / Momentary, Label: "Refresh Diag")
 5. Save the Template.
 6. Go to **Devices** $\to$ **+ Add Device** $\to$ **From Template** $\to$ Select `Blue Star AC`.
 7. Copy the **Template ID**, **Template Name**, and **Auth Token** shown at the top of the device page.
@@ -181,3 +187,53 @@ Once you have flashed the ESP32 once via USB, you can update firmware **wireless
    upload_port = bluestar-ac.local  ; or your ESP32's IP address
    ```
 3. Run `pio run -t upload`.
+
+---
+
+## 7. Telnet Diagnostic Console (Port 23)
+
+The firmware includes a lightweight, built-in Telnet server running on port 23. You can stream serial debug logs wirelessly over Wi-Fi without having a USB cable connected.
+
+### Connecting to Telnet:
+Use PuTTY, `nc`, or standard Telnet:
+```bash
+# Windows PowerShell / CMD or Linux/macOS Terminal:
+telnet 192.168.1.59 23
+# Or using Netcat:
+nc 192.168.1.59 23
+```
+
+### Interactive Telnet Commands:
+Once connected, send any of these single-key commands:
+- **`q` or `Q`**: Query Extended Diagnostics. Reads Compressor Frequency (Key 24), Coil Temperature (Key 62), Operating Profile (Key 29), Lifetime Run Hours (Keys 43/44/59/60), and Hardware ID (Key 61).
+- **`s` or `S`**: Send a manual Tuya keep-alive heartbeat (`CMD_HEARTBEAT 0x00`).
+- **`h` or `H`**: Trigger full Tuya initialization handshake (`CMD_PRODUCT_QUERY`).
+- **`r` or `R`**: Reboot ESP32.
+
+### Python Headless Diagnostic Tool:
+You can also run the provided script to query and view real-time diagnostics in a single command:
+```bash
+python scripts/query_diag.py
+```
+
+---
+
+## 8. Critical Gotchas & Troubleshooting
+
+1. **DevKit V1 Pinout Gotcha (RX0/TX0 vs RX2/TX2):**
+   - **Do NOT** connect the AC to `RX0` (GPIO 3) or `TX0` (GPIO 1). On ESP32 DevKit V1, these pins are tied directly to the onboard CP2102/CH340 USB chip. Connecting to them causes bus contention, resulting in `Total RX: 0 bytes`.
+   - **Always use Hardware UART2**: `GPIO 16 (RX2)` and `GPIO 17 (TX2)`.
+
+2. **The `pinMode()` Detach Trap in ESP32 Arduino Core:**
+   - **Never call `pinMode(AC_RX_PIN, ...)` after `acSerial.begin()`!**
+   - In the ESP32 Arduino core, calling `pinMode()` on a hardware UART pin detaches the internal GPIO matrix from the UART peripheral, permanently muting incoming serial data. If your ESP32 registers zero RX bytes despite correct wiring, check that no `pinMode()` call touches GPIO 16.
+
+3. **Understanding AC Beeps & Buzzer Mechanics:**
+   - The Blue Star indoor unit buzzer is wired directly to Tuya MCU DP writes (`CMD_DP_SET 0x06`). **Every write command causes an audible chime.**
+   - Do **NOT** set automated periodic background timers that write to the AC (such as querying Key 24/62 every minute), or the AC will beep constantly on schedule.
+   - The firmware uses native Tuya `CMD_HEARTBEAT (0x00)` every 15 seconds for link keepalive, which the AC acknowledges **100% silently**.
+   - Compressor frequency (`V17`) and coil temperature (`V18`) are updated whenever the AC pushes changes, or on-demand via the **`V19`** button or Telnet `q`.
+
+4. **Never Connect USB while Powered by AC 5V:**
+   - ESP32 DevKit boards lack ideal reverse-voltage protection between the 5V/VIN header and USB VBUS. Having both connected simultaneously risks frying the ESP32 or damaging your computer's USB port.
+   - Always disconnect the AC 5V line before connecting USB, or update firmware wirelessly using **OTA** (Over-The-Air) on Port 3232.
