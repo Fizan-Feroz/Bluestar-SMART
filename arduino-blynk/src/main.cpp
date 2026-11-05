@@ -642,10 +642,10 @@ BLYNK_WRITE(V7) {
   sendBlueStarRecord("06", String(val));
 }
 
-// V8: Convertible Capacity Mode (1: 100%, 2: 80%, 3: 60%, 4: 40%)
+// V8: Convertible Capacity Mode (0: Normal, 1: 100%, 2: 80%, 3: 60%, 4: 40%)
 BLYNK_WRITE(V8) {
   int cap = param.asInt();
-  if (cap >= 1 && cap <= 4) {
+  if (cap >= 0 && cap <= 4) {
     dbgPrintf("[Blynk] Convertible Capacity: %d\n", cap);
     sendBlueStarRecord("55", String(cap));
   }
