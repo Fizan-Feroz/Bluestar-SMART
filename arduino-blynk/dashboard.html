@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blue Star Smart AC — Web Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card-bg: rgba(22, 30, 49, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #2563eb;
+      --accent-glow: rgba(37, 99, 235, 0.35);
+      --cool-blue: #0ea5e9;
+      --cool-glow: rgba(14, 165, 233, 0.3);
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+      --warning: #f59e0b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, #0b0f19 75%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container { max-width: 680px; width: 100%; display: flex; flex-direction: column; gap: 16px; }
+    
+    /* Top Bar */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 20px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .logo-area { display: flex; align-items: center; gap: 10px; }
+    .logo-badge {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      font-weight: 800;
+      font-size: 13px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .title { font-size: 17px; font-weight: 700; color: #fff; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+
+    /* Hero Card */
+    .hero-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-card::before {
+      content: '';
+      position: absolute;
+      top: -60px;
+      width: 200px;
+      height: 200px;
+      background: var(--cool-glow);
+      filter: blur(60px);
+      border-radius: 50%;
+      pointer-events: none;
+    }
+    .hero-row { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+    .power-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: #1e293b;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .power-btn svg { width: 28px; height: 28px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+    .power-btn.on {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 25px var(--cool-glow);
+    }
+    .power-btn:hover { transform: scale(1.05); }
+
+    .room-temp-badge {
+      text-align: right;
+    }
+    .room-temp-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+    .room-temp-val { font-size: 26px; font-weight: 800; color: #38bdf8; }
+
+    /* Temp Dial */
+    .temp-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 32px;
+      margin: 8px 0;
+    }
+    .temp-adjust-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-size: 24px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .temp-adjust-btn:hover { background: #334155; transform: scale(1.05); }
+    .temp-display { text-align: center; }
+    .temp-number { font-size: 64px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+    .temp-unit { font-size: 24px; font-weight: 600; color: var(--cool-blue); vertical-align: super; }
+    .temp-subtext { font-size: 13px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+    /* Control Groups */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    /* Segmented Grid / Button Row */
+    .button-group {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(70px, 1fr));
+    }
+    .seg-btn {
+      background: #131c2e;
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      padding: 10px 8px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .seg-btn:hover { background: #1e293b; color: #fff; }
+    .seg-btn.active {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* Toggle Grid */
+    .toggles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .toggle-card {
+      background: #131c2e;
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-card:hover { background: #1e293b; }
+    .toggle-card.active {
+      background: rgba(14, 165, 233, 0.12);
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+    .toggle-info { display: flex; flex-direction: column; gap: 2px; }
+    .toggle-label { font-size: 13px; font-weight: 600; color: #fff; }
+    .toggle-sub { font-size: 11px; color: var(--text-muted); }
+    .toggle-switch {
+      width: 40px;
+      height: 22px;
+      background: #334155;
+      border-radius: 12px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: all 0.2s;
+    }
+    .toggle-card.active .toggle-switch {
+      background: var(--cool-blue);
+    }
+    .toggle-card.active .toggle-switch::after {
+      transform: translateX(18px);
+    }
+
+    /* Diagnostics stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+    }
+    .stat-box {
+      background: #131c2e;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-val { font-size: 16px; font-weight: 700; color: #fff; }
+    .stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+
+    /* Token settings modal */
+    .token-bar {
+      display: flex;
+      gap: 8px;
+      background: #131c2e;
+      padding: 10px 14px;
+      border-radius: 12px;
+      border: 1px solid var(--card-border);
+      font-size: 12px;
+      color: var(--text-muted);
+      align-items: center;
+    }
+    .token-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      outline: none;
+      font-size: 12px;
+    }
+    .token-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 4px 10px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="logo-area">
+      <span class="logo-badge">BLUE STAR</span>
+      <span class="title">Smart AC Control</span>
+    </div>
+    <div class="status-pill" id="connPill">
+      <span class="status-dot"></span>
+      <span id="connText">Connecting...</span>
+    </div>
+  </div>
+
+  <!-- Hero Card: Power, Room Temp, Target Temp -->
+  <div class="hero-card">
+    <div class="hero-row">
+      <button class="power-btn" id="powerBtn" onclick="togglePower()">
+        <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+      </button>
+      <div class="room-temp-badge">
+        <div class="room-temp-label">Room Ambient</div>
+        <div class="room-temp-val" id="roomTempDisplay">--.-°C</div>
+      </div>
+    </div>
+
+    <div class="temp-control">
+      <button class="temp-adjust-btn" onclick="adjustTemp(-0.5)">−</button>
+      <div class="temp-display">
+        <span class="temp-number" id="targetTempDisplay">24.0</span><span class="temp-unit">°C</span>
+        <div class="temp-subtext">Set Temperature</div>
+      </div>
+      <button class="temp-adjust-btn" onclick="adjustTemp(0.5)">+</button>
+    </div>
+  </div>
+
+  <!-- Mode Selector -->
+  <div class="section-card">
+    <div class="section-title">Operation Mode</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="mode1" onclick="setMode(1)">Cool</button>
+      <button class="seg-btn" id="mode2" onclick="setMode(2)">Dry</button>
+      <button class="seg-btn" id="mode3" onclick="setMode(3)">Fan</button>
+      <button class="seg-btn" id="mode4" onclick="setMode(4)">Auto</button>
+    </div>
+  </div>
+
+  <!-- Fan Speed -->
+  <div class="section-card">
+    <div class="section-title">Fan Speed</div>
+    <div class="button-group">
+      <button class="seg-btn" id="fan1" onclick="setFan(1)">Quiet</button>
+      <button class="seg-btn" id="fan2" onclick="setFan(2)">Low</button>
+      <button class="seg-btn" id="fan3" onclick="setFan(3)">Med</button>
+      <button class="seg-btn" id="fan4" onclick="setFan(4)">High</button>
+      <button class="seg-btn" id="fan5" onclick="setFan(5)">Turbo</button>
+      <button class="seg-btn active" id="fan6" onclick="setFan(6)">Auto</button>
+    </div>
+  </div>
+
+  <!-- Airflow & Louvers -->
+  <div class="section-card">
+    <div class="section-title">Airflow & Swing</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="vane0" onclick="setVane(0)">Auto Swing</button>
+      <button class="seg-btn" id="vane1" onclick="setVane(1)">Top</button>
+      <button class="seg-btn" id="vane3" onclick="setVane(3)">Mid</button>
+      <button class="seg-btn" id="vane5" onclick="setVane(5)">Bottom</button>
+      <button class="seg-btn" id="vane6" onclick="setVane(6)">Stop</button>
+    </div>
+    <div style="margin-top: 8px;">
+      <div class="toggle-card" id="cardHSwing" onclick="toggleHSwing()">
+        <div class="toggle-info">
+          <span class="toggle-label">4-Way Horizontal Swing</span>
+          <span class="toggle-sub">Motorized Left-Right Louvers</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Convertible Capacity -->
+  <div class="section-card">
+    <div class="section-title">5-in-1 Convertible Inverter</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="conv1" onclick="setConvertible(1)">100%</button>
+      <button class="seg-btn" id="conv2" onclick="setConvertible(2)">80%</button>
+      <button class="seg-btn" id="conv3" onclick="setConvertible(3)">60%</button>
+      <button class="seg-btn" id="conv4" onclick="setConvertible(4)">40%</button>
+    </div>
+  </div>
+
+  <!-- Smart Features Grid -->
+  <div class="section-card">
+    <div class="section-title">Smart Features</div>
+    <div class="toggles-grid">
+      <div class="toggle-card" id="cardEco" onclick="toggleEco()">
+        <div class="toggle-info">
+          <span class="toggle-label">Eco Mode</span>
+          <span class="toggle-sub">Energy Saver ('E')</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardTurbo" onclick="toggleTurbo()">
+        <div class="toggle-info">
+          <span class="toggle-label">Turbo Cool</span>
+          <span class="toggle-sub">110% Boost ('HC')</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardSleep" onclick="toggleSleep()">
+        <div class="toggle-info">
+          <span class="toggle-label">Comfort Sleep</span>
+          <span class="toggle-sub">+1°C/hr Auto</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card active" id="cardLight" onclick="toggleLight()">
+        <div class="toggle-info">
+          <span class="toggle-label">Display Light</span>
+          <span class="toggle-sub">Indoor Panel LED</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardMute" onclick="toggleMute()">
+        <div class="toggle-info">
+          <span class="toggle-label">Buzzer Mute</span>
+          <span class="toggle-sub">Silent Mode</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardFilter">
+        <div class="toggle-info">
+          <span class="toggle-label">Filter Clean</span>
+          <span class="toggle-sub" id="filterStatusText">Normal Clean</span>
+        </div>
+        <div style="width: 12px; height: 12px; border-radius: 50%; background: #10b981;" id="filterLed"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lifetime Counters -->
+  <div class="section-card">
+    <div class="section-title">Diagnostics & Counters</div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="acHoursVal">0.0</div>
+        <div class="stat-lbl">AC Run Hrs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="compHoursVal">0.0</div>
+        <div class="stat-lbl">Comp Run Hrs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="hwStatusVal">ESP32</div>
+        <div class="stat-lbl">Blynk IoT</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Blynk Token Config Bar -->
+  <div class="token-bar">
+    <span>Token:</span>
+    <input type="password" class="token-input" id="tokenInput" value="tAtwxap4DmpIjAhdRvXul02cPLXwwRGm">
+    <button class="token-btn" onclick="saveToken()">Save</button>
+  </div>
+</div>
+
+<script>
+  let BLYNK_TOKEN = localStorage.getItem("blynk_token") || "tAtwxap4DmpIjAhdRvXul02cPLXwwRGm";
+  document.getElementById("tokenInput").value = BLYNK_TOKEN;
+
+  function saveToken() {
+    BLYNK_TOKEN = document.getElementById("tokenInput").value.trim();
+    localStorage.setItem("blynk_token", BLYNK_TOKEN);
+    pollBlynk();
+  }
+
+  // State
+  let power = 0;
+  let targetTemp = 24.0;
+  let mode = 1;
+  let fan = 6;
+  let vane = 0;
+  let hSwing = 0;
+  let convertible = 1;
+  let eco = 0;
+  let turbo = 0;
+  let sleep = 0;
+  let light = 1;
+  let mute = 0;
+
+  async function updatePin(pin, val) {
+    try {
+      await fetch(`https://blynk.cloud/external/api/update?token=${BLYNK_TOKEN}&${pin}=${val}`);
+    } catch(e) {
+      console.error("API update error", e);
+    }
+  }
+
+  async function getPin(pin) {
+    try {
+      const res = await fetch(`https://blynk.cloud/external/api/get?token=${BLYNK_TOKEN}&${pin}`);
+      return await res.text();
+    } catch(e) {
+      return null;
+    }
+  }
+
+  function togglePower() {
+    power = power === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v0', power);
+  }
+
+  function adjustTemp(delta) {
+    targetTemp = Math.round((targetTemp + delta) * 2) / 2;
+    if (targetTemp < 16.0) targetTemp = 16.0;
+    if (targetTemp > 30.0) targetTemp = 30.0;
+    renderUI();
+    updatePin('v1', targetTemp);
+  }
+
+  function setMode(m) {
+    mode = m;
+    renderUI();
+    updatePin('v2', mode);
+  }
+
+  function setFan(f) {
+    fan = f;
+    renderUI();
+    updatePin('v3', fan);
+  }
+
+  function setVane(v) {
+    vane = v;
+    renderUI();
+    updatePin('v6', vane);
+  }
+
+  function toggleHSwing() {
+    hSwing = hSwing === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v7', hSwing);
+  }
+
+  function setConvertible(c) {
+    convertible = c;
+    renderUI();
+    updatePin('v8', convertible);
+  }
+
+  function toggleEco() {
+    eco = eco === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v9', eco);
+  }
+
+  function toggleTurbo() {
+    turbo = turbo === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v10', turbo);
+  }
+
+  function toggleSleep() {
+    sleep = sleep === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v11', sleep);
+  }
+
+  function toggleLight() {
+    light = light === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v4', light);
+  }
+
+  function toggleMute() {
+    mute = mute === 1 ? 0 : 1;
+    renderUI();
+    updatePin('v15', mute);
+  }
+
+  function renderUI() {
+    // Power
+    const pBtn = document.getElementById("powerBtn");
+    if (power === 1) pBtn.classList.add("on"); else pBtn.classList.remove("on");
+
+    // Target Temp
+    document.getElementById("targetTempDisplay").innerText = targetTemp.toFixed(1);
+
+    // Modes
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`mode${i}`);
+      if (el) el.classList.toggle("active", mode === i);
+    }
+
+    // Fan
+    for (let i = 1; i <= 6; i++) {
+      const el = document.getElementById(`fan${i}`);
+      if (el) el.classList.toggle("active", fan === i);
+    }
+
+    // Vane
+    [0, 1, 3, 5, 6].forEach(v => {
+      const el = document.getElementById(`vane${v}`);
+      if (el) el.classList.toggle("active", vane === v);
+    });
+
+    // Toggles
+    document.getElementById("cardHSwing").classList.toggle("active", hSwing === 1);
+    document.getElementById("cardEco").classList.toggle("active", eco === 1);
+    document.getElementById("cardTurbo").classList.toggle("active", turbo === 1);
+    document.getElementById("cardSleep").classList.toggle("active", sleep === 1);
+    document.getElementById("cardLight").classList.toggle("active", light === 1);
+    document.getElementById("cardMute").classList.toggle("active", mute === 1);
+
+    // Convertible
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`conv${i}`);
+      if (el) el.classList.toggle("active", convertible === i);
+    }
+  }
+
+  // Periodic poll of AC state from Blynk
+  async function pollBlynk() {
+    try {
+      const isOnline = await fetch(`https://blynk.cloud/external/api/isHardwareConnected?token=${BLYNK_TOKEN}`)
+        .then(r => r.json()).catch(() => false);
+
+      const pill = document.getElementById("connPill");
+      const text = document.getElementById("connText");
+      if (isOnline === true || isOnline === "true") {
+        pill.style.background = "rgba(16, 185, 129, 0.15)";
+        pill.style.color = "#10b981";
+        text.innerText = "AC Connected";
+      } else {
+        pill.style.background = "rgba(239, 68, 68, 0.15)";
+        pill.style.color = "#ef4444";
+        text.innerText = "Offline";
+      }
+
+      const p = await getPin('v0'); if (p !== null) power = parseInt(p) || 0;
+      const t = await getPin('v1'); if (t !== null) targetTemp = parseFloat(t) || 24.0;
+      const m = await getPin('v2'); if (m !== null) mode = parseInt(m) || 1;
+      const f = await getPin('v3'); if (f !== null) fan = parseInt(f) || 6;
+      const l = await getPin('v4'); if (l !== null) light = parseInt(l) || 0;
+      const rt = await getPin('v5'); if (rt !== null) document.getElementById("roomTempDisplay").innerText = parseFloat(rt).toFixed(1) + "°C";
+      const vn = await getPin('v6'); if (vn !== null) vane = parseInt(vn) || 0;
+      const hs = await getPin('v7'); if (hs !== null) hSwing = parseInt(hs) || 0;
+      const cv = await getPin('v8'); if (cv !== null) convertible = parseInt(cv) || 1;
+      const ec = await getPin('v9'); if (ec !== null) eco = parseInt(ec) || 0;
+      const tb = await getPin('v10'); if (tb !== null) turbo = parseInt(tb) || 0;
+      const sl = await getPin('v11'); if (sl !== null) sleep = parseInt(sl) || 0;
+      const ah = await getPin('v13'); if (ah !== null) document.getElementById("acHoursVal").innerText = parseFloat(ah).toFixed(1);
+      const ch = await getPin('v14'); if (ch !== null) document.getElementById("compHoursVal").innerText = parseFloat(ch).toFixed(1);
+      const mt = await getPin('v15'); if (mt !== null) mute = parseInt(mt) || 0;
+      const fl = await getPin('v16');
+      if (fl !== null && parseInt(fl) === 1) {
+        document.getElementById("filterLed").style.background = "#ef4444";
+        document.getElementById("filterStatusText").innerText = "FILTER DIRTY (FC)";
+      } else {
+        document.getElementById("filterLed").style.background = "#10b981";
+        document.getElementById("filterStatusText").innerText = "Normal Clean";
+      }
+
+      renderUI();
+    } catch(err) {
+      console.log("Polling error:", err);
+    }
+  }
+
+  renderUI();
+  pollBlynk();
+  setInterval(pollBlynk, 3000); // Poll every 3 seconds
+</script>
+
+</body>
+</html>
