@@ -82,18 +82,43 @@ bool filterAlert = false;
 float roomTemp = 0.0;
 float acRunHours = 0.0;
 float compRunHours = 0.0;
+long compressorHz = 0;
+float coilTemp = 0.0;
 
 uint32_t lastTxTime = 0;
 uint32_t lastRxByteTime = 0;
 uint32_t lastValidFrameTime = 0;
 uint32_t lastMqttPublishTime = 0;
 uint32_t lastHeartbeatTime = 0;
+uint32_t lastMqttReconnectTime = 0;
 
 std::vector<uint8_t> rxBuffer;
 std::deque<std::vector<uint8_t>> txQueue;
 
 WiFiClientSecure espClient;
 PubSubClient mqttClient(espClient);
+WiFiServer telnetServer(23);
+WiFiClient telnetClient;
+
+void dbgPrint(const String &str) {
+  Serial.print(str);
+  if (telnetClient && telnetClient.connected()) {
+    telnetClient.print(str);
+  }
+}
+
+void dbgPrintf(const char *format, ...) {
+  char buf[256];
+  va_list args;
+  va_start(args, format);
+  vsnprintf(buf, sizeof(buf), format, args);
+  va_end(args);
+  dbgPrint(buf);
+}
+
+void dbgPrintln(const String &str = "") {
+  dbgPrint(str + "\n");
+}
 
 // ==================== 4. CRC-16 / MODBUS ====================
 uint16_t crc16_modbus(const char *data, size_t len) {
@@ -193,13 +218,15 @@ void publishState() {
   doc["light"]        = displayLight ? 1 : 0;
   doc["mute"]         = buzzerMute ? 1 : 0;
   doc["filterAlert"]  = filterAlert ? 1 : 0;
+  doc["compHz"]       = acPower ? compressorHz : 0;
+  doc["coilTemp"]     = serialized(String(coilTemp, 1));
   doc["acHours"]      = serialized(String(acRunHours, 1));
   doc["compHours"]    = serialized(String(compRunHours, 1));
   doc["online"]       = true;
 
   char buffer[512];
   size_t n = serializeJson(doc, buffer);
-  mqttClient.publish(TOPIC_STATUS, buffer, n, true); // Retain flag true
+  mqttClient.publish(TOPIC_STATUS, (const uint8_t*)buffer, n, true); // Retain flag true
   lastMqttPublishTime = millis();
 }
 
@@ -254,6 +281,17 @@ void handleBlueStarKey(const String &key, const String &value) {
   }
   else if (key == "58") {
     buzzerMute = (value == "1");
+    stateChanged = true;
+  }
+  else if (key == "24") { // Compressor Inverter Speed (Hz)
+    if (value.length() >= 2) {
+      compressorHz = strtol(value.substring(0, 2).c_str(), nullptr, 16);
+      stateChanged = true;
+    }
+  }
+  else if (key == "62") { // Coil Temperature
+    long raw = strtol(value.c_str(), nullptr, 16);
+    coilTemp = raw / 10.0f;
     stateChanged = true;
   }
   else if (key == "44") {
@@ -506,20 +544,56 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   publishState();
 }
 
-// ==================== 6. MQTT CONNECT & LOOP ====================
-void connectMqtt() {
-  while (!mqttClient.connected()) {
-    Serial.print("[MQTT] Connecting to Adafruit IO...");
+// ==================== 6. NON-BLOCKING MQTT CONNECT ====================
+void checkMqtt() {
+  if (mqttClient.connected()) return;
+  
+  uint32_t now = millis();
+  if (now - lastMqttReconnectTime > 5000) {
+    lastMqttReconnectTime = now;
+    dbgPrint("[MQTT] Connecting to Adafruit IO... ");
     String clientId = "BlueStarAC-" + String(random(0xffff), HEX);
     
     if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
-      Serial.println(" Connected to Adafruit IO!");
+      dbgPrintln("Connected!");
       mqttClient.subscribe(TOPIC_SET);
       sendHandshake();
       publishState();
     } else {
-      Serial.printf(" Failed, rc=%d. Retrying in 5 seconds...\n", mqttClient.state());
-      delay(5000);
+      dbgPrintf("Failed (rc=%d), will retry in background...\n", mqttClient.state());
+    }
+  }
+}
+
+// Process Telnet Live Console
+void processTelnet() {
+  if (telnetServer.hasClient()) {
+    if (!telnetClient || !telnetClient.connected()) {
+      if (telnetClient) telnetClient.stop();
+      telnetClient = telnetServer.available();
+      telnetClient.println("\n=== Blue Star AC MQTT Console (Port 23) ===");
+      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [r]eboot ESP");
+    } else {
+      WiFiClient rejectClient = telnetServer.available();
+      rejectClient.stop();
+    }
+  }
+
+  while (telnetClient && telnetClient.available()) {
+    char c = telnetClient.read();
+    if (c == 'r' || c == 'R') {
+      telnetClient.println("\n[CMD] Rebooting ESP32...");
+      ESP.restart();
+    } else if (c == 'h' || c == 'H') {
+      telnetClient.println("\n[CMD] Re-running Handshake...");
+      sendHandshake();
+    } else if (c == 's' || c == 'S') {
+      telnetClient.println("\n[CMD] Sending Heartbeat...");
+      queueTuyaFrame(CMD_HEARTBEAT);
+    } else if (c == 'q' || c == 'Q') {
+      telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 62)...");
+      sendBlueStarRecord("24", "0");
+      sendBlueStarRecord("62", "0");
     }
   }
 }
@@ -528,7 +602,10 @@ void connectMqtt() {
 void setup() {
   Serial.begin(115200);
   delay(500);
-  Serial.println("\n--- Blue Star Smart AC (HiveMQ Cloud Edition) ---");
+  Serial.println("\n--- Blue Star Smart AC (HiveMQ / Adafruit IO Edition) ---");
+
+  // Set GPIO 17 drive capability to 40mA (GPIO_DRIVE_CAP_3) for strong signaling
+  gpio_set_drive_capability((gpio_num_t)AC_TX_PIN, GPIO_DRIVE_CAP_3);
 
   acSerial.begin(9600, SERIAL_8N1, AC_RX_PIN, AC_TX_PIN);
 
@@ -541,13 +618,17 @@ void setup() {
   }
   Serial.println(" Connected! IP: " + WiFi.localIP().toString());
 
+  // Setup Telnet Server
+  telnetServer.begin();
+  telnetServer.setNoDelay(true);
+
   // Setup TLS: setInsecure skips root cert checking for light RAM footprint
   espClient.setInsecure();
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(onMqttMessage);
   mqttClient.setBufferSize(512);
 
-  // OTA Setup
+  // OTA Setup for Wireless Updates
   ArduinoOTA.setHostname("bluestar-ac");
   ArduinoOTA.begin();
 
@@ -557,13 +638,14 @@ void setup() {
 void loop() {
   ArduinoOTA.handle();
 
-  if (!mqttClient.connected()) {
-    connectMqtt();
+  checkMqtt();
+  if (mqttClient.connected()) {
+    mqttClient.loop();
   }
-  mqttClient.loop();
 
   processIncomingSerial();
   processTxQueue();
+  processTelnet();
 
   // Heartbeat every 15 seconds
   if (millis() - lastHeartbeatTime >= 15000) {
