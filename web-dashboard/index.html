@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Blue Star Smart AC</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(20, 27, 45, 0.85);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --accent: #0284c7;
+      --accent-glow: rgba(2, 132, 199, 0.4);
+      --cool-blue: #38bdf8;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --success: #10b981;
+      --danger: #ef4444;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; -webkit-tap-highlight-color: transparent; }
+    body {
+      background: radial-gradient(circle at 50% 0%, #1e293b 0%, #090d16 80%);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px 16px 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .container { max-width: 600px; width: 100%; display: flex; flex-direction: column; gap: 14px; }
+    
+    /* Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 14px 18px;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+    }
+    .brand { display: flex; align-items: center; gap: 10px; }
+    .badge {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      font-weight: 800;
+      font-size: 11px;
+      padding: 4px 8px;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+    .brand-title { font-size: 16px; font-weight: 700; color: #fff; }
+    .header-actions { display: flex; align-items: center; gap: 8px; }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      transition: all 0.3s;
+    }
+    .status-pill.online {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+    .settings-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--card-border);
+      color: var(--text-muted);
+      border-radius: 10px;
+      width: 32px;
+      height: 32px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+    .settings-btn:hover { color: #fff; background: rgba(255, 255, 255, 0.1); }
+    .settings-btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+    /* Hero Card */
+    .hero-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 24px;
+      padding: 24px 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 18px;
+      position: relative;
+      overflow: hidden;
+    }
+    .hero-row { display: flex; width: 100%; justify-content: space-between; align-items: center; }
+    .power-btn {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      background: #1e293b;
+      color: var(--text-muted);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.25s ease;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .power-btn svg { width: 26px; height: 26px; stroke: currentColor; fill: none; stroke-width: 2.2; }
+    .power-btn.on {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 0 25px var(--accent-glow);
+    }
+    .room-temp-badge { text-align: right; }
+    .room-temp-label { font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600; letter-spacing: 0.5px; }
+    .room-temp-val { font-size: 26px; font-weight: 800; color: #38bdf8; }
+
+    /* Temp Dial */
+    .temp-control {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 28px;
+    }
+    .temp-adjust-btn {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      font-size: 22px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .temp-adjust-btn:active { transform: scale(0.92); }
+    .temp-display { text-align: center; }
+    .temp-number { font-size: 60px; font-weight: 800; line-height: 1; letter-spacing: -2px; }
+    .temp-unit { font-size: 22px; font-weight: 600; color: var(--cool-blue); vertical-align: super; }
+    .temp-subtext { font-size: 12px; color: var(--text-muted); margin-top: 4px; font-weight: 500; }
+
+    /* Section Cards */
+    .section-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 18px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .section-title {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: var(--text-muted);
+    }
+    .button-group {
+      display: grid;
+      gap: 8px;
+      grid-template-columns: repeat(auto-fit, minmax(65px, 1fr));
+    }
+    .seg-btn {
+      background: #121a2d;
+      border: 1px solid var(--card-border);
+      color: #cbd5e1;
+      padding: 10px 6px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    .seg-btn:active { transform: scale(0.95); }
+    .seg-btn.active {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border-color: #38bdf8;
+      box-shadow: 0 4px 12px var(--accent-glow);
+    }
+
+    /* Toggles Grid */
+    .toggles-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    .toggle-card {
+      background: #121a2d;
+      border: 1px solid var(--card-border);
+      padding: 12px 14px;
+      border-radius: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .toggle-card.active {
+      background: rgba(14, 165, 233, 0.12);
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+    .toggle-label { font-size: 13px; font-weight: 600; color: #fff; display: block; }
+    .toggle-sub { font-size: 11px; color: var(--text-muted); display: block; }
+    .toggle-switch {
+      width: 38px;
+      height: 22px;
+      background: #334155;
+      border-radius: 12px;
+      position: relative;
+      transition: all 0.2s;
+    }
+    .toggle-switch::after {
+      content: '';
+      position: absolute;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      top: 3px;
+      left: 3px;
+      transition: all 0.2s;
+    }
+    .toggle-card.active .toggle-switch { background: var(--cool-blue); }
+    .toggle-card.active .toggle-switch::after { transform: translateX(16px); }
+
+    /* Diagnostics stats */
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+    }
+    .stat-box {
+      background: #121a2d;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 10px;
+      text-align: center;
+    }
+    .stat-val { font-size: 15px; font-weight: 700; color: #fff; }
+    .stat-lbl { font-size: 10px; color: var(--text-muted); text-transform: uppercase; margin-top: 2px; }
+
+    /* Settings Modal */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      z-index: 100;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: auto; }
+    .modal-box {
+      background: #121a2d;
+      border: 1px solid var(--card-border);
+      border-radius: 20px;
+      max-width: 440px;
+      width: 100%;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+    .modal-title { font-size: 18px; font-weight: 700; color: #fff; }
+    .input-group { display: flex; flex-direction: column; gap: 6px; }
+    .input-label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    .input-field {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      color: #fff;
+      padding: 10px 12px;
+      border-radius: 10px;
+      font-size: 13px;
+      outline: none;
+    }
+    .input-field:focus { border-color: var(--cool-blue); }
+    .modal-buttons { display: flex; gap: 10px; margin-top: 6px; }
+    .btn-primary {
+      flex: 1;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      color: #fff;
+      border: none;
+      padding: 10px;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 13px;
+      cursor: pointer;
+    }
+    .btn-secondary {
+      background: #1e293b;
+      color: #cbd5e1;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <div class="brand">
+      <span class="badge">BLUE STAR</span>
+      <span class="brand-title">Smart AC</span>
+    </div>
+    <div class="header-actions">
+      <div class="status-pill" id="connPill">
+        <span class="status-dot"></span>
+        <span id="connText">Disconnected</span>
+      </div>
+      <button class="settings-btn" onclick="openSettings()" title="Broker Settings">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.44.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Hero Card -->
+  <div class="hero-card">
+    <div class="hero-row">
+      <button class="power-btn" id="powerBtn" onclick="togglePower()">
+        <svg viewBox="0 0 24 24"><path d="M18.36 6.64a9 9 0 1 1-12.73 0M12 2v10"/></svg>
+      </button>
+      <div class="room-temp-badge">
+        <div class="room-temp-label">Room Ambient</div>
+        <div class="room-temp-val" id="roomTempDisplay">--.-°C</div>
+      </div>
+    </div>
+
+    <div class="temp-control">
+      <button class="temp-adjust-btn" onclick="adjustTemp(-0.5)">−</button>
+      <div class="temp-display">
+        <span class="temp-number" id="targetTempDisplay">24.0</span><span class="temp-unit">°C</span>
+        <div class="temp-subtext">Set Temperature</div>
+      </div>
+      <button class="temp-adjust-btn" onclick="adjustTemp(0.5)">+</button>
+    </div>
+  </div>
+
+  <!-- Mode Selector -->
+  <div class="section-card">
+    <div class="section-title">Operation Mode</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="mode1" onclick="setMode(1)">Cool</button>
+      <button class="seg-btn" id="mode2" onclick="setMode(2)">Dry</button>
+      <button class="seg-btn" id="mode3" onclick="setMode(3)">Fan</button>
+      <button class="seg-btn" id="mode4" onclick="setMode(4)">Auto</button>
+    </div>
+  </div>
+
+  <!-- Fan Speed -->
+  <div class="section-card">
+    <div class="section-title">Fan Speed</div>
+    <div class="button-group">
+      <button class="seg-btn" id="fan1" onclick="setFan(1)">Quiet</button>
+      <button class="seg-btn" id="fan2" onclick="setFan(2)">Low</button>
+      <button class="seg-btn" id="fan3" onclick="setFan(3)">Med</button>
+      <button class="seg-btn" id="fan4" onclick="setFan(4)">High</button>
+      <button class="seg-btn" id="fan5" onclick="setFan(5)">Turbo</button>
+      <button class="seg-btn active" id="fan6" onclick="setFan(6)">Auto</button>
+    </div>
+  </div>
+
+  <!-- Airflow & Louvers -->
+  <div class="section-card">
+    <div class="section-title">Airflow & Swing</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="vane0" onclick="setVane(0)">Auto Swing</button>
+      <button class="seg-btn" id="vane1" onclick="setVane(1)">Top</button>
+      <button class="seg-btn" id="vane3" onclick="setVane(3)">Mid</button>
+      <button class="seg-btn" id="vane5" onclick="setVane(5)">Bottom</button>
+      <button class="seg-btn" id="vane6" onclick="setVane(6)">Stop</button>
+    </div>
+    <div style="margin-top: 6px;">
+      <div class="toggle-card" id="cardHSwing" onclick="toggleHSwing()">
+        <div>
+          <span class="toggle-label">4-Way Horizontal Swing</span>
+          <span class="toggle-sub">Left-Right Louver Oscillation</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5-in-1 Convertible -->
+  <div class="section-card">
+    <div class="section-title">5-in-1 Convertible Inverter</div>
+    <div class="button-group">
+      <button class="seg-btn active" id="conv1" onclick="setConvertible(1)">100%</button>
+      <button class="seg-btn" id="conv2" onclick="setConvertible(2)">80%</button>
+      <button class="seg-btn" id="conv3" onclick="setConvertible(3)">60%</button>
+      <button class="seg-btn" id="conv4" onclick="setConvertible(4)">40%</button>
+    </div>
+  </div>
+
+  <!-- Smart Features -->
+  <div class="section-card">
+    <div class="section-title">Smart Features</div>
+    <div class="toggles-grid">
+      <div class="toggle-card" id="cardEco" onclick="toggleEco()">
+        <div>
+          <span class="toggle-label">Eco Mode</span>
+          <span class="toggle-sub">Energy Saver ('E')</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardTurbo" onclick="toggleTurbo()">
+        <div>
+          <span class="toggle-label">Turbo Cool</span>
+          <span class="toggle-sub">110% Boost ('HC')</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardSleep" onclick="toggleSleep()">
+        <div>
+          <span class="toggle-label">Comfort Sleep</span>
+          <span class="toggle-sub">+1°C/hr Auto</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card active" id="cardLight" onclick="toggleLight()">
+        <div>
+          <span class="toggle-label">Display Light</span>
+          <span class="toggle-sub">Panel LED</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardMute" onclick="toggleMute()">
+        <div>
+          <span class="toggle-label">Buzzer Mute</span>
+          <span class="toggle-sub">Silent Mode</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
+      <div class="toggle-card" id="cardFilter">
+        <div>
+          <span class="toggle-label">Filter Status</span>
+          <span class="toggle-sub" id="filterStatusText">Clean</span>
+        </div>
+        <div style="width: 10px; height: 10px; border-radius: 50%; background: #10b981;" id="filterLed"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagnostics -->
+  <div class="section-card">
+    <div class="section-title">Diagnostics & Counters</div>
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-val" id="acHoursVal">0.0</div>
+        <div class="stat-lbl">AC Run Hrs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="compHoursVal">0.0</div>
+        <div class="stat-lbl">Comp Run Hrs</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-val" id="espStatusVal">Online</div>
+        <div class="stat-lbl">ESP32</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal for HiveMQ Broker Credentials -->
+<div class="modal-overlay" id="settingsModal">
+  <div class="modal-box">
+    <div class="modal-title">Cloud MQTT Settings</div>
+    <div class="input-group">
+      <label class="input-label">WebSocket Host (Cluster URL)</label>
+      <input type="text" class="input-field" id="cfgHost" placeholder="xxxxxxxx.emqxsl.com or hivemq.cloud">
+    </div>
+    <div class="input-group">
+      <label class="input-label">WebSocket Port (WSS: 8084 for EMQX, 8884 for HiveMQ)</label>
+      <input type="number" class="input-field" id="cfgPort" value="8084">
+    </div>
+    <div class="input-group">
+      <label class="input-label">MQTT Username</label>
+      <input type="text" class="input-field" id="cfgUser" placeholder="Username">
+    </div>
+    <div class="input-group">
+      <label class="input-label">MQTT Password</label>
+      <input type="password" class="input-field" id="cfgPass" placeholder="Password">
+    </div>
+    <div class="modal-buttons">
+      <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
+      <button class="btn-primary" onclick="saveSettings()">Save & Connect</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // MQTT Config from LocalStorage
+  let mqttConfig = JSON.parse(localStorage.getItem("bluestar_mqtt_cfg")) || {
+    host: "",
+    port: 8084,
+    username: "",
+    password: ""
+  };
+
+  let client = null;
+
+  // AC State
+  let state = {
+    power: 0,
+    targetTemp: 24.0,
+    roomTemp: 0.0,
+    mode: 1,
+    fan: 6,
+    vane: 0,
+    hSwing: 0,
+    convertible: 1,
+    eco: 0,
+    turbo: 0,
+    sleep: 0,
+    light: 1,
+    mute: 0,
+    filterAlert: 0,
+    acHours: 0.0,
+    compHours: 0.0
+  };
+
+  function initMqtt() {
+    if (!mqttConfig.host) {
+      openSettings();
+      return;
+    }
+
+    const pill = document.getElementById("connPill");
+    const text = document.getElementById("connText");
+    text.innerText = "Connecting...";
+
+    const url = `wss://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
+    const options = {
+      clientId: "VercelACWeb-" + Math.random().toString(16).substr(2, 8),
+      username: mqttConfig.username,
+      password: mqttConfig.password,
+      clean: true,
+      reconnectPeriod: 4000
+    };
+
+    client = mqtt.connect(url, options);
+
+    client.on("connect", () => {
+      pill.classList.add("online");
+      text.innerText = "Cloud Online";
+      client.subscribe("bluestar/ac/status");
+      client.subscribe("bluestar/ac/lwt");
+    });
+
+    client.on("close", () => {
+      pill.classList.remove("online");
+      text.innerText = "Offline";
+    });
+
+    client.on("error", (err) => {
+      console.error("MQTT Error:", err);
+      text.innerText = "Auth Error";
+    });
+
+    client.on("message", (topic, payload) => {
+      try {
+        const msg = payload.toString();
+        if (topic === "bluestar/ac/lwt") {
+          document.getElementById("espStatusVal").innerText = msg === "online" ? "Online" : "Offline";
+          return;
+        }
+        if (topic === "bluestar/ac/status") {
+          const data = JSON.parse(msg);
+          Object.assign(state, data);
+          renderUI();
+        }
+      } catch(e) {
+        console.error("Parse error:", e);
+      }
+    });
+  }
+
+  function sendCommand(obj) {
+    if (client && client.connected) {
+      client.publish("bluestar/ac/set", JSON.stringify(obj), { qos: 1 });
+    }
+  }
+
+  function togglePower() {
+    state.power = state.power === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ power: state.power });
+  }
+
+  function adjustTemp(delta) {
+    state.targetTemp = Math.round((state.targetTemp + delta) * 2) / 2;
+    if (state.targetTemp < 16.0) state.targetTemp = 16.0;
+    if (state.targetTemp > 30.0) state.targetTemp = 30.0;
+    renderUI();
+    sendCommand({ targetTemp: state.targetTemp });
+  }
+
+  function setMode(m) {
+    state.mode = m;
+    renderUI();
+    sendCommand({ mode: state.mode });
+  }
+
+  function setFan(f) {
+    state.fan = f;
+    renderUI();
+    sendCommand({ fan: state.fan });
+  }
+
+  function setVane(v) {
+    state.vane = v;
+    renderUI();
+    sendCommand({ vane: state.vane });
+  }
+
+  function toggleHSwing() {
+    state.hSwing = state.hSwing === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ hSwing: state.hSwing });
+  }
+
+  function setConvertible(c) {
+    state.convertible = c;
+    renderUI();
+    sendCommand({ convertible: state.convertible });
+  }
+
+  function toggleEco() {
+    state.eco = state.eco === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ eco: state.eco });
+  }
+
+  function toggleTurbo() {
+    state.turbo = state.turbo === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ turbo: state.turbo });
+  }
+
+  function toggleSleep() {
+    state.sleep = state.sleep === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ sleep: state.sleep });
+  }
+
+  function toggleLight() {
+    state.light = state.light === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ light: state.light });
+  }
+
+  function toggleMute() {
+    state.mute = state.mute === 1 ? 0 : 1;
+    renderUI();
+    sendCommand({ mute: state.mute });
+  }
+
+  function renderUI() {
+    const pBtn = document.getElementById("powerBtn");
+    if (state.power === 1) pBtn.classList.add("on"); else pBtn.classList.remove("on");
+
+    document.getElementById("targetTempDisplay").innerText = parseFloat(state.targetTemp).toFixed(1);
+    document.getElementById("roomTempDisplay").innerText = (state.roomTemp > 0 ? parseFloat(state.roomTemp).toFixed(1) : "--.-") + "°C";
+
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`mode${i}`);
+      if (el) el.classList.toggle("active", state.mode === i);
+    }
+
+    for (let i = 1; i <= 6; i++) {
+      const el = document.getElementById(`fan${i}`);
+      if (el) el.classList.toggle("active", state.fan === i);
+    }
+
+    [0, 1, 3, 5, 6].forEach(v => {
+      const el = document.getElementById(`vane${v}`);
+      if (el) el.classList.toggle("active", state.vane === v);
+    });
+
+    document.getElementById("cardHSwing").classList.toggle("active", state.hSwing === 1);
+    document.getElementById("cardEco").classList.toggle("active", state.eco === 1);
+    document.getElementById("cardTurbo").classList.toggle("active", state.turbo === 1);
+    document.getElementById("cardSleep").classList.toggle("active", state.sleep === 1);
+    document.getElementById("cardLight").classList.toggle("active", state.light === 1);
+    document.getElementById("cardMute").classList.toggle("active", state.mute === 1);
+
+    for (let i = 1; i <= 4; i++) {
+      const el = document.getElementById(`conv${i}`);
+      if (el) el.classList.toggle("active", state.convertible === i);
+    }
+
+    document.getElementById("acHoursVal").innerText = parseFloat(state.acHours || 0).toFixed(1);
+    document.getElementById("compHoursVal").innerText = parseFloat(state.compHours || 0).toFixed(1);
+
+    const fLed = document.getElementById("filterLed");
+    const fTxt = document.getElementById("filterStatusText");
+    if (state.filterAlert === 1) {
+      fLed.style.background = "#ef4444";
+      fTxt.innerText = "CLEAN (FC)";
+    } else {
+      fLed.style.background = "#10b981";
+      fTxt.innerText = "Clean";
+    }
+  }
+
+  function openSettings() {
+    document.getElementById("cfgHost").value = mqttConfig.host || "";
+    document.getElementById("cfgPort").value = mqttConfig.port || 8884;
+    document.getElementById("cfgUser").value = mqttConfig.username || "";
+    document.getElementById("cfgPass").value = mqttConfig.password || "";
+    document.getElementById("settingsModal").classList.add("open");
+  }
+
+  function closeSettings() {
+    document.getElementById("settingsModal").classList.remove("open");
+  }
+
+  function saveSettings() {
+    mqttConfig.host = document.getElementById("cfgHost").value.trim();
+    mqttConfig.port = parseInt(document.getElementById("cfgPort").value) || 8884;
+    mqttConfig.username = document.getElementById("cfgUser").value.trim();
+    mqttConfig.password = document.getElementById("cfgPass").value.trim();
+    localStorage.setItem("bluestar_mqtt_cfg", JSON.stringify(mqttConfig));
+    closeSettings();
+    if (client) client.end(true);
+    initMqtt();
+  }
+
+  renderUI();
+  initMqtt();
+</script>
+
+</body>
+</html>
