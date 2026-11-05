@@ -650,7 +650,6 @@ void setup() {
 
   // Initialize UART2 for Blue Star AC
   acSerial.begin(9600, SERIAL_8N1, AC_RX_PIN, AC_TX_PIN);
-  pinMode(AC_RX_PIN, INPUT_PULLUP);
 
   
   // Connect to Wi-Fi and Blynk
