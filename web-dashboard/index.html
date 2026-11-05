@@ -614,15 +614,15 @@
         <circle class="dial-progress" id="dialBar" cx="120" cy="120" r="95"></circle>
       </svg>
       <div class="dial-center">
-        <div class="temp-readout"><span id="targetTempNum">24.0</span><span class="temp-degree">°</span></div>
+        <div class="temp-readout"><span id="targetTempNum">24</span><span class="temp-degree">°</span></div>
         <div class="climate-delta" id="climateDeltaStatus">Unit Standby</div>
       </div>
     </div>
 
-    <!-- Stepper Buttons -->
+    <!-- Stepper Buttons (1-Degree Increments) -->
     <div class="stepper-row">
-      <button class="step-btn" onclick="stepTemp(-0.5)" aria-label="Decrease Target Temperature">−</button>
-      <button class="step-btn" onclick="stepTemp(0.5)" aria-label="Increase Target Temperature">+</button>
+      <button class="step-btn" onclick="stepTemp(-1)" aria-label="Decrease Target Temperature">−</button>
+      <button class="step-btn" onclick="stepTemp(1)" aria-label="Increase Target Temperature">+</button>
     </div>
   </section>
 
@@ -853,7 +853,7 @@
   // Active AC state
   let state = {
     power: 0,
-    targetTemp: 24.0,
+    targetTemp: 24,
     roomTemp: 0.0,
     mode: 1,
     fan: 6,
@@ -912,7 +912,12 @@
           const msg = payload.toString();
           if (topic.includes("bluestar-ac-status")) {
             const data = JSON.parse(msg);
-            Object.assign(state, data);
+            // Protect locally pending changes from being overwritten by old broker echoes
+            for (let k in data) {
+              if (!(k in pendingBuffer)) {
+                state[k] = data[k];
+              }
+            }
             renderUI();
           }
         } catch(e) {
@@ -924,24 +929,60 @@
     }
   }
 
-  function dispatchCommand(obj) {
+  // Command Buffering & Anti-Thrashing Engine
+  let pendingBuffer = {};
+  let bufferTimer = null;
+  const BUFFER_DELAY_MS = 350; // Collapses multiple rapid changes into a single atomic transmission
+
+  function dispatchCommand(obj, immediate = false) {
     triggerHaptic();
+    Object.assign(pendingBuffer, obj);
+
+    // Visual feedback on navbar
+    const label = document.getElementById("connText");
+    const badge = document.getElementById("connBadge");
+    if (badge && badge.classList.contains("active") && label) {
+      label.innerText = "Syncing...";
+    }
+
+    if (bufferTimer) {
+      clearTimeout(bufferTimer);
+      bufferTimer = null;
+    }
+
+    if (immediate) {
+      flushCommandBuffer();
+    } else {
+      bufferTimer = setTimeout(flushCommandBuffer, BUFFER_DELAY_MS);
+    }
+  }
+
+  function flushCommandBuffer() {
+    if (Object.keys(pendingBuffer).length === 0) return;
     if (client && client.connected) {
       const setTopic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
-      client.publish(setTopic, JSON.stringify(obj), { qos: 1 });
+      const payload = JSON.stringify(pendingBuffer);
+      client.publish(setTopic, payload, { qos: 0 });
+      console.log("[MQTT TX Buffered]", payload);
+      pendingBuffer = {};
+
+      const label = document.getElementById("connText");
+      if (label && client.connected) {
+        label.innerText = "Connected";
+      }
     }
   }
 
   function togglePower() {
     state.power = state.power === 1 ? 0 : 1;
     renderUI();
-    dispatchCommand({ power: state.power });
+    dispatchCommand({ power: state.power }, true); // Power toggle flushes immediately
   }
 
   function stepTemp(delta) {
-    state.targetTemp = Math.round((state.targetTemp + delta) * 2) / 2;
-    if (state.targetTemp < 16.0) state.targetTemp = 16.0;
-    if (state.targetTemp > 30.0) state.targetTemp = 30.0;
+    state.targetTemp = Math.round(state.targetTemp + delta);
+    if (state.targetTemp < 16) state.targetTemp = 16;
+    if (state.targetTemp > 30) state.targetTemp = 30;
     renderUI();
     dispatchCommand({ targetTemp: state.targetTemp });
   }
@@ -1033,8 +1074,8 @@
       deltaStatus.innerText = "Unit Standby";
     }
 
-    // Target Temperature Readout
-    document.getElementById("targetTempNum").innerText = parseFloat(state.targetTemp).toFixed(1);
+    // Target Temperature Readout (Whole numbers: 24, 25, 26, 27)
+    document.getElementById("targetTempNum").innerText = Math.round(state.targetTemp);
 
     // SVG Dial Arc Animation (Range 16°C to 30°C = 14°C span)
     const normalized = Math.max(0, Math.min(1, (state.targetTemp - 16.0) / 14.0));

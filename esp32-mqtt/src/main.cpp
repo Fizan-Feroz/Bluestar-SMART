@@ -91,6 +91,8 @@ uint32_t lastValidFrameTime = 0;
 uint32_t lastMqttPublishTime = 0;
 uint32_t lastHeartbeatTime = 0;
 uint32_t lastMqttReconnectTime = 0;
+bool pendingMqttPublish = false;
+static const uint32_t MQTT_PUBLISH_INTERVAL_MS = 1000;
 
 std::vector<uint8_t> rxBuffer;
 std::deque<std::vector<uint8_t>> txQueue;
@@ -143,6 +145,9 @@ void queueTuyaFrame(uint8_t cmd, const std::vector<uint8_t> &payload = {}) {
   uint8_t sum = 0;
   for (uint8_t b : frame) sum += b;
   frame.push_back(sum);
+  if (txQueue.size() >= 20) {
+    txQueue.pop_front();
+  }
   txQueue.push_back(std::move(frame));
 }
 
@@ -182,13 +187,28 @@ void sendHandshake() {
   sendBlueStarRecord("00", "0"); // Query full state
 }
 
+// Hash function for PIN verification
+uint32_t hashPin(const char* p) {
+  uint32_t h = 5381;
+  while (*p) {
+    h = ((h << 5) + h) + (unsigned char)(*p++);
+  }
+  return h;
+}
+
 // Publish AC state to HiveMQ as JSON
-void publishState() {
+void publishState(bool force = false) {
   if (!mqttClient.connected()) return;
+
+  uint32_t now = millis();
+  if (!force && (now - lastMqttPublishTime < MQTT_PUBLISH_INTERVAL_MS)) {
+    pendingMqttPublish = true;
+    return;
+  }
 
   JsonDocument doc;
   doc["power"]        = acPower ? 1 : 0;
-  doc["targetTemp"]   = serialized(String(targetTemp, 1));
+  doc["targetTemp"]   = (int)round(targetTemp);
   doc["roomTemp"]     = serialized(String(roomTemp, 1));
   
   // Mode mapping: 1=Cool, 2=Dry, 3=Fan, 4=Auto
@@ -223,12 +243,16 @@ void publishState() {
   doc["acHours"]      = serialized(String(acRunHours, 1));
   doc["compHours"]    = serialized(String(compRunHours, 1));
   doc["online"]       = true;
+  #ifdef DEVICE_PIN
+  doc["pinHash"]      = hashPin(DEVICE_PIN);
+  #endif
 
   char buffer[512];
   size_t n = serializeJson(doc, buffer);
   mqttClient.publish(TOPIC_STATUS, (const uint8_t*)buffer, n, true); // Retain flag true
   dbgPrintf("[MQTT TX] Published State: %s\n", buffer);
   lastMqttPublishTime = millis();
+  pendingMqttPublish = false;
 }
 
 // Process incoming AC records
@@ -422,11 +446,16 @@ void processIncomingSerial() {
 
 // Serial Transmitter
 void processTxQueue() {
-  if (!txQueue.empty() && millis() - lastTxTime >= TX_SPACING_MS && rxBuffer.empty()) {
+  if (!txQueue.empty() && millis() - lastTxTime >= TX_SPACING_MS) {
     auto &frame = txQueue.front();
     acSerial.write(frame.data(), frame.size());
     acSerial.flush();
     lastTxTime = millis();
+    dbgPrint("[AC RAW TX] ");
+    for (uint8_t b : frame) {
+      dbgPrintf("%02X ", b);
+    }
+    dbgPrintln();
     txQueue.pop_front();
   }
 }
@@ -445,6 +474,15 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   DeserializationError err = deserializeJson(doc, jsonBuf);
   if (err) return;
 
+  // Security: Verify Device PIN stored on device
+  #ifdef DEVICE_PIN
+  if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != DEVICE_PIN) {
+    Serial.println("[SECURITY] Unauthorized command rejected (incorrect or missing PIN)!");
+    dbgPrintln("[SECURITY] Unauthorized command rejected (incorrect or missing PIN)!");
+    return;
+  }
+  #endif
+
   // Power
   if (doc.containsKey("power")) {
     int p = doc["power"];
@@ -452,13 +490,13 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     sendBlueStarRecord("01", acPower ? "1" : "0");
   }
 
-  // Target Temperature
+  // Target Temperature (1-degree increments, 16C - 30C)
   if (doc.containsKey("targetTemp")) {
     float t = doc["targetTemp"];
-    if (t < 16.0) t = 16.0;
-    if (t > 30.0) t = 30.0;
-    targetTemp = t;
-    int val = (int)(t * 10 + 0.5);
+    targetTemp = round(t);
+    if (targetTemp < 16.0) targetTemp = 16.0;
+    if (targetTemp > 30.0) targetTemp = 30.0;
+    int val = (int)(targetTemp * 10 + 0.5);
     char buf[4];
     snprintf(buf, sizeof(buf), "%03X", val);
     sendBlueStarRecord("02", String(buf));
@@ -659,6 +697,11 @@ void loop() {
   processIncomingSerial();
   processTxQueue();
   processTelnet();
+
+  // Rate-limited status publisher
+  if (pendingMqttPublish && millis() - lastMqttPublishTime >= MQTT_PUBLISH_INTERVAL_MS) {
+    publishState();
+  }
 
   // Heartbeat every 15 seconds
   if (millis() - lastHeartbeatTime >= 15000) {

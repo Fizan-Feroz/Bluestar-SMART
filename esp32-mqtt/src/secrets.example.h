@@ -7,3 +7,6 @@
 
 #define AIO_USERNAME "YOUR_ADAFRUIT_USERNAME"
 #define AIO_KEY      "YOUR_AIO_KEY"
+
+// Device Access PIN (e.g. 1234)
+#define DEVICE_PIN   "1234"
