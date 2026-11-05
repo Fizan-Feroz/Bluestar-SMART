@@ -13,17 +13,21 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Core Libraries: Three.js, OrbitControls, GSAP, MQTT -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+  <!-- Three.js (Local with CDN fallback) -->
+  <script src="js/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+  <!-- MQTT.js (CDN with graceful fallback) -->
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
   <style>
     :root {
       --bg: #060913;
-      --surface-glass: rgba(14, 21, 37, 0.75);
-      --surface-glass-card: rgba(18, 27, 48, 0.7);
+      --surface-glass: rgba(14, 21, 37, 0.78);
+      --surface-glass-card: rgba(18, 27, 48, 0.75);
       --surface-glass-btn: rgba(255, 255, 255, 0.06);
       --border-glass: rgba(255, 255, 255, 0.09);
       --border-active: rgba(56, 189, 248, 0.55);
@@ -71,8 +75,8 @@
       pointer-events: none;
       z-index: 0;
       background:
-        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(2, 132, 199, 0.14) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 85% 75%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(2, 132, 199, 0.16) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 85% 75%, rgba(56, 189, 248, 0.09) 0%, transparent 60%);
     }
 
     /* Top Navigation Bar */
@@ -99,11 +103,11 @@
     .brand-badge {
       font-family: 'Outfit', sans-serif;
       font-weight: 900;
-      font-size: 12px;
+      font-size: 11px;
       letter-spacing: 1.5px;
       color: #fff;
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      padding: 4px 10px;
+      padding: 4px 9px;
       border-radius: 6px;
       box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
     }
@@ -145,6 +149,7 @@
       color: var(--rose);
       border: 1px solid rgba(244, 63, 94, 0.25);
       transition: all 0.3s ease;
+      white-space: nowrap;
     }
 
     .connection-pill.connected {
@@ -182,6 +187,7 @@
       justify-content: center;
       cursor: pointer;
       transition: all 0.2s ease;
+      flex-shrink: 0;
     }
 
     .nav-btn:hover {
@@ -202,18 +208,19 @@
       flex: 1;
       display: grid;
       grid-template-columns: 1fr;
-      grid-template-rows: 40vh 1fr;
+      grid-template-rows: 42vh 1fr;
       overflow: hidden;
+      height: calc(100vh - 55px);
     }
 
     @media (min-width: 960px) {
       .app-main {
-        grid-template-columns: 1fr 420px;
+        grid-template-columns: 1fr 410px;
         grid-template-rows: 1fr;
       }
     }
 
-    /* 3D Showcase Arena (Dedicated, Uncovered Viewport) */
+    /* 3D Showcase Arena */
     .viewport-3d-arena {
       position: relative;
       width: 100%;
@@ -230,16 +237,21 @@
       height: 100%;
       z-index: 1;
       outline: none;
+      cursor: grab;
     }
 
-    /* 3D Overlays: Camera Toolbar & Telemetry Badge */
+    #canvas3d-container:active {
+      cursor: grabbing;
+    }
+
+    /* 3D Overlays */
     .arena-top-bar {
       position: relative;
       z-index: 15;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 16px;
+      padding: 10px 14px;
       pointer-events: none;
     }
 
@@ -261,7 +273,7 @@
       display: flex;
       align-items: center;
       gap: 4px;
-      padding: 5px 10px;
+      padding: 5px 9px;
       border-radius: 14px;
       border: 1px solid transparent;
       background: transparent;
@@ -273,9 +285,7 @@
       white-space: nowrap;
     }
 
-    .cam-btn:hover {
-      color: #fff;
-    }
+    .cam-btn:hover { color: #fff; }
 
     .cam-btn.active {
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(56, 189, 248, 0.25));
@@ -288,8 +298,8 @@
       font-weight: 600;
       text-transform: uppercase;
       letter-spacing: 0.6px;
-      color: rgba(255, 255, 255, 0.4);
-      background: rgba(0, 0, 0, 0.3);
+      color: rgba(255, 255, 255, 0.45);
+      background: rgba(0, 0, 0, 0.35);
       padding: 4px 10px;
       border-radius: 20px;
       border: 1px solid rgba(255, 255, 255, 0.05);
@@ -300,16 +310,16 @@
       .hint-chip { display: none; }
     }
 
-    /* Bottom 3D Telemetry Strip (Floats seamlessly over the 3D canvas) */
+    /* Bottom 3D Telemetry Strip */
     .arena-bottom-telemetry {
       position: absolute;
-      bottom: 12px;
-      left: 14px;
-      right: 14px;
+      bottom: 10px;
+      left: 12px;
+      right: 12px;
       z-index: 15;
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      gap: 6px;
       pointer-events: auto;
     }
 
@@ -318,27 +328,32 @@
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border: 1px solid var(--border-glass);
-      border-radius: var(--radius-md);
-      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      padding: 6px 8px;
       display: flex;
       flex-direction: column;
       gap: 2px;
+      min-width: 0;
     }
 
     .tel-lbl {
-      font-size: 9px;
+      font-size: 8.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.4px;
       color: var(--text-dim);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .tel-val {
       font-family: 'Outfit', sans-serif;
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #fff;
       line-height: 1;
+      white-space: nowrap;
     }
 
     .tel-val.glow-cyan { color: var(--cool-cyan); }
@@ -354,17 +369,22 @@
       border-top: 1px solid var(--border-glass);
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 16px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
+    }
+
+    /* PREVENT FLEX COLLAPSING ON CARDS */
+    .control-deck-panel > * {
+      flex-shrink: 0;
     }
 
     @media (min-width: 960px) {
       .control-deck-panel {
         border-top: none;
         border-left: 1px solid var(--border-glass);
-        padding: 20px;
+        padding: 18px;
         box-shadow: -10px 0 35px rgba(0, 0, 0, 0.4);
       }
     }
@@ -374,12 +394,13 @@
       background: var(--surface-glass-card);
       border: 1px solid var(--border-glass);
       border-radius: var(--radius-lg);
-      padding: 16px 14px 14px;
+      padding: 14px;
       display: flex;
       flex-direction: column;
       align-items: center;
       position: relative;
-      overflow: hidden;
+      min-height: 250px;
+      width: 100%;
     }
 
     .hero-top-row {
@@ -387,26 +408,27 @@
       justify-content: space-between;
       align-items: center;
       width: 100%;
+      margin-bottom: 2px;
     }
 
     .power-btn {
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 7px 16px;
+      padding: 6px 14px;
       border-radius: 24px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 700;
       cursor: pointer;
       transition: all 0.25s ease;
     }
 
     .power-btn .power-icon {
-      width: 12px;
-      height: 12px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
       border: 2px solid currentColor;
       position: relative;
@@ -427,7 +449,7 @@
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border-color: #38bdf8;
       color: #fff;
-      box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
     }
 
     .ambient-pill {
@@ -446,21 +468,22 @@
 
     .ambient-val {
       font-family: 'Outfit', sans-serif;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: var(--cool-glow);
       line-height: 1.1;
     }
 
-    /* Compact Dial & Stepper */
+    /* Dial & Center Info */
     .dial-stage {
       position: relative;
-      width: 180px;
-      height: 180px;
+      width: 150px;
+      height: 150px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 4px 0 8px;
+      margin: 4px 0 6px;
+      flex-shrink: 0;
     }
 
     .dial-svg {
@@ -474,17 +497,17 @@
     .dial-track {
       stroke: rgba(255, 255, 255, 0.06);
       fill: none;
-      stroke-width: 9;
+      stroke-width: 8;
       stroke-linecap: round;
     }
 
     .dial-progress {
       stroke: var(--cool-glow);
       fill: none;
-      stroke-width: 9;
+      stroke-width: 8;
       stroke-linecap: round;
-      stroke-dasharray: 470;
-      stroke-dashoffset: 235;
+      stroke-dasharray: 410;
+      stroke-dashoffset: 205;
       transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
     }
 
@@ -497,7 +520,7 @@
 
     .temp-readout {
       font-family: 'Outfit', sans-serif;
-      font-size: 56px;
+      font-size: 48px;
       font-weight: 800;
       line-height: 0.95;
       letter-spacing: -2px;
@@ -507,19 +530,19 @@
     }
 
     .temp-deg {
-      font-size: 24px;
+      font-size: 20px;
       font-weight: 600;
       color: var(--cool-glow);
       margin-left: 2px;
-      margin-top: 4px;
+      margin-top: 3px;
     }
 
     .climate-delta-badge {
       font-size: 10px;
       font-weight: 600;
       color: var(--text-muted);
-      margin-top: 4px;
-      padding: 3px 8px;
+      margin-top: 3px;
+      padding: 2px 7px;
       border-radius: 12px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.06);
@@ -528,12 +551,12 @@
     .stepper-row {
       display: flex;
       align-items: center;
-      gap: 28px;
+      gap: 24px;
     }
 
     .step-btn {
-      width: 42px;
-      height: 42px;
+      width: 38px;
+      height: 38px;
       border-radius: 50%;
       border: 1px solid var(--border-glass);
       background: var(--surface-glass-btn);
@@ -552,8 +575,8 @@
     }
 
     .step-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       fill: currentColor;
     }
 
@@ -562,19 +585,19 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .section-title {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.7px;
+      letter-spacing: 0.6px;
       color: var(--text-dim);
     }
 
     .section-badge {
-      font-size: 10px;
+      font-size: 9.5px;
       font-weight: 600;
       color: var(--cool-glow);
     }
@@ -590,21 +613,16 @@
       border: 1px solid var(--border-glass);
     }
 
-    .seg-group.cols-6 {
-      grid-template-columns: repeat(6, 1fr);
-    }
-
-    .seg-group.cols-5 {
-      grid-template-columns: repeat(5, 1fr);
-    }
+    .seg-group.cols-6 { grid-template-columns: repeat(6, 1fr); }
+    .seg-group.cols-5 { grid-template-columns: repeat(5, 1fr); }
 
     .seg-btn {
-      padding: 8px 3px;
+      padding: 8px 2px;
       border-radius: var(--radius-sm);
       border: 1px solid transparent;
       background: transparent;
       color: var(--text-muted);
-      font-size: 11px;
+      font-size: 10.5px;
       font-weight: 600;
       display: flex;
       flex-direction: column;
@@ -612,11 +630,12 @@
       gap: 3px;
       cursor: pointer;
       transition: all 0.2s ease;
+      white-space: nowrap;
     }
 
     .seg-btn svg {
-      width: 15px;
-      height: 15px;
+      width: 14px;
+      height: 14px;
       fill: currentColor;
     }
 
@@ -643,7 +662,7 @@
       background: var(--surface-glass-card);
       border: 1px solid var(--border-glass);
       border-radius: var(--radius-sm);
-      padding: 10px;
+      padding: 9px 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
@@ -663,12 +682,12 @@
     .feature-info {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 7px;
     }
 
     .feature-icon-box {
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border-radius: 6px;
       background: rgba(255, 255, 255, 0.05);
       display: flex;
@@ -683,8 +702,8 @@
     }
 
     .feature-icon-box svg {
-      width: 14px;
-      height: 14px;
+      width: 13px;
+      height: 13px;
       fill: currentColor;
     }
 
@@ -695,9 +714,9 @@
     }
 
     .toggle-pill {
-      width: 30px;
-      height: 16px;
-      border-radius: 16px;
+      width: 28px;
+      height: 15px;
+      border-radius: 15px;
       background: rgba(255, 255, 255, 0.1);
       position: relative;
       transition: background 0.25s ease;
@@ -708,8 +727,8 @@
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 12px;
-      height: 12px;
+      width: 11px;
+      height: 11px;
       border-radius: 50%;
       background: #fff;
       transition: transform 0.25s ease;
@@ -720,7 +739,7 @@
     }
 
     .feature-card.on .toggle-pill::after {
-      transform: translateX(14px);
+      transform: translateX(13px);
     }
 
     /* Modal Styling */
@@ -823,7 +842,7 @@
 
   <div class="bg-glow"></div>
 
-  <!-- Top Glass Navigation Bar -->
+  <!-- Top Navigation Bar -->
   <header class="top-nav">
     <div class="brand-section">
       <div class="brand-badge">BLUE STAR</div>
@@ -909,8 +928,8 @@
         <!-- Radial Arc Dial -->
         <div class="dial-stage">
           <svg class="dial-svg" viewBox="0 0 160 160">
-            <circle class="dial-track" cx="80" cy="80" r="72" />
-            <circle class="dial-progress" id="dialBar" cx="80" cy="80" r="72" />
+            <circle class="dial-track" cx="80" cy="80" r="64" />
+            <circle class="dial-progress" id="dialBar" cx="80" cy="80" r="64" />
           </svg>
 
           <div class="dial-center-info">
@@ -1091,7 +1110,7 @@
 
   <script>
     // =========================================================================
-    // 1. GLOBAL STATE
+    // 1. GLOBAL STATE & ZERO-DEPENDENCY TWEEN ENGINE
     // =========================================================================
     const state = {
       power: 1,
@@ -1116,6 +1135,34 @@
       isXray: false
     };
 
+    // Built-in smooth Tween Engine
+    const tween = {
+      to(target, opts) {
+        const start = {};
+        const duration = (opts.duration || 1) * 1000;
+        const startTime = performance.now();
+        for (let k in opts) {
+          if (typeof target[k] === 'number') start[k] = target[k];
+        }
+        function step(now) {
+          const elapsed = now - startTime;
+          const progress = Math.min(1, elapsed / duration);
+          const ease = progress < 0.5
+            ? 4 * progress * progress * progress
+            : 1 - Math.pow(-2 * progress + 2, 3) / 2;
+          for (let k in start) {
+            target[k] = start[k] + (opts[k] - start[k]) * ease;
+          }
+          if (progress < 1) {
+            requestAnimationFrame(step);
+          } else if (opts.onComplete) {
+            opts.onComplete();
+          }
+        }
+        requestAnimationFrame(step);
+      }
+    };
+
     let mqttClient = null;
     let mqttConfig = {
       host: "io.adafruit.com",
@@ -1132,23 +1179,46 @@
     // =========================================================================
     // 2. THREE.JS 3D SCENE & PROCEDURAL BLUE STAR SPLIT AC
     // =========================================================================
-    let scene, camera, renderer, controls;
+    let scene, camera, renderer;
     let acGroup, louverPivot, louverMesh, blowerDrum, displayCanvas, displayTexture, displayMesh;
     let coilGroup, airflowParticles, particlePositions, particleVelocities, particleLifespans, particleCount = 1500;
     let raycaster, mouse;
 
+    // Interactive Camera Orbit Controller (Spherical Coordinates + Damping)
+    const cameraOrbit = {
+      target: new THREE.Vector3(0, -0.02, 0),
+      radius: 3.2,
+      targetRadius: 3.2,
+      theta: 0.18,        // horizontal rotation
+      targetTheta: 0.18,
+      phi: 1.42,          // vertical elevation (0 = top, PI = bottom)
+      targetPhi: 1.42,
+      isDragging: false,
+      lastX: 0,
+      lastY: 0
+    };
+
     const container = document.getElementById("canvas3d-container");
 
     function init3D() {
-      // Scene
+      if (typeof THREE === 'undefined') {
+        console.error("Three.js not loaded");
+        return;
+      }
+
       scene = new THREE.Scene();
 
       // Camera
-      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 50);
-      camera.position.set(0, 0.45, 3.8);
+      camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.1, 50);
+      updateCameraFromOrbit();
 
-      // Renderer
-      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
+      // WebGL Renderer
+      renderer = new THREE.WebGLRenderer({
+        antialias: true,
+        alpha: true,
+        preserveDrawingBuffer: true,
+        powerPreference: "high-performance"
+      });
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
@@ -1157,51 +1227,122 @@
       renderer.toneMappingExposure = 1.15;
       container.appendChild(renderer.domElement);
 
-      // OrbitControls with strict bounds to keep AC beautifully framed
-      controls = new THREE.OrbitControls(camera, renderer.domElement);
-      controls.enableDamping = true;
-      controls.dampingFactor = 0.05;
-      controls.minDistance = 2.0;
-      controls.maxDistance = 6.5;
-      controls.maxPolarAngle = Math.PI / 2 + 0.15;
-      controls.target.set(0, 0.05, 0);
-
       // Studio Lighting
-      const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+      const ambient = new THREE.AmbientLight(0xffffff, 0.9);
       scene.add(ambient);
 
-      const keyLight = new THREE.DirectionalLight(0xf0f9ff, 1.3);
+      const keyLight = new THREE.DirectionalLight(0xf0f9ff, 1.4);
       keyLight.position.set(3.5, 4.0, 3.0);
       keyLight.castShadow = true;
-      keyLight.shadow.mapSize.width = 1024;
-      keyLight.shadow.mapSize.height = 1024;
       scene.add(keyLight);
 
-      const blueFill = new THREE.DirectionalLight(0x38bdf8, 0.7);
-      blueFill.position.set(-3.5, -1.0, 2.5);
+      const blueFill = new THREE.DirectionalLight(0x38bdf8, 0.8);
+      blueFill.position.set(-3.5, -0.8, 2.5);
       scene.add(blueFill);
 
-      const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
-      topLight.position.set(0, 3.5, -1.0);
+      const topLight = new THREE.DirectionalLight(0xffffff, 0.65);
+      topLight.position.set(0, 3.5, 0.5);
       scene.add(topLight);
 
-      // Build AC Model
+      // Build Extruded Aerodynamic Blue Star AC
       buildBlueStarAC();
 
       // Build Particles
       buildParticles();
 
+      // Setup Input Listeners for 360 Orbit & Zoom
+      setupOrbitListeners();
+
       // Responsive sizing
       updateResponsiveCamera();
       window.addEventListener('resize', onWindowResize);
 
-      // Click/Touch Raycaster
-      raycaster = new THREE.Raycaster();
-      mouse = new THREE.Vector2();
-      container.addEventListener('pointerdown', onPointerDown);
-
       // Start loop
       animate();
+    }
+
+    function setupOrbitListeners() {
+      const el = renderer.domElement;
+
+      // Pointer Down
+      el.addEventListener('pointerdown', (e) => {
+        cameraOrbit.isDragging = true;
+        cameraOrbit.lastX = e.clientX;
+        cameraOrbit.lastY = e.clientY;
+        el.setPointerCapture(e.pointerId);
+
+        // Check 3D raycast touch
+        checkRaycastHit(e);
+      });
+
+      // Pointer Move
+      el.addEventListener('pointermove', (e) => {
+        if (!cameraOrbit.isDragging) return;
+        const dx = e.clientX - cameraOrbit.lastX;
+        const dy = e.clientY - cameraOrbit.lastY;
+        cameraOrbit.lastX = e.clientX;
+        cameraOrbit.lastY = e.clientY;
+
+        cameraOrbit.targetTheta -= dx * 0.006;
+        cameraOrbit.targetPhi -= dy * 0.006;
+        // Clamp vertical angle to prevent flipping
+        cameraOrbit.targetPhi = Math.max(0.4, Math.min(Math.PI / 2 + 0.1, cameraOrbit.targetPhi));
+      });
+
+      // Pointer Up
+      el.addEventListener('pointerup', (e) => {
+        cameraOrbit.isDragging = false;
+        try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+      });
+
+      // Mouse Wheel Zoom
+      el.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        cameraOrbit.targetRadius += e.deltaY * 0.0025;
+        cameraOrbit.targetRadius = Math.max(1.8, Math.min(5.5, cameraOrbit.targetRadius));
+      }, { passive: false });
+
+      // Raycaster
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+    }
+
+    function checkRaycastHit(e) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      if (!acGroup) return;
+
+      const hits = raycaster.intersectObjects(acGroup.children, true);
+      if (hits.length > 0) {
+        const hit = hits[0].object;
+        if (hit === louverMesh || hit.parent === louverPivot) {
+          playAudio('beep');
+          setVane(state.vane === 0 ? 3 : 0);
+        } else if (hit === displayMesh) {
+          toggleFeature('light');
+        } else {
+          tween.to(acGroup.position, { y: 0.08, duration: 0.12 });
+          playAudio('click');
+        }
+      }
+    }
+
+    function updateCameraFromOrbit() {
+      // Damped smooth interpolation
+      cameraOrbit.theta += (cameraOrbit.targetTheta - cameraOrbit.theta) * 0.08;
+      cameraOrbit.phi += (cameraOrbit.targetPhi - cameraOrbit.phi) * 0.08;
+      cameraOrbit.radius += (cameraOrbit.targetRadius - cameraOrbit.radius) * 0.08;
+
+      const sinPhi = Math.sin(cameraOrbit.phi);
+      const cosPhi = Math.cos(cameraOrbit.phi);
+
+      camera.position.x = cameraOrbit.target.x + cameraOrbit.radius * sinPhi * Math.sin(cameraOrbit.theta);
+      camera.position.y = cameraOrbit.target.y + cameraOrbit.radius * cosPhi;
+      camera.position.z = cameraOrbit.target.z + cameraOrbit.radius * sinPhi * Math.cos(cameraOrbit.theta);
+      camera.lookAt(cameraOrbit.target);
     }
 
     function updateResponsiveCamera() {
@@ -1213,18 +1354,11 @@
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
 
-      // Adjust camera Z based on aspect ratio so AC is never cropped horizontally
       const aspect = width / height;
       if (state.currentCameraView === 'hero') {
-        if (aspect < 1.0) {
-          // Mobile portrait: move camera further back
-          camera.position.set(0, 0.35, 5.2 / aspect * 0.75);
-        } else if (aspect < 1.5) {
-          camera.position.set(0, 0.4, 4.4);
-        } else {
-          camera.position.set(0, 0.45, 3.8);
-        }
-        controls.target.set(0, 0.05, 0);
+        const baseRadius = aspect < 1.0 ? 3.4 / aspect * 0.88 : (aspect < 1.5 ? 3.5 : 3.2);
+        cameraOrbit.targetRadius = baseRadius;
+        cameraOrbit.radius = baseRadius;
       }
     }
 
@@ -1232,91 +1366,110 @@
       updateResponsiveCamera();
     }
 
-    // Procedural Blue Star Split AC (IC318QNU)
+    // High-Precision Procedural Blue Star Split AC Unit (IC318QNU)
     function buildBlueStarAC() {
       acGroup = new THREE.Group();
       acGroup.position.set(0, 0.05, 0);
 
-      const w = 2.05; // Width
-      const h = 0.60; // Height
-      const d = 0.38; // Depth
+      const H = 0.56, D = 0.36;
+      const halfH = H / 2, halfD = D / 2;
 
-      // 1. High-Gloss White Plastic Casing Material
+      // Clean aerodynamic curved cross-section
+      const profile = new THREE.Shape();
+      profile.moveTo(-halfD, -halfH);
+      profile.lineTo(-halfD, halfH);
+      profile.lineTo(halfD - 0.09, halfH);
+      profile.quadraticCurveTo(halfD, halfH - 0.04, halfD, 0.08);
+      profile.lineTo(halfD, -0.12);
+      profile.quadraticCurveTo(halfD, -halfH + 0.04, halfD - 0.08, -halfH);
+      profile.lineTo(-halfD, -halfH);
+
+      const extrudeSettings = {
+        steps: 1,
+        depth: 2.05,
+        bevelEnabled: true,
+        bevelThickness: 0.02,
+        bevelSize: 0.02,
+        bevelSegments: 4
+      };
+
+      const bodyGeo = new THREE.ExtrudeGeometry(profile, extrudeSettings);
+      bodyGeo.center();
+
       const casingMat = new THREE.MeshPhysicalMaterial({
-        color: 0xf6f8fb,
-        roughness: 0.14,
-        metalness: 0.05,
-        clearcoat: 0.5,
-        clearcoatRoughness: 0.12
+        color: 0xf6f8fc,
+        roughness: 0.12,
+        metalness: 0.04,
+        clearcoat: 0.6,
+        clearcoatRoughness: 0.08
       });
 
-      // 2. Main Body Block
-      const bodyGeo = new THREE.BoxGeometry(w, h, d);
       const bodyMesh = new THREE.Mesh(bodyGeo, casingMat);
+      bodyMesh.rotation.y = Math.PI / 2;
       bodyMesh.castShadow = true;
       bodyMesh.receiveShadow = true;
       acGroup.add(bodyMesh);
 
-      // 3. Curved Front Fascia (Graceful sloping front curve)
-      const frontCurveGeo = new THREE.CylinderGeometry(w * 0.5, w * 0.5, d * 0.85, 32, 1, false, 0, Math.PI);
-      const frontCurve = new THREE.Mesh(frontCurveGeo, casingMat);
-      frontCurve.rotation.z = Math.PI / 2;
-      frontCurve.rotation.x = -Math.PI / 2;
-      frontCurve.position.set(0, 0.03, d * 0.46);
-      frontCurve.scale.set(0.995, 0.22, 0.48);
-      acGroup.add(frontCurve);
-
-      // 4. Blue Star Signature Metallic Ribbon
+      // 1. Blue Star Metallic Accent Ribbon
       const stripMat = new THREE.MeshStandardMaterial({
         color: 0x0284c7,
         metalness: 0.9,
         roughness: 0.15,
         emissive: 0x0369a1,
-        emissiveIntensity: 0.3
+        emissiveIntensity: 0.25
       });
-      const stripGeo = new THREE.BoxGeometry(w * 0.98, 0.016, 0.014);
+      const stripGeo = new THREE.BoxGeometry(2.02, 0.016, 0.014);
       const stripMesh = new THREE.Mesh(stripGeo, stripMat);
-      stripMesh.position.set(0, -0.11, d * 0.5 + 0.01);
+      stripMesh.position.set(0, -0.10, 0.198);
       acGroup.add(stripMesh);
 
-      // 5. Blue Star Logo Emblem
-      const badgeMat = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        metalness: 0.95,
-        roughness: 0.1
-      });
-      const badgeGeo = new THREE.BoxGeometry(0.26, 0.046, 0.008);
+      // 2. Blue Star Brand Badge
+      const badgeCanvas = document.createElement('canvas');
+      badgeCanvas.width = 256;
+      badgeCanvas.height = 64;
+      const bCtx = badgeCanvas.getContext('2d');
+      bCtx.fillStyle = '#0284c7';
+      bCtx.fillRect(0, 0, 256, 64);
+      bCtx.fillStyle = '#ffffff';
+      bCtx.font = 'bold 26px Outfit, sans-serif';
+      bCtx.textAlign = 'center';
+      bCtx.textBaseline = 'middle';
+      bCtx.fillText('★ BLUE STAR', 128, 32);
+
+      const badgeTex = new THREE.CanvasTexture(badgeCanvas);
+      const badgeMat = new THREE.MeshBasicMaterial({ map: badgeTex });
+      const badgeGeo = new THREE.PlaneGeometry(0.32, 0.075);
       const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
-      badgeMesh.position.set(-w * 0.33, -0.11, d * 0.5 + 0.018);
+      badgeMesh.position.set(-0.58, -0.10, 0.206);
       acGroup.add(badgeMesh);
 
-      // 6. Top Intake Slats
+      // 3. Top Intake Slats
       const slatMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-      for (let i = 0; i < 8; i++) {
-        const slatGeo = new THREE.BoxGeometry(w * 0.88, 0.006, 0.024);
+      for (let i = 0; i < 7; i++) {
+        const slatGeo = new THREE.BoxGeometry(1.82, 0.006, 0.024);
         const slat = new THREE.Mesh(slatGeo, slatMat);
-        slat.position.set(0, h * 0.49, -d * 0.24 + (i * 0.042));
+        slat.position.set(0, 0.295, -0.12 + (i * 0.04));
         acGroup.add(slat);
       }
 
-      // 7. Bottom Vent Cavity (Recessed Dark Opening)
-      const ventGeo = new THREE.BoxGeometry(w * 0.92, 0.12, d * 0.42);
+      // 4. Recessed Dark Air Outlet Cavity
+      const ventGeo = new THREE.BoxGeometry(1.86, 0.11, 0.22);
       const ventMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
       const vent = new THREE.Mesh(ventGeo, ventMat);
-      vent.position.set(0, -h * 0.42, d * 0.18);
+      vent.position.set(0, -0.22, 0.08);
       acGroup.add(vent);
 
-      // 8. Cross-flow Fan Impeller Drum
-      const drumGeo = new THREE.CylinderGeometry(0.04, 0.04, w * 0.88, 16);
+      // 5. Cross-flow Impeller Blower Drum
+      const drumGeo = new THREE.CylinderGeometry(0.038, 0.038, 1.82, 16);
       const drumMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, wireframe: true });
       blowerDrum = new THREE.Mesh(drumGeo, drumMat);
       blowerDrum.rotation.z = Math.PI / 2;
-      blowerDrum.position.set(0, -h * 0.41, d * 0.20);
+      blowerDrum.position.set(0, -0.22, 0.09);
       acGroup.add(blowerDrum);
 
-      // 9. Motorized Louver Flap with Top Pivot Axis
+      // 6. Motorized Louver Flap
       louverPivot = new THREE.Group();
-      louverPivot.position.set(0, -h * 0.35, d * 0.48); // Top edge hinge
+      louverPivot.position.set(0, -0.17, 0.185);
 
       const louverMat = new THREE.MeshPhysicalMaterial({
         color: 0xf8fafc,
@@ -1324,14 +1477,14 @@
         metalness: 0.05,
         clearcoat: 0.5
       });
-      const bladeGeo = new THREE.BoxGeometry(w * 0.92, 0.11, 0.012);
-      bladeGeo.translate(0, -0.055, 0); // Translate so rotation pivots along top edge
+      const bladeGeo = new THREE.BoxGeometry(1.86, 0.10, 0.012);
+      bladeGeo.translate(0, -0.05, 0);
       louverMesh = new THREE.Mesh(bladeGeo, louverMat);
       louverMesh.castShadow = true;
       louverPivot.add(louverMesh);
       acGroup.add(louverPivot);
 
-      // 10. Concealed 7-Segment Digital LED Display
+      // 7. Concealed 7-Segment Digital LED Display
       displayCanvas = document.createElement('canvas');
       displayCanvas.width = 512;
       displayCanvas.height = 256;
@@ -1346,10 +1499,10 @@
       });
       const displayGeo = new THREE.PlaneGeometry(0.34, 0.17);
       displayMesh = new THREE.Mesh(displayGeo, displayMat);
-      displayMesh.position.set(w * 0.28, 0.02, d * 0.505);
+      displayMesh.position.set(0.55, 0.02, 0.206);
       acGroup.add(displayMesh);
 
-      // 11. X-Ray Coils
+      // 8. Internal Evaporator Coils (X-Ray Telemetry Mode)
       coilGroup = new THREE.Group();
       coilGroup.visible = false;
 
@@ -1362,14 +1515,14 @@
       });
 
       for (let c = 0; c < 6; c++) {
-        const pipeGeo = new THREE.CylinderGeometry(0.018, 0.018, w * 0.84, 16);
+        const pipeGeo = new THREE.CylinderGeometry(0.018, 0.018, 1.80, 16);
         const pipe = new THREE.Mesh(pipeGeo, coilMat);
         pipe.rotation.z = Math.PI / 2;
-        pipe.position.set(0, 0.15 - (c * 0.05), -0.04 + (c * 0.04));
+        pipe.position.set(0, 0.14 - (c * 0.045), -0.02 + (c * 0.035));
         coilGroup.add(pipe);
       }
 
-      const finsGeo = new THREE.BoxGeometry(w * 0.84, 0.30, 0.22);
+      const finsGeo = new THREE.BoxGeometry(1.80, 0.28, 0.20);
       const finsMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.35 });
       const fins = new THREE.Mesh(finsGeo, finsMat);
       fins.position.set(0, 0.02, 0);
@@ -1379,14 +1532,6 @@
       // References
       acGroup.casingMat = casingMat;
       acGroup.coilMat = coilMat;
-
-      // Soft Wall Mounting Shadow
-      const backWallGeo = new THREE.PlaneGeometry(w * 1.5, h * 2.2);
-      const backWallMat = new THREE.ShadowMaterial({ opacity: 0.35 });
-      const backWall = new THREE.Mesh(backWallGeo, backWallMat);
-      backWall.position.set(0, 0, -d * 0.52);
-      backWall.receiveShadow = true;
-      acGroup.add(backWall);
 
       scene.add(acGroup);
     }
@@ -1434,7 +1579,6 @@
 
       geo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 
-      // Circular particle sprite
       const pCan = document.createElement('canvas');
       pCan.width = 64;
       pCan.height = 64;
@@ -1462,21 +1606,21 @@
 
     function resetParticle(i, immediateSpread = false) {
       const idx = i * 3;
-      const spreadX = (Math.random() - 0.5) * 1.6;
+      const spreadX = (Math.random() - 0.5) * 1.5;
       particlePositions[idx] = spreadX;
-      particlePositions[idx + 1] = -0.16 + (Math.random() * 0.04);
-      particlePositions[idx + 2] = 0.24;
+      particlePositions[idx + 1] = -0.20 + (Math.random() * 0.03);
+      particlePositions[idx + 2] = 0.16;
 
       const fanSpeeds = [0, 0.016, 0.026, 0.040, 0.058, 0.088, 0.042];
       const speed = fanSpeeds[state.fan] || 0.04;
 
-      let louverPitch = 0.6;
+      let louverPitch = 0.55;
       if (louverPivot) louverPitch = louverPivot.rotation.x;
 
       const forwardZ = Math.cos(louverPitch) * speed * (0.8 + Math.random() * 0.4);
       const downwardY = -Math.sin(louverPitch) * speed * (0.8 + Math.random() * 0.4);
 
-      particleVelocities[idx] = (Math.random() - 0.5) * 0.006;
+      particleVelocities[idx] = (Math.random() - 0.5) * 0.005;
       particleVelocities[idx + 1] = downwardY;
       particleVelocities[idx + 2] = forwardZ;
 
@@ -1491,11 +1635,10 @@
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 1. Louver Articulation
+      // 1. Louver Physical Articulation
       if (louverPivot) {
         if (state.power === 1) {
           if (state.vane === 0) {
-            // Smooth vertical oscillation
             const swingMin = 0.25;
             const swingMax = 1.05;
             const swingAngle = swingMin + ((Math.sin(time * 2.2) + 1) * 0.5) * (swingMax - swingMin);
@@ -1506,12 +1649,11 @@
             louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, desired, 0.08);
           }
         } else {
-          // Closed tight
           louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, 0.0, 0.05);
         }
       }
 
-      // 2. Blower Impeller Spin
+      // 2. Blower Impeller Drum Spin
       if (blowerDrum && state.power === 1) {
         const fanDrumSpeeds = [0, 8, 14, 22, 32, 48, 20];
         blowerDrum.rotation.x += (fanDrumSpeeds[state.fan] || 20) * delta;
@@ -1526,20 +1668,12 @@
         if (state.power === 1) {
           airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.75, 0.05);
 
-          // Color ramp
-          if (state.mode === 2) {
-            airflowParticles.material.color.set(0x7dd3fc); // Dry
-          } else if (state.mode === 3) {
-            airflowParticles.material.color.set(0xe2e8f0); // Fan
-          } else if (state.eco === 1) {
-            airflowParticles.material.color.set(0x10b981); // Eco
-          } else if (state.targetTemp <= 19) {
-            airflowParticles.material.color.set(0x00f0ff); // Ice Cyan
-          } else if (state.targetTemp <= 24) {
-            airflowParticles.material.color.set(0x38bdf8); // Sky Cool
-          } else {
-            airflowParticles.material.color.set(0x2dd4bf); // Mint
-          }
+          if (state.mode === 2) airflowParticles.material.color.set(0x7dd3fc); // Dry
+          else if (state.mode === 3) airflowParticles.material.color.set(0xe2e8f0); // Fan
+          else if (state.eco === 1) airflowParticles.material.color.set(0x10b981); // Eco
+          else if (state.targetTemp <= 19) airflowParticles.material.color.set(0x00f0ff); // Ice Cyan
+          else if (state.targetTemp <= 24) airflowParticles.material.color.set(0x38bdf8); // Sky Cool
+          else airflowParticles.material.color.set(0x2dd4bf); // Mint
 
           for (let i = 0; i < particleCount; i++) {
             particleLifespans[i] += delta * (0.8 + currentFanSpeed * 10);
@@ -1575,31 +1709,10 @@
         acGroup.coilMat.emissiveIntensity = 0.5 + Math.sin(time * pulseFreq) * 0.4;
       }
 
-      controls.update();
+      // Update camera smooth orbit
+      updateCameraFromOrbit();
+
       renderer.render(scene, camera);
-    }
-
-    function onPointerDown(event) {
-      const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
-
-      raycaster.setFromCamera(mouse, camera);
-      if (!acGroup) return;
-
-      const hits = raycaster.intersectObjects(acGroup.children, true);
-      if (hits.length > 0) {
-        const hit = hits[0].object;
-        if (hit === louverMesh || hit.parent === louverPivot) {
-          playAudio('beep');
-          setVane(state.vane === 0 ? 3 : 0);
-        } else if (hit === displayMesh) {
-          toggleFeature('light');
-        } else {
-          gsap.to(acGroup.position, { y: 0.08, duration: 0.12, yoyo: true, repeat: 1, ease: "power1.out" });
-          playAudio('click');
-        }
-      }
     }
 
     function setCameraView(viewKey) {
@@ -1614,21 +1727,17 @@
 
       if (viewKey === 'hero') {
         setXrayMode(false);
-        const zDist = aspect < 1.0 ? 5.2 / aspect * 0.75 : (aspect < 1.5 ? 4.4 : 3.8);
-        gsap.to(camera.position, { x: 0, y: 0.4, z: zDist, duration: 1.0, ease: "power2.inOut" });
-        gsap.to(controls.target, { x: 0, y: 0.05, z: 0, duration: 1.0, ease: "power2.inOut" });
+        const baseRadius = aspect < 1.0 ? 3.4 / aspect * 0.88 : (aspect < 1.5 ? 3.5 : 3.2);
+        tween.to(cameraOrbit, { targetTheta: 0.18, targetPhi: 1.42, targetRadius: baseRadius, duration: 1.0 });
       } else if (viewKey === 'airflow') {
         setXrayMode(false);
-        gsap.to(camera.position, { x: 2.2, y: -0.15, z: 2.5, duration: 1.0, ease: "power2.inOut" });
-        gsap.to(controls.target, { x: 0.3, y: -0.15, z: 0.2, duration: 1.0, ease: "power2.inOut" });
+        tween.to(cameraOrbit, { targetTheta: 0.95, targetPhi: 1.55, targetRadius: 2.7, duration: 1.0 });
       } else if (viewKey === 'xray') {
         setXrayMode(true);
-        gsap.to(camera.position, { x: 0, y: 0.2, z: 2.5, duration: 1.0, ease: "power2.inOut" });
-        gsap.to(controls.target, { x: 0, y: 0.05, z: 0, duration: 1.0, ease: "power2.inOut" });
+        tween.to(cameraOrbit, { targetTheta: 0.15, targetPhi: 1.35, targetRadius: 2.6, duration: 1.0 });
       } else if (viewKey === 'display') {
         setXrayMode(false);
-        gsap.to(camera.position, { x: 0.58, y: 0.08, z: 1.4, duration: 1.0, ease: "power2.inOut" });
-        gsap.to(controls.target, { x: 0.56, y: 0.02, z: 0.45, duration: 1.0, ease: "power2.inOut" });
+        tween.to(cameraOrbit, { targetTheta: 0.35, targetPhi: 1.45, targetRadius: 1.7, duration: 1.0 });
       }
     }
 
@@ -1638,14 +1747,18 @@
 
       if (enable) {
         coilGroup.visible = true;
-        gsap.to(acGroup.casingMat, { opacity: 0.2, transparent: true, wireframe: true, duration: 0.6 });
+        tween.to(acGroup.casingMat, { opacity: 0.2, duration: 0.6 });
+        acGroup.casingMat.transparent = true;
+        acGroup.casingMat.wireframe = true;
       } else {
-        gsap.to(acGroup.casingMat, {
+        tween.to(acGroup.casingMat, {
           opacity: 1.0,
-          transparent: false,
-          wireframe: false,
           duration: 0.6,
-          onComplete: () => { coilGroup.visible = false; }
+          onComplete: () => {
+            acGroup.casingMat.transparent = false;
+            acGroup.casingMat.wireframe = false;
+            coilGroup.visible = false;
+          }
         });
       }
     }
@@ -1839,9 +1952,8 @@
       document.getElementById("targetTempNum").innerText = Math.round(state.targetTemp);
       document.getElementById("ambientReadout").innerText = `${state.roomTemp.toFixed(1)}°C`;
 
-      // SVG Dial (Range 16-30 = 14 deg span, circumference ~452)
       const norm = Math.max(0, Math.min(1, (state.targetTemp - 16) / 14));
-      document.getElementById("dialBar").style.strokeDashoffset = 452 - (norm * 330);
+      document.getElementById("dialBar").style.strokeDashoffset = 402 - (norm * 295);
 
       // Modes
       const modeNames = ["", "Cooling", "Dehumidify (Dry)", "Fan Only", "AI Auto Pro"];
@@ -1901,7 +2013,7 @@
     // 5. MQTT INTEGRATION
     // =========================================================================
     function initMqtt() {
-      if (!mqttConfig.username || !mqttConfig.password) {
+      if (typeof mqtt === 'undefined' || !mqttConfig.username || !mqttConfig.password) {
         updateConnectionStatus("demo", "Demo Mode (Offline)");
         return;
       }
