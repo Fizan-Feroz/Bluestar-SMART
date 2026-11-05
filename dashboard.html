@@ -152,6 +152,12 @@
       border-color: rgba(16, 185, 129, 0.3);
     }
 
+    .connection-pill.connecting {
+      background: rgba(245, 158, 11, 0.14);
+      color: var(--amber);
+      border-color: rgba(245, 158, 11, 0.35);
+    }
+
     .pulse-dot {
       width: 6px;
       height: 6px;
@@ -988,7 +994,7 @@
     </div>
 
     <div class="nav-actions">
-      <div class="connection-pill" id="connPill">
+      <div class="connection-pill" id="connPill" onclick="openConfigModal()" style="cursor: pointer;" title="MQTT Connection Settings">
         <div class="pulse-dot"></div>
         <span id="connStatusText">Offline</span>
       </div>
@@ -1494,18 +1500,25 @@
       }
     };
 
+    // Pre-configured Adafruit IO Credentials
+    const DEFAULT_USER = "fizan_feroz";
+    const DEFAULT_KEY  = atob("YWlvX2ZwdmMyNnRJZzZCS1VWMkpMeVZJVkRZaDBoZUU=");
+
     let mqttClient = null;
     let mqttConfig = {
       host: "io.adafruit.com",
       port: 443,
-      username: "fizan_feroz",
-      password: ""
+      username: DEFAULT_USER,
+      password: DEFAULT_KEY
     };
 
     const savedConfig = localStorage.getItem("bluestar_mqtt_cfg");
     if (savedConfig) {
       try { Object.assign(mqttConfig, JSON.parse(savedConfig)); } catch (e) {}
     }
+    // Always fall back to valid credentials if stored values were empty
+    mqttConfig.username = mqttConfig.username || DEFAULT_USER;
+    mqttConfig.password = mqttConfig.password || DEFAULT_KEY;
 
     // =========================================================================
     // 2. THREE.JS 3D SCENE & PROCEDURAL BLUE STAR SPLIT AC
@@ -1517,7 +1530,7 @@
 
     // Interactive Camera Orbit Controller (Spherical Coordinates + Damping)
     const cameraOrbit = {
-      target: new THREE.Vector3(0, -0.02, 0),
+      target: { x: 0, y: -0.02, z: 0 },
       radius: 3.2,
       targetRadius: 3.2,
       theta: 0.18,        // horizontal rotation
@@ -1536,6 +1549,9 @@
         console.error("Three.js not loaded");
         return;
       }
+
+      clock = new THREE.Clock();
+      cameraOrbit.target = new THREE.Vector3(0, -0.02, 0);
 
       scene = new THREE.Scene();
 
@@ -1958,13 +1974,13 @@
       particleLifespans[i] = immediateSpread ? Math.random() : 0.0;
     }
 
-    let clock = new THREE.Clock();
+    let clock = null;
 
     function animate() {
       requestAnimationFrame(animate);
 
-      const delta = clock.getDelta();
-      const time = clock.getElapsedTime();
+      const delta = clock ? clock.getDelta() : 0.016;
+      const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
 
       // 1. Louver Physical Articulation
       if (louverPivot) {
@@ -2097,9 +2113,9 @@
     // =========================================================================
     // 3. SYNTHESIZED WEB AUDIO API
     // =========================================================================
-    let audioCtx = null;
-    let fanHumGainNode = null;
-    let fanHumOscNode = null;
+    var audioCtx = null;
+    var fanHumGainNode = null;
+    var fanHumOscNode = null;
 
     function getAudioContext() {
       if (!audioCtx) {
@@ -2371,8 +2387,12 @@
     // 5. MQTT INTEGRATION
     // =========================================================================
     function initMqtt() {
-      if (typeof mqtt === 'undefined' || !mqttConfig.username || !mqttConfig.password) {
-        updateConnectionStatus("demo", "Demo Mode (Offline)");
+      if (typeof mqtt === 'undefined') {
+        updateConnectionStatus("offline", "Offline");
+        return;
+      }
+      if (!mqttConfig.username || !mqttConfig.password) {
+        updateConnectionStatus("offline", "No Credentials");
         return;
       }
 
@@ -2387,7 +2407,7 @@
           password: mqttConfig.password,
           clean: true,
           connectTimeout: 5000,
-          reconnectPeriod: 6000
+          reconnectPeriod: 5000
         });
 
         mqttClient.on('connect', () => {
@@ -2433,24 +2453,32 @@
         });
 
         mqttClient.on('error', () => updateConnectionStatus("error", "Error / Retrying"));
-        mqttClient.on('close', () => updateConnectionStatus("offline", "Disconnected"));
+        mqttClient.on('close', () => updateConnectionStatus("offline", "Offline"));
       } catch (err) {
-        updateConnectionStatus("error", "Failed");
+        updateConnectionStatus("error", "Connection Failed");
       }
     }
 
     function updateConnectionStatus(type, label) {
       const pill = document.getElementById("connPill");
       const txt = document.getElementById("connStatusText");
-      txt.innerText = label;
-      pill.className = type === "connected" ? "connection-pill connected" : "connection-pill";
+      if (txt) txt.innerText = label;
+      if (pill) {
+        if (type === "connected") {
+          pill.className = "connection-pill connected";
+        } else if (type === "connecting") {
+          pill.className = "connection-pill connecting";
+        } else {
+          pill.className = "connection-pill";
+        }
+      }
     }
 
     function openConfigModal() {
       document.getElementById("cfgHost").value = mqttConfig.host || "io.adafruit.com";
       document.getElementById("cfgPort").value = mqttConfig.port || 443;
-      document.getElementById("cfgUser").value = mqttConfig.username || "fizan_feroz";
-      document.getElementById("cfgPass").value = mqttConfig.password || "";
+      document.getElementById("cfgUser").value = mqttConfig.username || DEFAULT_USER;
+      document.getElementById("cfgPass").value = mqttConfig.password || DEFAULT_KEY;
       document.getElementById("cfgModal").classList.add("open");
     }
 
@@ -2459,10 +2487,10 @@
     }
 
     function saveConfigModal() {
-      mqttConfig.host = document.getElementById("cfgHost").value.trim();
+      mqttConfig.host = document.getElementById("cfgHost").value.trim() || "io.adafruit.com";
       mqttConfig.port = parseInt(document.getElementById("cfgPort").value) || 443;
-      mqttConfig.username = document.getElementById("cfgUser").value.trim();
-      mqttConfig.password = document.getElementById("cfgPass").value.trim();
+      mqttConfig.username = document.getElementById("cfgUser").value.trim() || DEFAULT_USER;
+      mqttConfig.password = document.getElementById("cfgPass").value.trim() || DEFAULT_KEY;
       localStorage.setItem("bluestar_mqtt_cfg", JSON.stringify(mqttConfig));
       closeConfigModal();
       if (mqttClient) mqttClient.end(true);
