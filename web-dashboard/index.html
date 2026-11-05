@@ -22,11 +22,11 @@
   <style>
     :root {
       --bg: #060913;
-      --surface-glass: rgba(14, 21, 37, 0.72);
-      --surface-glass-card: rgba(18, 27, 48, 0.65);
+      --surface-glass: rgba(14, 21, 37, 0.75);
+      --surface-glass-card: rgba(18, 27, 48, 0.7);
       --surface-glass-btn: rgba(255, 255, 255, 0.06);
-      --border-glass: rgba(255, 255, 255, 0.08);
-      --border-active: rgba(56, 189, 248, 0.5);
+      --border-glass: rgba(255, 255, 255, 0.09);
+      --border-active: rgba(56, 189, 248, 0.55);
 
       --cool-primary: #0284c7;
       --cool-glow: #38bdf8;
@@ -34,14 +34,13 @@
       --emerald: #10b981;
       --amber: #f59e0b;
       --rose: #f43f5e;
-      --purple: #a855f7;
 
       --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-dim: #64748b;
 
-      --radius-xl: 24px;
-      --radius-lg: 18px;
+      --radius-xl: 22px;
+      --radius-lg: 16px;
       --radius-md: 12px;
       --radius-sm: 8px;
     }
@@ -58,86 +57,55 @@
     body {
       background-color: var(--bg);
       color: var(--text-main);
-      min-height: 100vh;
-      width: 100vw;
-      overflow-x: hidden;
-      overflow-y: auto;
-      position: relative;
-    }
-
-    /* 3D WebGL Canvas Stage */
-    #canvas3d-container {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
       height: 100vh;
-      z-index: 1;
-      pointer-events: auto;
-      outline: none;
-    }
-
-    /* Ambient Background Light Gradient */
-    .viewport-glow {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle 800px at 50% 20%, rgba(2, 132, 199, 0.12) 0%, transparent 70%),
-        radial-gradient(circle 600px at 80% 80%, rgba(56, 189, 248, 0.06) 0%, transparent 60%);
-      transition: background 0.8s ease;
-    }
-
-    /* Main UI Application Container */
-    .app-viewport {
-      position: relative;
-      z-index: 10;
-      min-height: 100vh;
+      width: 100vw;
+      overflow: hidden;
       display: flex;
       flex-direction: column;
+    }
+
+    /* Ambient Background Light */
+    .bg-glow {
+      position: fixed;
+      inset: 0;
       pointer-events: none;
-      padding: max(16px, env(safe-area-inset-top)) 20px max(24px, env(safe-area-inset-bottom));
-      box-sizing: border-box;
+      z-index: 0;
+      background:
+        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(2, 132, 199, 0.14) 0%, transparent 70%),
+        radial-gradient(ellipse 60% 40% at 85% 75%, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
     }
 
-    .interactive {
-      pointer-events: auto;
-    }
-
-    /* Top Glass Navigation Bar */
+    /* Top Navigation Bar */
     .top-nav {
+      position: relative;
+      z-index: 30;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 12px 20px;
+      padding: 10px 18px;
       background: var(--surface-glass);
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-lg);
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-      max-width: 1200px;
-      width: 100%;
-      margin: 0 auto;
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border-glass);
+      flex-shrink: 0;
     }
 
     .brand-section {
       display: flex;
       align-items: center;
-      gap: 12px;
+      gap: 10px;
     }
 
     .brand-badge {
       font-family: 'Outfit', sans-serif;
       font-weight: 900;
-      font-size: 13px;
-      letter-spacing: 1.8px;
+      font-size: 12px;
+      letter-spacing: 1.5px;
       color: #fff;
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      padding: 5px 12px;
-      border-radius: 8px;
-      box-shadow: 0 0 16px rgba(2, 132, 199, 0.45);
+      padding: 4px 10px;
+      border-radius: 6px;
+      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
     }
 
     .brand-title-wrap {
@@ -148,32 +116,31 @@
     .brand-title {
       font-family: 'Outfit', sans-serif;
       font-weight: 700;
-      font-size: 16px;
-      letter-spacing: -0.3px;
+      font-size: 15px;
       color: #fff;
+      line-height: 1.1;
     }
 
     .brand-subtitle {
-      font-size: 11px;
+      font-size: 10px;
       color: var(--text-muted);
       font-weight: 500;
-      letter-spacing: 0.2px;
     }
 
     .nav-actions {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .connection-pill {
       display: flex;
       align-items: center;
-      gap: 7px;
-      font-size: 12px;
+      gap: 6px;
+      font-size: 11px;
       font-weight: 600;
-      padding: 6px 14px;
-      border-radius: 30px;
+      padding: 5px 10px;
+      border-radius: 20px;
       background: rgba(244, 63, 94, 0.12);
       color: var(--rose);
       border: 1px solid rgba(244, 63, 94, 0.25);
@@ -183,31 +150,18 @@
     .connection-pill.connected {
       background: rgba(16, 185, 129, 0.12);
       color: var(--emerald);
-      border-color: rgba(16, 185, 129, 0.28);
-    }
-
-    .connection-pill.batching {
-      background: rgba(245, 158, 11, 0.16);
-      color: #f59e0b;
-      border-color: rgba(245, 158, 11, 0.4);
-      cursor: pointer;
-    }
-
-    .connection-pill.batching .pulse-dot {
-      background: #f59e0b;
-      box-shadow: 0 0 10px #f59e0b;
-      animation: pulseAnim 0.7s infinite;
+      border-color: rgba(16, 185, 129, 0.3);
     }
 
     .pulse-dot {
-      width: 7px;
-      height: 7px;
+      width: 6px;
+      height: 6px;
       border-radius: 50%;
       background: currentColor;
     }
 
     .connection-pill.connected .pulse-dot {
-      box-shadow: 0 0 10px currentColor;
+      box-shadow: 0 0 8px currentColor;
       animation: pulseAnim 2s infinite;
     }
 
@@ -217,9 +171,9 @@
     }
 
     .nav-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: var(--radius-md);
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-sm);
       background: var(--surface-glass-btn);
       border: 1px solid var(--border-glass);
       color: var(--text-muted);
@@ -227,143 +181,205 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s ease;
     }
 
     .nav-btn:hover {
       background: rgba(255, 255, 255, 0.12);
       color: #fff;
-      transform: translateY(-1px);
-    }
-
-    .nav-btn:active {
-      transform: scale(0.92);
     }
 
     .nav-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       fill: currentColor;
     }
 
-    /* 3D Camera Controls Toolbar */
-    .camera-toolbar {
+    /* Main Responsive Viewport Grid */
+    .app-main {
+      position: relative;
+      z-index: 10;
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: 40vh 1fr;
+      overflow: hidden;
+    }
+
+    @media (min-width: 960px) {
+      .app-main {
+        grid-template-columns: 1fr 420px;
+        grid-template-rows: 1fr;
+      }
+    }
+
+    /* 3D Showcase Arena (Dedicated, Uncovered Viewport) */
+    .viewport-3d-arena {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    #canvas3d-container {
       position: absolute;
-      top: 86px;
-      left: 50%;
-      transform: translateX(-50%);
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      outline: none;
+    }
+
+    /* 3D Overlays: Camera Toolbar & Telemetry Badge */
+    .arena-top-bar {
+      position: relative;
+      z-index: 15;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
+      pointer-events: none;
+    }
+
+    .camera-toolbar {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 10px;
+      gap: 4px;
+      padding: 4px 6px;
       background: var(--surface-glass);
       backdrop-filter: blur(20px);
       -webkit-backdrop-filter: blur(20px);
       border: 1px solid var(--border-glass);
-      border-radius: 30px;
+      border-radius: 20px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      z-index: 15;
+      pointer-events: auto;
     }
 
     .cam-btn {
       display: flex;
       align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: 20px;
+      gap: 4px;
+      padding: 5px 10px;
+      border-radius: 14px;
       border: 1px solid transparent;
       background: transparent;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       cursor: pointer;
-      transition: all 0.25s ease;
+      transition: all 0.2s ease;
+      white-space: nowrap;
     }
 
     .cam-btn:hover {
       color: #fff;
-      background: rgba(255, 255, 255, 0.05);
     }
 
     .cam-btn.active {
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.3), rgba(56, 189, 248, 0.2));
-      border-color: rgba(56, 189, 248, 0.4);
+      background: linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(56, 189, 248, 0.25));
+      border-color: rgba(56, 189, 248, 0.5);
       color: var(--cool-glow);
-      box-shadow: 0 0 14px rgba(56, 189, 248, 0.25);
     }
 
-    /* Layout Content Grid */
-    .dashboard-grid {
-      display: grid;
-      grid-template-columns: 1fr;
-      max-width: 1200px;
-      width: 100%;
-      margin: auto auto 0;
-      gap: 20px;
-      padding-top: 260px; /* Space for the 3D AC in the center */
-      transition: all 0.4s ease;
-    }
-
-    @media (min-width: 900px) {
-      .dashboard-grid {
-        grid-template-columns: 360px 1fr;
-        padding-top: 40px;
-        align-items: end;
-      }
-    }
-
-    /* 3D Model Floating Hints */
-    .stage-hint {
-      position: absolute;
-      top: 140px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 11px;
+    .hint-chip {
+      font-size: 10px;
       font-weight: 600;
-      letter-spacing: 0.5px;
       text-transform: uppercase;
-      color: rgba(255, 255, 255, 0.35);
+      letter-spacing: 0.6px;
+      color: rgba(255, 255, 255, 0.4);
+      background: rgba(0, 0, 0, 0.3);
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
       pointer-events: none;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition: opacity 0.5s ease;
     }
 
-    /* Main Floating Glass Deck */
-    .control-deck {
+    @media (max-width: 600px) {
+      .hint-chip { display: none; }
+    }
+
+    /* Bottom 3D Telemetry Strip (Floats seamlessly over the 3D canvas) */
+    .arena-bottom-telemetry {
+      position: absolute;
+      bottom: 12px;
+      left: 14px;
+      right: 14px;
+      z-index: 15;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      pointer-events: auto;
+    }
+
+    .tel-pill {
+      background: var(--surface-glass);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--border-glass);
+      border-radius: var(--radius-md);
+      padding: 8px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .tel-lbl {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-dim);
+    }
+
+    .tel-val {
+      font-family: 'Outfit', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1;
+    }
+
+    .tel-val.glow-cyan { color: var(--cool-cyan); }
+    .tel-val.glow-emerald { color: var(--emerald); }
+
+    /* Right/Bottom Control Deck Sidebar */
+    .control-deck-panel {
+      position: relative;
+      z-index: 20;
       background: var(--surface-glass);
       backdrop-filter: blur(28px);
       -webkit-backdrop-filter: blur(28px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-xl);
-      padding: 22px;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+      border-top: 1px solid var(--border-glass);
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 16px;
       display: flex;
       flex-direction: column;
-      gap: 20px;
+      gap: 14px;
     }
 
-    /* Hero Thermostat Console */
+    @media (min-width: 960px) {
+      .control-deck-panel {
+        border-top: none;
+        border-left: 1px solid var(--border-glass);
+        padding: 20px;
+        box-shadow: -10px 0 35px rgba(0, 0, 0, 0.4);
+      }
+    }
+
+    /* Primary Hero Dial Card */
     .hero-thermostat {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
       background: var(--surface-glass-card);
       border: 1px solid var(--border-glass);
       border-radius: var(--radius-lg);
-      padding: 20px 16px 16px;
+      padding: 16px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       position: relative;
       overflow: hidden;
-    }
-
-    .hero-thermostat::before {
-      content: '';
-      position: absolute;
-      inset: -50%;
-      background: radial-gradient(circle at 50% 30%, rgba(56, 189, 248, 0.12), transparent 60%);
-      pointer-events: none;
-      transition: opacity 0.4s ease;
     }
 
     .hero-top-row {
@@ -371,28 +387,26 @@
       justify-content: space-between;
       align-items: center;
       width: 100%;
-      margin-bottom: 10px;
     }
 
-    /* Main Big Power Switch */
     .power-btn {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 8px 18px;
-      border-radius: 30px;
+      gap: 8px;
+      padding: 7px 16px;
+      border-radius: 24px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 700;
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.25s ease;
     }
 
     .power-btn .power-icon {
-      width: 14px;
-      height: 14px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       border: 2px solid currentColor;
       position: relative;
@@ -405,7 +419,7 @@
       left: 50%;
       transform: translateX(-50%);
       width: 2px;
-      height: 6px;
+      height: 5px;
       background: currentColor;
     }
 
@@ -413,7 +427,7 @@
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border-color: #38bdf8;
       color: #fff;
-      box-shadow: 0 0 24px rgba(56, 189, 248, 0.5);
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.45);
     }
 
     .ambient-pill {
@@ -423,30 +437,30 @@
     }
 
     .ambient-lbl {
-      font-size: 10px;
+      font-size: 9px;
       font-weight: 600;
       color: var(--text-dim);
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.6px;
     }
 
     .ambient-val {
       font-family: 'Outfit', sans-serif;
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
       color: var(--cool-glow);
       line-height: 1.1;
     }
 
-    /* Radial Temperature Display & Adjuster */
+    /* Compact Dial & Stepper */
     .dial-stage {
       position: relative;
-      width: 220px;
-      height: 220px;
+      width: 180px;
+      height: 180px;
       display: flex;
       align-items: center;
       justify-content: center;
-      margin: 4px 0 10px;
+      margin: 4px 0 8px;
     }
 
     .dial-svg {
@@ -460,18 +474,18 @@
     .dial-track {
       stroke: rgba(255, 255, 255, 0.06);
       fill: none;
-      stroke-width: 10;
+      stroke-width: 9;
       stroke-linecap: round;
     }
 
     .dial-progress {
       stroke: var(--cool-glow);
       fill: none;
-      stroke-width: 10;
+      stroke-width: 9;
       stroke-linecap: round;
-      stroke-dasharray: 565;
-      stroke-dashoffset: 280;
-      transition: stroke-dashoffset 0.4s cubic-bezier(0.16, 1, 0.3, 1), stroke 0.4s;
+      stroke-dasharray: 470;
+      stroke-dashoffset: 235;
+      transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
     }
 
     .dial-center-info {
@@ -483,7 +497,7 @@
 
     .temp-readout {
       font-family: 'Outfit', sans-serif;
-      font-size: 64px;
+      font-size: 56px;
       font-weight: 800;
       line-height: 0.95;
       letter-spacing: -2px;
@@ -493,7 +507,7 @@
     }
 
     .temp-deg {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 600;
       color: var(--cool-glow);
       margin-left: 2px;
@@ -501,27 +515,25 @@
     }
 
     .climate-delta-badge {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--text-muted);
-      margin-top: 6px;
-      padding: 3px 10px;
-      border-radius: 20px;
+      margin-top: 4px;
+      padding: 3px 8px;
+      border-radius: 12px;
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.06);
     }
 
-    /* Stepper Row (- / +) */
     .stepper-row {
       display: flex;
       align-items: center;
-      gap: 32px;
-      margin-top: 6px;
+      gap: 28px;
     }
 
     .step-btn {
-      width: 48px;
-      height: 48px;
+      width: 42px;
+      height: 42px;
       border-radius: 50%;
       border: 1px solid var(--border-glass);
       background: var(--surface-glass-btn);
@@ -530,59 +542,49 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s ease;
     }
 
     .step-btn:hover {
       background: rgba(56, 189, 248, 0.2);
-      border-color: rgba(56, 189, 248, 0.5);
-      transform: scale(1.06);
-    }
-
-    .step-btn:active {
-      transform: scale(0.92);
+      border-color: rgba(56, 189, 248, 0.45);
+      transform: scale(1.05);
     }
 
     .step-btn svg {
-      width: 20px;
-      height: 20px;
+      width: 18px;
+      height: 18px;
       fill: currentColor;
     }
 
-    /* Secondary Controls Section */
-    .controls-deck-body {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
-
+    /* Section Headers */
     .section-title-wrap {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
     }
 
     .section-title {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.8px;
+      letter-spacing: 0.7px;
       color: var(--text-dim);
     }
 
     .section-badge {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--cool-glow);
     }
 
-    /* Segmented Button Row (Modes & Fans) */
+    /* Segmented Controls (Grid of Buttons) */
     .seg-group {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      background: rgba(0, 0, 0, 0.25);
+      gap: 5px;
+      background: rgba(0, 0, 0, 0.28);
       padding: 4px;
       border-radius: var(--radius-md);
       border: 1px solid var(--border-glass);
@@ -592,80 +594,82 @@
       grid-template-columns: repeat(6, 1fr);
     }
 
+    .seg-group.cols-5 {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
     .seg-btn {
-      padding: 10px 4px;
+      padding: 8px 3px;
       border-radius: var(--radius-sm);
-      border: none;
+      border: 1px solid transparent;
       background: transparent;
       color: var(--text-muted);
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 4px;
+      gap: 3px;
       cursor: pointer;
       transition: all 0.2s ease;
     }
 
     .seg-btn svg {
-      width: 18px;
-      height: 18px;
+      width: 15px;
+      height: 15px;
       fill: currentColor;
     }
 
     .seg-btn:hover {
       color: #fff;
-      background: rgba(255, 255, 255, 0.04);
+      background: rgba(255, 255, 255, 0.05);
     }
 
     .seg-btn.active {
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.35) 0%, rgba(56, 189, 248, 0.2) 100%);
       color: #fff;
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      box-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+      border-color: rgba(56, 189, 248, 0.45);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
     }
 
-    /* Feature Grid (Eco, Turbo, Sleep, Light, Mute) */
+    /* Smart Features 2x2 Grid */
     .feature-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
-      gap: 8px;
+      gap: 6px;
     }
 
     .feature-card {
       background: var(--surface-glass-card);
       border: 1px solid var(--border-glass);
-      border-radius: var(--radius-md);
-      padding: 12px;
+      border-radius: var(--radius-sm);
+      padding: 10px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       cursor: pointer;
-      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: all 0.2s ease;
     }
 
     .feature-card:hover {
       background: rgba(255, 255, 255, 0.07);
-      transform: translateY(-1px);
     }
 
     .feature-card.on {
       border-color: rgba(56, 189, 248, 0.5);
       background: linear-gradient(135deg, rgba(2, 132, 199, 0.25) 0%, rgba(14, 21, 37, 0.8) 100%);
-      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
     }
 
     .feature-info {
       display: flex;
       align-items: center;
-      gap: 10px;
+      gap: 8px;
     }
 
     .feature-icon-box {
-      width: 32px;
-      height: 32px;
-      border-radius: var(--radius-sm);
+      width: 26px;
+      height: 26px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.05);
       display: flex;
       align-items: center;
@@ -679,30 +683,24 @@
     }
 
     .feature-icon-box svg {
-      width: 16px;
-      height: 16px;
+      width: 14px;
+      height: 14px;
       fill: currentColor;
     }
 
     .feature-name {
-      font-size: 13px;
+      font-size: 11px;
       font-weight: 600;
       color: #fff;
     }
 
-    .feature-sub {
-      font-size: 10px;
-      color: var(--text-dim);
-    }
-
-    /* Switch toggle pill */
     .toggle-pill {
-      width: 36px;
-      height: 20px;
-      border-radius: 20px;
+      width: 30px;
+      height: 16px;
+      border-radius: 16px;
       background: rgba(255, 255, 255, 0.1);
       position: relative;
-      transition: background 0.3s ease;
+      transition: background 0.25s ease;
     }
 
     .toggle-pill::after {
@@ -710,11 +708,11 @@
       position: absolute;
       top: 2px;
       left: 2px;
-      width: 16px;
-      height: 16px;
+      width: 12px;
+      height: 12px;
       border-radius: 50%;
       background: #fff;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.25s ease;
     }
 
     .feature-card.on .toggle-pill {
@@ -722,89 +720,7 @@
     }
 
     .feature-card.on .toggle-pill::after {
-      transform: translateX(16px);
-    }
-
-    /* Live Telemetry Dock */
-    .telemetry-dock {
-      background: var(--surface-glass);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-xl);
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .telemetry-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    .telemetry-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 14px;
-      font-weight: 700;
-      color: #fff;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .telemetry-title-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      background: var(--cool-glow);
-      box-shadow: 0 0 8px var(--cool-glow);
-    }
-
-    .telemetry-cards {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-    }
-
-    @media (min-width: 600px) {
-      .telemetry-cards {
-        grid-template-columns: repeat(4, 1fr);
-      }
-    }
-
-    .tel-card {
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-md);
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .tel-lbl {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .tel-val {
-      font-family: 'Outfit', sans-serif;
-      font-size: 18px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .tel-val.glow-cyan {
-      color: var(--cool-cyan);
-    }
-
-    .tel-val.glow-emerald {
-      color: var(--emerald);
+      transform: translateX(14px);
     }
 
     /* Modal Styling */
@@ -832,25 +748,19 @@
     .modal-sheet {
       background: #0f172a;
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--radius-xl);
-      padding: 24px;
-      max-width: 440px;
+      border-radius: var(--radius-lg);
+      padding: 20px;
+      max-width: 400px;
       width: 100%;
-      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
       display: flex;
       flex-direction: column;
-      gap: 16px;
-      transform: translateY(20px);
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-
-    .modal-backdrop.open .modal-sheet {
-      transform: translateY(0);
+      gap: 14px;
     }
 
     .modal-title {
       font-family: 'Outfit', sans-serif;
-      font-size: 18px;
+      font-size: 16px;
       font-weight: 700;
       color: #fff;
     }
@@ -858,11 +768,11 @@
     .form-group {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: 5px;
     }
 
     .form-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       color: var(--text-muted);
       text-transform: uppercase;
@@ -872,391 +782,239 @@
     .form-input {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 10px 14px;
+      border-radius: 6px;
+      padding: 8px 12px;
       color: #fff;
-      font-size: 13px;
+      font-size: 12px;
       outline: none;
-      transition: border-color 0.2s;
-    }
-
-    .form-input:focus {
-      border-color: var(--cool-glow);
     }
 
     .btn-row {
       display: flex;
       justify-content: flex-end;
-      gap: 10px;
-      margin-top: 8px;
+      gap: 8px;
+      margin-top: 6px;
     }
 
     .btn-secondary {
-      padding: 10px 18px;
-      border-radius: var(--radius-sm);
+      padding: 8px 14px;
+      border-radius: 6px;
       background: rgba(255, 255, 255, 0.08);
       border: 1px solid var(--border-glass);
       color: var(--text-muted);
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
     }
 
     .btn-primary {
-      padding: 10px 20px;
-      border-radius: var(--radius-sm);
+      padding: 8px 16px;
+      border-radius: 6px;
       background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
       border: none;
       color: #fff;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
       cursor: pointer;
-      box-shadow: 0 0 16px rgba(2, 132, 199, 0.4);
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 899px) {
-      .app-viewport {
-        padding: 12px 14px 20px;
-      }
-      .camera-toolbar {
-        top: 76px;
-      }
-      .stage-hint {
-        top: 124px;
-      }
-      .dashboard-grid {
-        padding-top: 290px;
-      }
-    }
-    /* Device PIN Lock Screen Overlay */
-    .lock-overlay {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at 50% 30%, rgba(14, 21, 37, 0.95) 0%, rgba(6, 9, 19, 0.98) 85%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      z-index: 1000;
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: auto;
-    }
-    .lock-overlay.unlocked {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1.05);
-    }
-    .lock-box {
-      max-width: 320px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    .lock-shield {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--cool-glow);
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
-    }
-    .lock-shield svg { width: 30px; height: 30px; fill: currentColor; }
-    .lock-heading {
-      font-family: 'Outfit', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      text-align: center;
-    }
-    .lock-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: -8px;
-    }
-    .pin-display {
-      display: flex;
-      gap: 16px;
-      margin: 8px 0;
-    }
-    .pin-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid var(--border-active);
-      background: transparent;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .pin-dot.filled {
-      background: var(--cool-glow);
-      box-shadow: 0 0 12px var(--cool-glow);
-      transform: scale(1.15);
-    }
-    .pin-dot.error {
-      background: var(--rose);
-      border-color: var(--rose);
-      box-shadow: 0 0 12px var(--rose);
-    }
-    .pin-keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      width: 100%;
-    }
-    .pad-key {
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      color: #fff;
-      font-family: 'Outfit', sans-serif;
-      font-size: 24px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.15s;
-    }
-    .pad-key:active {
-      transform: scale(0.92);
-      background: rgba(56, 189, 248, 0.2);
-      border-color: var(--cool-glow);
-    }
-    .pad-key.util {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-    }
-    .pad-key.util:active {
-      color: #fff;
-    }
-    .remember-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
-      cursor: pointer;
-      margin-top: 4px;
-    }
-    .remember-toggle input {
-      accent-color: var(--cool-primary);
-      width: 15px;
-      height: 15px;
-    }
-    .shake {
-      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-    }
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-2px, 0, 0); }
-      20%, 80% { transform: translate3d(4px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-      40%, 60% { transform: translate3d(6px, 0, 0); }
     }
   </style>
 </head>
 <body>
 
-  <!-- Ambient Glow Canvas Background -->
-  <div class="viewport-glow" id="ambientGlow"></div>
+  <div class="bg-glow"></div>
 
-  <!-- 3D WebGL Canvas Layer -->
-  <div id="canvas3d-container"></div>
+  <!-- Top Glass Navigation Bar -->
+  <header class="top-nav">
+    <div class="brand-section">
+      <div class="brand-badge">BLUE STAR</div>
+      <div class="brand-title-wrap">
+        <div class="brand-title">IC318QNU Smart Inverter</div>
+        <div class="brand-subtitle">Megmeet MD50BS · 1.5 Ton</div>
+      </div>
+    </div>
 
-  <!-- Foreground Interactive Application HUD -->
-  <div class="app-viewport">
-    
-    <!-- Top Navigation Bar -->
-    <header class="top-nav interactive">
-      <div class="brand-section">
-        <div class="brand-badge">BLUE STAR</div>
-        <div class="brand-title-wrap">
-          <div class="brand-title">IC318QNU Inverter</div>
-          <div class="brand-subtitle">Smart Climate Twin · Megmeet MD50BS</div>
+    <div class="nav-actions">
+      <div class="connection-pill" id="connPill">
+        <div class="pulse-dot"></div>
+        <span id="connStatusText">Offline</span>
+      </div>
+
+      <button class="nav-btn" id="soundBtn" title="Toggle Synthesized Sound" onclick="toggleSound()">
+        <svg viewBox="0 0 24 24" id="soundIcon"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6.5H2v11h4.5l5 4.5V2z"/></svg>
+      </button>
+
+      <button class="nav-btn" title="MQTT Settings" onclick="openConfigModal()">
+        <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Responsive Grid: 3D Showcase on Left/Top, Controls on Right/Bottom -->
+  <main class="app-main">
+
+    <!-- 3D Digital Twin Arena -->
+    <div class="viewport-3d-arena">
+      <div id="canvas3d-container"></div>
+
+      <!-- Top Toolbar (Camera presets & hint) -->
+      <div class="arena-top-bar">
+        <div class="camera-toolbar">
+          <button class="cam-btn active" id="camBtnHero" onclick="setCameraView('hero')">🎬 Hero</button>
+          <button class="cam-btn" id="camBtnAirflow" onclick="setCameraView('airflow')">💨 Air</button>
+          <button class="cam-btn" id="camBtnXray" onclick="setCameraView('xray')">🔬 X-Ray</button>
+          <button class="cam-btn" id="camBtnDisplay" onclick="setCameraView('display')">🎯 LED</button>
+        </div>
+
+        <div class="hint-chip">Drag 360° · Scroll to Zoom</div>
+      </div>
+
+      <!-- Bottom Floating Telemetry Strip -->
+      <div class="arena-bottom-telemetry">
+        <div class="tel-pill">
+          <span class="tel-lbl">Compressor</span>
+          <span class="tel-val glow-cyan" id="compHzVal">48 Hz</span>
+        </div>
+        <div class="tel-pill">
+          <span class="tel-lbl">Coil Temp</span>
+          <span class="tel-val" id="coilTempVal">7.8°C</span>
+        </div>
+        <div class="tel-pill">
+          <span class="tel-lbl">Run Hours</span>
+          <span class="tel-val" id="compHoursVal">1,248 h</span>
+        </div>
+        <div class="tel-pill">
+          <span class="tel-lbl">Filter</span>
+          <span class="tel-val glow-emerald" id="filterConditionVal">Clean</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable Glass Control Deck Panel -->
+    <div class="control-deck-panel">
+
+      <!-- Hero Thermostat -->
+      <div class="hero-thermostat" id="heroCard">
+        <div class="hero-top-row">
+          <button class="power-btn on" id="mainPowerBtn" onclick="togglePower()">
+            <div class="power-icon"></div>
+            <span id="powerBtnText">System On</span>
+          </button>
+
+          <div class="ambient-pill">
+            <span class="ambient-lbl">Ambient Room</span>
+            <span class="ambient-val" id="ambientReadout">27.0°C</span>
+          </div>
+        </div>
+
+        <!-- Radial Arc Dial -->
+        <div class="dial-stage">
+          <svg class="dial-svg" viewBox="0 0 160 160">
+            <circle class="dial-track" cx="80" cy="80" r="72" />
+            <circle class="dial-progress" id="dialBar" cx="80" cy="80" r="72" />
+          </svg>
+
+          <div class="dial-center-info">
+            <div class="temp-readout">
+              <span id="targetTempNum">24</span>
+              <span class="temp-deg">°C</span>
+            </div>
+            <div class="climate-delta-badge" id="climateDeltaBadge">Comfort Balanced</div>
+          </div>
+        </div>
+
+        <div class="stepper-row">
+          <button class="step-btn" title="Decrease Temperature" onclick="adjustTemp(-1)">
+            <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+          </button>
+          <button class="step-btn" title="Increase Temperature" onclick="adjustTemp(+1)">
+            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          </button>
         </div>
       </div>
 
-      <div class="nav-actions">
-        <div class="connection-pill" id="connPill" onclick="flushBatch()" title="Click to send batched changes immediately">
-          <div class="pulse-dot"></div>
-          <span id="connStatusText">Offline</span>
-        </div>
-
-        <button class="nav-btn" id="lockNavBtn" title="Lock Console" onclick="lockConsole()" style="display: none;">
-          <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
-        </button>
-
-        <button class="nav-btn" id="soundBtn" title="Toggle Synthesized Audio" onclick="toggleSound()">
-          <svg viewBox="0 0 24 24" id="soundIcon"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6.5H2v11h4.5l5 4.5V2z"/></svg>
-        </button>
-
-        <button class="nav-btn" title="MQTT Settings" onclick="openConfigModal()">
-          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
-        </button>
-      </div>
-    </header>
-
-    <!-- 3D Camera Angles Toolbar -->
-    <div class="camera-toolbar interactive">
-      <button class="cam-btn active" id="camBtnHero" onclick="setCameraView('hero')">🎬 Hero 3D</button>
-      <button class="cam-btn" id="camBtnAirflow" onclick="setCameraView('airflow')">💨 Air Stream</button>
-      <button class="cam-btn" id="camBtnXray" onclick="setCameraView('xray')">🔬 X-Ray Coils</button>
-      <button class="cam-btn" id="camBtnDisplay" onclick="setCameraView('display')">🎯 LED Panel</button>
-    </div>
-
-    <div class="stage-hint">
-      <span>Drag to Orbit 360° · Scroll to Zoom</span>
-    </div>
-
-    <!-- Main Responsive Grid -->
-    <div class="dashboard-grid">
-
-      <!-- Left Column: Primary Climate Console -->
-      <section class="control-deck interactive">
-        
-        <!-- Hero Dial & Stepper -->
-        <div class="hero-thermostat" id="heroCard">
-          <div class="hero-top-row">
-            <button class="power-btn on" id="mainPowerBtn" onclick="togglePower()">
-              <div class="power-icon"></div>
-              <span id="powerBtnText">System On</span>
-            </button>
-
-            <div class="ambient-pill">
-              <span class="ambient-lbl">Ambient Room</span>
-              <span class="ambient-val" id="ambientReadout">27.0°C</span>
-            </div>
-          </div>
-
-          <!-- SVG Radial Dial Indicator -->
-          <div class="dial-stage">
-            <svg class="dial-svg" viewBox="0 0 200 200">
-              <circle class="dial-track" cx="100" cy="100" r="90" />
-              <circle class="dial-progress" id="dialBar" cx="100" cy="100" r="90" />
-            </svg>
-
-            <div class="dial-center-info">
-              <div class="temp-readout">
-                <span id="targetTempNum">24</span>
-                <span class="temp-deg">°C</span>
-              </div>
-              <div class="climate-delta-badge" id="climateDeltaBadge">Comfort Balanced</div>
-            </div>
-          </div>
-
-          <!-- Adjuster Stepper Buttons -->
-          <div class="stepper-row">
-            <button class="step-btn" title="Decrease Temperature" onclick="adjustTemp(-1)">
-              <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
-            </button>
-            <button class="step-btn" title="Increase Temperature" onclick="adjustTemp(+1)">
-              <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Mode Selector -->
-        <div class="controls-deck-body">
-          <div class="section-title-wrap">
-            <span class="section-title">Operating Mode</span>
-            <span class="section-badge" id="modeBadge">Cooling</span>
-          </div>
-
-          <div class="seg-group">
-            <button class="seg-btn active" id="modeBtn1" onclick="setMode(1)">
-              <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
-              <span>Cool</span>
-            </button>
-            <button class="seg-btn" id="modeBtn2" onclick="setMode(2)">
-              <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-              <span>Dry</span>
-            </button>
-            <button class="seg-btn" id="modeBtn3" onclick="setMode(3)">
-              <svg viewBox="0 0 24 24"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z"/></svg>
-              <span>Fan</span>
-            </button>
-            <button class="seg-btn" id="modeBtn4" onclick="setMode(4)">
-              <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A6 6 0 0 1 6.07 12H5v-2h1.07A6 6 0 0 1 11 6.07V5h2v1.07A6 6 0 0 1 17.93 11H19v2h-1.07A6 6 0 0 1 13 16.93z"/></svg>
-              <span>Auto</span>
-            </button>
-          </div>
-
-          <!-- Fan Speed Stages -->
-          <div class="section-title-wrap">
-            <span class="section-title">Blower Speed</span>
-            <span class="section-badge" id="fanBadge">High (Stage 4)</span>
-          </div>
-
-          <div class="seg-group cols-6">
-            <button class="seg-btn" id="fanBtn1" onclick="setFan(1)"><span>Quiet</span></button>
-            <button class="seg-btn" id="fanBtn2" onclick="setFan(2)"><span>Low</span></button>
-            <button class="seg-btn" id="fanBtn3" onclick="setFan(3)"><span>Med</span></button>
-            <button class="seg-btn active" id="fanBtn4" onclick="setFan(4)"><span>High</span></button>
-            <button class="seg-btn" id="fanBtn5" onclick="setFan(5)"><span>Turbo</span></button>
-            <button class="seg-btn" id="fanBtn6" onclick="setFan(6)"><span>Auto</span></button>
-          </div>
-
-          <!-- 5-in-1 Convertible Inverter Capacity -->
-          <div class="section-title-wrap">
-            <span class="section-title">5-in-1 Convertible</span>
-            <span class="section-badge" id="convBadge">100% (1.5 Ton)</span>
-          </div>
-
-          <div class="seg-group">
-            <button class="seg-btn active" id="convBtn1" onclick="setConvertible(1)"><span>100%</span></button>
-            <button class="seg-btn" id="convBtn2" onclick="setConvertible(2)"><span>80%</span></button>
-            <button class="seg-btn" id="convBtn3" onclick="setConvertible(3)"><span>60%</span></button>
-            <button class="seg-btn" id="convBtn4" onclick="setConvertible(4)"><span>40%</span></button>
-          </div>
-        </div>
-
-      </section>
-
-      <!-- Right Column: Secondary Airflow Louver, Presets & Telemetry -->
-      <section class="telemetry-dock interactive">
-        
-        <!-- Vane & 4-Way Swing Section -->
+      <!-- Mode Selector -->
+      <div>
         <div class="section-title-wrap">
-          <span class="section-title">Motorized Louver & Airflow Angle</span>
+          <span class="section-title">Operating Mode</span>
+          <span class="section-badge" id="modeBadge">Cooling</span>
+        </div>
+        <div class="seg-group">
+          <button class="seg-btn active" id="modeBtn1" onclick="setMode(1)">
+            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+            <span>Cool</span>
+          </button>
+          <button class="seg-btn" id="modeBtn2" onclick="setMode(2)">
+            <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <span>Dry</span>
+          </button>
+          <button class="seg-btn" id="modeBtn3" onclick="setMode(3)">
+            <svg viewBox="0 0 24 24"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z"/></svg>
+            <span>Fan</span>
+          </button>
+          <button class="seg-btn" id="modeBtn4" onclick="setMode(4)">
+            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A6 6 0 0 1 6.07 12H5v-2h1.07A6 6 0 0 1 11 6.07V5h2v1.07A6 6 0 0 1 17.93 11H19v2h-1.07A6 6 0 0 1 13 16.93z"/></svg>
+            <span>Auto</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Fan Speed Stages -->
+      <div>
+        <div class="section-title-wrap">
+          <span class="section-title">Blower Fan Speed</span>
+          <span class="section-badge" id="fanBadge">High (Stage 4)</span>
+        </div>
+        <div class="seg-group cols-6">
+          <button class="seg-btn" id="fanBtn1" onclick="setFan(1)"><span>Quiet</span></button>
+          <button class="seg-btn" id="fanBtn2" onclick="setFan(2)"><span>Low</span></button>
+          <button class="seg-btn" id="fanBtn3" onclick="setFan(3)"><span>Med</span></button>
+          <button class="seg-btn active" id="fanBtn4" onclick="setFan(4)"><span>High</span></button>
+          <button class="seg-btn" id="fanBtn5" onclick="setFan(5)"><span>Turbo</span></button>
+          <button class="seg-btn" id="fanBtn6" onclick="setFan(6)"><span>Auto</span></button>
+        </div>
+      </div>
+
+      <!-- Motorized Louver & 4-Way Swing -->
+      <div>
+        <div class="section-title-wrap">
+          <span class="section-title">Louver & Direction</span>
           <span class="section-badge" id="vaneBadge">Auto Swing (↕)</span>
         </div>
-
-        <div class="seg-group" style="grid-template-columns: repeat(5, 1fr);">
+        <div class="seg-group cols-5">
           <button class="seg-btn active" id="vaneBtn0" onclick="setVane(0)"><span>↕ Swing</span></button>
           <button class="seg-btn" id="vaneBtn1" onclick="setVane(1)"><span>Top (1)</span></button>
           <button class="seg-btn" id="vaneBtn3" onclick="setVane(3)"><span>Mid (3)</span></button>
           <button class="seg-btn" id="vaneBtn5" onclick="setVane(5)"><span>Low (5)</span></button>
-          <button class="seg-btn" id="hSwingCard" onclick="toggleHSwing()"><span>↔ 4-Way</span></button>
+          <button class="seg-btn" id="hSwingBtn" onclick="toggleHSwing()"><span>↔ 4-Way</span></button>
         </div>
+      </div>
 
-        <!-- Presets & Features Grid -->
-        <div class="section-title-wrap" style="margin-top: 6px;">
+      <!-- 5-in-1 Convertible Inverter Capacity -->
+      <div>
+        <div class="section-title-wrap">
+          <span class="section-title">5-in-1 Convertible</span>
+          <span class="section-badge" id="convBadge">100% (Full Ton)</span>
+        </div>
+        <div class="seg-group">
+          <button class="seg-btn active" id="convBtn1" onclick="setConvertible(1)"><span>100%</span></button>
+          <button class="seg-btn" id="convBtn2" onclick="setConvertible(2)"><span>80%</span></button>
+          <button class="seg-btn" id="convBtn3" onclick="setConvertible(3)"><span>60%</span></button>
+          <button class="seg-btn" id="convBtn4" onclick="setConvertible(4)"><span>40%</span></button>
+        </div>
+      </div>
+
+      <!-- Smart Features Grid -->
+      <div>
+        <div class="section-title-wrap">
           <span class="section-title">Smart Features</span>
         </div>
-
         <div class="feature-grid">
           <div class="feature-card" id="cardTurbo" onclick="toggleFeature('turbo')">
             <div class="feature-info">
               <div class="feature-icon-box">
                 <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
               </div>
-              <div>
-                <div class="feature-name">Turbo Cool</div>
-                <div class="feature-sub">110% Boost</div>
-              </div>
+              <div class="feature-name">Turbo Cool</div>
             </div>
             <div class="toggle-pill"></div>
           </div>
@@ -1266,10 +1024,7 @@
               <div class="feature-icon-box">
                 <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>
               </div>
-              <div>
-                <div class="feature-name">Eco Mode</div>
-                <div class="feature-sub">Optimal Wattage</div>
-              </div>
+              <div class="feature-name">Eco Mode</div>
             </div>
             <div class="toggle-pill"></div>
           </div>
@@ -1279,10 +1034,7 @@
               <div class="feature-icon-box">
                 <svg viewBox="0 0 24 24"><path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.35-4.48A9.98 9.98 0 0 1 12.3 2z"/></svg>
               </div>
-              <div>
-                <div class="feature-name">Comfort Sleep</div>
-                <div class="feature-sub">+1°C/hr Curve</div>
-              </div>
+              <div class="feature-name">Comfort Sleep</div>
             </div>
             <div class="toggle-pill"></div>
           </div>
@@ -1292,91 +1044,22 @@
               <div class="feature-icon-box">
                 <svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
               </div>
-              <div>
-                <div class="feature-name">Display LED</div>
-                <div class="feature-sub">Fascia Readout</div>
-              </div>
+              <div class="feature-name">Display LED</div>
             </div>
             <div class="toggle-pill"></div>
           </div>
         </div>
-
-        <!-- Real-time Engineering Telemetry -->
-        <div class="telemetry-header" style="margin-top: 8px;">
-          <div class="telemetry-title">
-            <div class="telemetry-title-dot"></div>
-            <span>Live Hardware Telemetry</span>
-          </div>
-        </div>
-
-        <div class="telemetry-cards">
-          <div class="tel-card">
-            <span class="tel-lbl">Compressor Speed</span>
-            <span class="tel-val glow-cyan" id="compHzVal">48 Hz</span>
-          </div>
-          <div class="tel-card">
-            <span class="tel-lbl">Evaporator Coil</span>
-            <span class="tel-val" id="coilTempVal">7.8°C</span>
-          </div>
-          <div class="tel-card">
-            <span class="tel-lbl">Total Run Hours</span>
-            <span class="tel-val" id="compHoursVal">1,248 h</span>
-          </div>
-          <div class="tel-card">
-            <span class="tel-lbl">Filter Condition</span>
-            <span class="tel-val glow-emerald" id="filterConditionVal">Clean</span>
-          </div>
-        </div>
-
-      </section>
+      </div>
 
     </div>
-  </div>
+  </main>
 
-  <!-- Device PIN Lock Overlay -->
-  <div class="lock-overlay" id="lockScreen">
-    <div class="lock-box" id="lockBox">
-      <div class="lock-shield">
-        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 5a3 3 0 0 1 6 0v3H9V7zm3 7a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1-3 0v-2A1.5 1.5 0 0 1 12 14z"/></svg>
-      </div>
-      <div class="lock-heading">Blue Star AC Locked</div>
-      <div class="lock-desc" id="lockStatusMsg">Enter device PIN to access climate controls</div>
-      
-      <div class="pin-display" id="pinDisplay">
-        <div class="pin-dot" id="dot0"></div>
-        <div class="pin-dot" id="dot1"></div>
-        <div class="pin-dot" id="dot2"></div>
-        <div class="pin-dot" id="dot3"></div>
-      </div>
-
-      <div class="pin-keypad">
-        <button class="pad-key" onclick="pressPin('1')">1</button>
-        <button class="pad-key" onclick="pressPin('2')">2</button>
-        <button class="pad-key" onclick="pressPin('3')">3</button>
-        <button class="pad-key" onclick="pressPin('4')">4</button>
-        <button class="pad-key" onclick="pressPin('5')">5</button>
-        <button class="pad-key" onclick="pressPin('6')">6</button>
-        <button class="pad-key" onclick="pressPin('7')">7</button>
-        <button class="pad-key" onclick="pressPin('8')">8</button>
-        <button class="pad-key" onclick="pressPin('9')">9</button>
-        <button class="pad-key util" onclick="clearPin()">Clear</button>
-        <button class="pad-key" onclick="pressPin('0')">0</button>
-        <button class="pad-key util" onclick="backspacePin()">⌫</button>
-      </div>
-
-      <label class="remember-toggle">
-        <input type="checkbox" id="chkRemember" checked>
-        <span>Remember unlock on this browser</span>
-      </label>
-    </div>
-  </div>
-
-  <!-- Configuration Modal -->
+  <!-- MQTT Configuration Modal -->
   <div class="modal-backdrop" id="cfgModal">
-    <div class="modal-sheet interactive">
+    <div class="modal-sheet">
       <div class="modal-title">MQTT & Hardware Bridge Settings</div>
-      <p style="font-size: 12px; color: var(--text-muted);">
-        Connects directly to your ESP32 Adafruit IO or HiveMQ MQTT broker over secure WebSockets (WSS).
+      <p style="font-size: 11px; color: var(--text-muted);">
+        Connects directly to your ESP32 Adafruit IO or HiveMQ broker over secure WebSockets (WSS).
       </p>
 
       <div class="form-group">
@@ -1406,10 +1089,9 @@
     </div>
   </div>
 
-  <!-- JAVASCRIPT: Three.js 3D Engine, Procedural Blue Star AC, Particle Vortex, Web Audio & MQTT -->
   <script>
     // =========================================================================
-    // 1. STATE MANAGEMENT
+    // 1. GLOBAL STATE
     // =========================================================================
     const state = {
       power: 1,
@@ -1448,195 +1130,206 @@
     }
 
     // =========================================================================
-    // 2. THREE.JS 3D SCENE & PROCEDURAL BLUE STAR AC MODEL
+    // 2. THREE.JS 3D SCENE & PROCEDURAL BLUE STAR SPLIT AC
     // =========================================================================
     let scene, camera, renderer, controls;
-    let acGroup, louverMesh, blowerDrum, frontPanelMesh, displayCanvas, displayTexture, displayMesh;
-    let coilGroup, compressorAuraMesh;
-    let airflowParticles, particlePositions, particleVelocities, particleLifespans, particleCount = 1800;
+    let acGroup, louverPivot, louverMesh, blowerDrum, displayCanvas, displayTexture, displayMesh;
+    let coilGroup, airflowParticles, particlePositions, particleVelocities, particleLifespans, particleCount = 1500;
     let raycaster, mouse;
 
-    const canvasContainer = document.getElementById("canvas3d-container");
+    const container = document.getElementById("canvas3d-container");
 
     function init3D() {
       // Scene
       scene = new THREE.Scene();
-      scene.fog = new THREE.FogExp2(0x060913, 0.12);
 
       // Camera
-      camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 100);
-      camera.position.set(0, 0.35, 3.2);
+      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 50);
+      camera.position.set(0, 0.45, 3.8);
 
       // Renderer
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
-      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.1;
-      canvasContainer.appendChild(renderer.domElement);
+      renderer.toneMappingExposure = 1.15;
+      container.appendChild(renderer.domElement);
 
-      // Controls
+      // OrbitControls with strict bounds to keep AC beautifully framed
       controls = new THREE.OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
       controls.dampingFactor = 0.05;
-      controls.maxPolarAngle = Math.PI / 2 + 0.15; // Prevent viewing from under floor
-      controls.minDistance = 1.2;
-      controls.maxDistance = 5.5;
-      controls.target.set(0, 0, 0);
+      controls.minDistance = 2.0;
+      controls.maxDistance = 6.5;
+      controls.maxPolarAngle = Math.PI / 2 + 0.15;
+      controls.target.set(0, 0.05, 0);
 
-      // Lighting
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-      scene.add(ambientLight);
+      // Studio Lighting
+      const ambient = new THREE.AmbientLight(0xffffff, 0.85);
+      scene.add(ambient);
 
-      const keyLight = new THREE.DirectionalLight(0xe0f2fe, 1.4);
-      keyLight.position.set(3, 4, 3);
+      const keyLight = new THREE.DirectionalLight(0xf0f9ff, 1.3);
+      keyLight.position.set(3.5, 4.0, 3.0);
       keyLight.castShadow = true;
       keyLight.shadow.mapSize.width = 1024;
       keyLight.shadow.mapSize.height = 1024;
       scene.add(keyLight);
 
-      const fillLight = new THREE.DirectionalLight(0x38bdf8, 0.8);
-      fillLight.position.set(-3, -1, 2);
-      scene.add(fillLight);
+      const blueFill = new THREE.DirectionalLight(0x38bdf8, 0.7);
+      blueFill.position.set(-3.5, -1.0, 2.5);
+      scene.add(blueFill);
 
-      const rimLight = new THREE.DirectionalLight(0xffffff, 0.6);
-      rimLight.position.set(0, 3, -3);
-      scene.add(rimLight);
+      const topLight = new THREE.DirectionalLight(0xffffff, 0.5);
+      topLight.position.set(0, 3.5, -1.0);
+      scene.add(topLight);
 
-      // Floor Shadow receiver
-      const shadowPlaneGeo = new THREE.PlaneGeometry(10, 10);
-      const shadowPlaneMat = new THREE.ShadowMaterial({ opacity: 0.25 });
-      const shadowPlane = new THREE.Mesh(shadowPlaneGeo, shadowPlaneMat);
-      shadowPlane.rotation.x = -Math.PI / 2;
-      shadowPlane.position.y = -1.2;
-      shadowPlane.receiveShadow = true;
-      scene.add(shadowPlane);
+      // Build AC Model
+      buildBlueStarAC();
 
-      // Build the Blue Star Indoor Unit
-      buildBlueStarACModel();
+      // Build Particles
+      buildParticles();
 
-      // Build Airflow Particle System
-      buildAirflowParticles();
-
-      // Raycasting for interactive 3D touches
-      raycaster = new THREE.Raycaster();
-      mouse = new THREE.Vector2();
-      window.addEventListener('pointerdown', onDocumentPointerDown);
+      // Responsive sizing
+      updateResponsiveCamera();
       window.addEventListener('resize', onWindowResize);
 
-      // Start render loop
+      // Click/Touch Raycaster
+      raycaster = new THREE.Raycaster();
+      mouse = new THREE.Vector2();
+      container.addEventListener('pointerdown', onPointerDown);
+
+      // Start loop
       animate();
     }
 
-    // Procedural High-Fidelity Blue Star Split AC Indoor Unit
-    function buildBlueStarACModel() {
+    function updateResponsiveCamera() {
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (!width || !height) return;
+
+      camera.aspect = width / height;
+      camera.updateProjectionMatrix();
+      renderer.setSize(width, height);
+
+      // Adjust camera Z based on aspect ratio so AC is never cropped horizontally
+      const aspect = width / height;
+      if (state.currentCameraView === 'hero') {
+        if (aspect < 1.0) {
+          // Mobile portrait: move camera further back
+          camera.position.set(0, 0.35, 5.2 / aspect * 0.75);
+        } else if (aspect < 1.5) {
+          camera.position.set(0, 0.4, 4.4);
+        } else {
+          camera.position.set(0, 0.45, 3.8);
+        }
+        controls.target.set(0, 0.05, 0);
+      }
+    }
+
+    function onWindowResize() {
+      updateResponsiveCamera();
+    }
+
+    // Procedural Blue Star Split AC (IC318QNU)
+    function buildBlueStarAC() {
       acGroup = new THREE.Group();
-      acGroup.position.set(0, 0.3, 0);
+      acGroup.position.set(0, 0.05, 0);
 
-      // Dimensions: Width ~ 1.8, Height ~ 0.55, Depth ~ 0.38
-      const w = 1.8;
-      const h = 0.55;
-      const d = 0.38;
+      const w = 2.05; // Width
+      const h = 0.60; // Height
+      const d = 0.38; // Depth
 
-      // 1. Main Casing Material (Glossy appliance white ABS)
+      // 1. High-Gloss White Plastic Casing Material
       const casingMat = new THREE.MeshPhysicalMaterial({
-        color: 0xf3f5f8,
-        roughness: 0.16,
-        metalness: 0.04,
-        clearcoat: 0.4,
-        clearcoatRoughness: 0.1,
-        reflectivity: 0.6
+        color: 0xf6f8fb,
+        roughness: 0.14,
+        metalness: 0.05,
+        clearcoat: 0.5,
+        clearcoatRoughness: 0.12
       });
 
-      // 2. Main Chassis Box with curved front
+      // 2. Main Body Block
       const bodyGeo = new THREE.BoxGeometry(w, h, d);
       const bodyMesh = new THREE.Mesh(bodyGeo, casingMat);
       bodyMesh.castShadow = true;
       bodyMesh.receiveShadow = true;
       acGroup.add(bodyMesh);
 
-      // 3. Curved Front Fascia Panel
+      // 3. Curved Front Fascia (Graceful sloping front curve)
       const frontCurveGeo = new THREE.CylinderGeometry(w * 0.5, w * 0.5, d * 0.85, 32, 1, false, 0, Math.PI);
-      frontPanelMesh = new THREE.Mesh(frontCurveGeo, casingMat);
-      frontPanelMesh.rotation.z = Math.PI / 2;
-      frontPanelMesh.rotation.x = -Math.PI / 2;
-      frontPanelMesh.position.set(0, 0.04, d * 0.45);
-      frontPanelMesh.scale.set(0.99, 0.22, 0.52);
-      acGroup.add(frontPanelMesh);
+      const frontCurve = new THREE.Mesh(frontCurveGeo, casingMat);
+      frontCurve.rotation.z = Math.PI / 2;
+      frontCurve.rotation.x = -Math.PI / 2;
+      frontCurve.position.set(0, 0.03, d * 0.46);
+      frontCurve.scale.set(0.995, 0.22, 0.48);
+      acGroup.add(frontCurve);
 
-      // 4. Blue Star Signature Horizontal Chrome & Metallic Blue Accent Ribbon
+      // 4. Blue Star Signature Metallic Ribbon
       const stripMat = new THREE.MeshStandardMaterial({
         color: 0x0284c7,
-        metalness: 0.85,
-        roughness: 0.2,
+        metalness: 0.9,
+        roughness: 0.15,
         emissive: 0x0369a1,
-        emissiveIntensity: 0.2
+        emissiveIntensity: 0.3
       });
-      const stripGeo = new THREE.BoxGeometry(w * 0.98, 0.018, 0.015);
+      const stripGeo = new THREE.BoxGeometry(w * 0.98, 0.016, 0.014);
       const stripMesh = new THREE.Mesh(stripGeo, stripMat);
-      stripMesh.position.set(0, -0.09, d * 0.5 + 0.01);
+      stripMesh.position.set(0, -0.11, d * 0.5 + 0.01);
       acGroup.add(stripMesh);
 
-      // 5. Blue Star Logo Badge
+      // 5. Blue Star Logo Emblem
       const badgeMat = new THREE.MeshStandardMaterial({
         color: 0x0284c7,
-        metalness: 0.9,
+        metalness: 0.95,
         roughness: 0.1
       });
-      const badgeGeo = new THREE.BoxGeometry(0.24, 0.045, 0.008);
+      const badgeGeo = new THREE.BoxGeometry(0.26, 0.046, 0.008);
       const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
-      badgeMesh.position.set(-w * 0.32, -0.09, d * 0.5 + 0.016);
+      badgeMesh.position.set(-w * 0.33, -0.11, d * 0.5 + 0.018);
       acGroup.add(badgeMesh);
 
-      // 6. Top Air Intake Grille Slats
-      const grilleMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
-      for (let i = 0; i < 9; i++) {
-        const slatGeo = new THREE.BoxGeometry(w * 0.88, 0.008, 0.022);
-        const slat = new THREE.Mesh(slatGeo, grilleMat);
-        slat.position.set(0, h * 0.48, -d * 0.25 + (i * 0.038));
+      // 6. Top Intake Slats
+      const slatMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
+      for (let i = 0; i < 8; i++) {
+        const slatGeo = new THREE.BoxGeometry(w * 0.88, 0.006, 0.024);
+        const slat = new THREE.Mesh(slatGeo, slatMat);
+        slat.position.set(0, h * 0.49, -d * 0.24 + (i * 0.042));
         acGroup.add(slat);
       }
 
-      // 7. Bottom Air Outlet Recessed Cavity
-      const ventCavityGeo = new THREE.BoxGeometry(w * 0.92, 0.13, d * 0.45);
-      const ventCavityMat = new THREE.MeshBasicMaterial({ color: 0x0b0f19 });
-      const ventCavity = new THREE.Mesh(ventCavityGeo, ventCavityMat);
-      ventCavity.position.set(0, -h * 0.42, d * 0.15);
-      acGroup.add(ventCavity);
+      // 7. Bottom Vent Cavity (Recessed Dark Opening)
+      const ventGeo = new THREE.BoxGeometry(w * 0.92, 0.12, d * 0.42);
+      const ventMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
+      const vent = new THREE.Mesh(ventGeo, ventMat);
+      vent.position.set(0, -h * 0.42, d * 0.18);
+      acGroup.add(vent);
 
-      // 8. Cylindrical Cross-Flow Blower Fan Drum (inside the vent)
-      const blowerGeo = new THREE.CylinderGeometry(0.042, 0.042, w * 0.88, 20);
-      const blowerMat = new THREE.MeshStandardMaterial({
-        color: 0x1e293b,
-        roughness: 0.5,
-        wireframe: true
-      });
-      blowerDrum = new THREE.Mesh(blowerGeo, blowerMat);
+      // 8. Cross-flow Fan Impeller Drum
+      const drumGeo = new THREE.CylinderGeometry(0.04, 0.04, w * 0.88, 16);
+      const drumMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, wireframe: true });
+      blowerDrum = new THREE.Mesh(drumGeo, drumMat);
       blowerDrum.rotation.z = Math.PI / 2;
-      blowerDrum.position.set(0, -h * 0.41, d * 0.18);
+      blowerDrum.position.set(0, -h * 0.41, d * 0.20);
       acGroup.add(blowerDrum);
 
-      // 9. Motorized Louver Flap (Hinged lower flap)
-      // We position the pivot at its top hinge!
-      const louverPivot = new THREE.Group();
-      louverPivot.position.set(0, -h * 0.36, d * 0.48); // Top edge hinge point
+      // 9. Motorized Louver Flap with Top Pivot Axis
+      louverPivot = new THREE.Group();
+      louverPivot.position.set(0, -h * 0.35, d * 0.48); // Top edge hinge
 
       const louverMat = new THREE.MeshPhysicalMaterial({
         color: 0xf8fafc,
-        roughness: 0.18,
+        roughness: 0.16,
         metalness: 0.05,
         clearcoat: 0.5
       });
-      const louverBladeGeo = new THREE.BoxGeometry(w * 0.92, 0.11, 0.014);
-      louverBladeGeo.translate(0, -0.055, 0); // Center translation so it hinges from top edge
-      louverMesh = new THREE.Mesh(louverBladeGeo, louverMat);
+      const bladeGeo = new THREE.BoxGeometry(w * 0.92, 0.11, 0.012);
+      bladeGeo.translate(0, -0.055, 0); // Translate so rotation pivots along top edge
+      louverMesh = new THREE.Mesh(bladeGeo, louverMat);
       louverMesh.castShadow = true;
       louverPivot.add(louverMesh);
-
       acGroup.add(louverPivot);
-      acGroup.louverPivot = louverPivot;
 
       // 10. Concealed 7-Segment Digital LED Display
       displayCanvas = document.createElement('canvas');
@@ -1651,12 +1344,12 @@
         opacity: 0.95,
         blending: THREE.AdditiveBlending
       });
-      const displayGeo = new THREE.PlaneGeometry(0.32, 0.16);
+      const displayGeo = new THREE.PlaneGeometry(0.34, 0.17);
       displayMesh = new THREE.Mesh(displayGeo, displayMat);
       displayMesh.position.set(w * 0.28, 0.02, d * 0.505);
       acGroup.add(displayMesh);
 
-      // 11. Internal Evaporator Cooling Coils & Compressor Pulse (For X-Ray Mode)
+      // 11. X-Ray Coils
       coilGroup = new THREE.Group();
       coilGroup.visible = false;
 
@@ -1664,35 +1357,40 @@
         color: 0x00f0ff,
         emissive: 0x0284c7,
         emissiveIntensity: 0.8,
-        roughness: 0.2,
-        metalness: 0.85
+        metalness: 0.85,
+        roughness: 0.2
       });
 
-      for (let c = 0; c < 7; c++) {
-        const pipeGeo = new THREE.CylinderGeometry(0.016, 0.016, w * 0.82, 16);
+      for (let c = 0; c < 6; c++) {
+        const pipeGeo = new THREE.CylinderGeometry(0.018, 0.018, w * 0.84, 16);
         const pipe = new THREE.Mesh(pipeGeo, coilMat);
         pipe.rotation.z = Math.PI / 2;
-        pipe.position.set(0, 0.14 - (c * 0.045), -0.05 + (c * 0.035));
+        pipe.position.set(0, 0.15 - (c * 0.05), -0.04 + (c * 0.04));
         coilGroup.add(pipe);
       }
 
-      // Heat fins
-      const finsGeo = new THREE.BoxGeometry(w * 0.82, 0.28, 0.2);
+      const finsGeo = new THREE.BoxGeometry(w * 0.84, 0.30, 0.22);
       const finsMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.35 });
-      const finsMesh = new THREE.Mesh(finsGeo, finsMat);
-      finsMesh.position.set(0, 0.02, 0);
-      coilGroup.add(finsMesh);
-
+      const fins = new THREE.Mesh(finsGeo, finsMat);
+      fins.position.set(0, 0.02, 0);
+      coilGroup.add(fins);
       acGroup.add(coilGroup);
 
-      // Store references for easy manipulation
+      // References
       acGroup.casingMat = casingMat;
       acGroup.coilMat = coilMat;
+
+      // Soft Wall Mounting Shadow
+      const backWallGeo = new THREE.PlaneGeometry(w * 1.5, h * 2.2);
+      const backWallMat = new THREE.ShadowMaterial({ opacity: 0.35 });
+      const backWall = new THREE.Mesh(backWallGeo, backWallMat);
+      backWall.position.set(0, 0, -d * 0.52);
+      backWall.receiveShadow = true;
+      acGroup.add(backWall);
 
       scene.add(acGroup);
     }
 
-    // Update the dynamic 7-Segment LED canvas texture
     function updateDisplayTexture() {
       const ctx = displayCanvas.getContext('2d');
       ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
@@ -1713,9 +1411,8 @@
           ctx.fillText(`${Math.round(state.targetTemp)}°`, 240, 115);
         }
 
-        // Sub icons
-        ctx.font = '500 24px Outfit, sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+        ctx.font = '600 24px Outfit, sans-serif';
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
         ctx.shadowBlur = 4;
         const modeLabels = ['', 'COOL', 'DRY', 'FAN', 'AUTO'];
         ctx.fillText(modeLabels[state.mode] || 'COOL', 256, 190);
@@ -1724,25 +1421,24 @@
       if (displayTexture) displayTexture.needsUpdate = true;
     }
 
-    // Dynamic Aerodynamic GPU Particle Vortex
-    function buildAirflowParticles() {
+    // Dynamic Airflow Particles
+    function buildParticles() {
       const geo = new THREE.BufferGeometry();
       particlePositions = new Float32Array(particleCount * 3);
       particleVelocities = new Float32Array(particleCount * 3);
       particleLifespans = new Float32Array(particleCount);
 
-      // Initialize all particles inactive
       for (let i = 0; i < particleCount; i++) {
         resetParticle(i, true);
       }
 
       geo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
 
-      // Circular soft sprite texture
-      const pCanvas = document.createElement('canvas');
-      pCanvas.width = 64;
-      pCanvas.height = 64;
-      const pCtx = pCanvas.getContext('2d');
+      // Circular particle sprite
+      const pCan = document.createElement('canvas');
+      pCan.width = 64;
+      pCan.height = 64;
+      const pCtx = pCan.getContext('2d');
       const grad = pCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
       grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
       grad.addColorStop(0.3, 'rgba(56, 189, 248, 0.6)');
@@ -1750,13 +1446,12 @@
       pCtx.fillStyle = grad;
       pCtx.fillRect(0, 0, 64, 64);
 
-      const pTexture = new THREE.CanvasTexture(pCanvas);
-
+      const pTex = new THREE.CanvasTexture(pCan);
       const pMat = new THREE.PointsMaterial({
         size: 0.12,
-        map: pTexture,
+        map: pTex,
         transparent: true,
-        opacity: 0.7,
+        opacity: 0.75,
         blending: THREE.AdditiveBlending,
         depthWrite: false
       });
@@ -1767,33 +1462,27 @@
 
     function resetParticle(i, immediateSpread = false) {
       const idx = i * 3;
-      // Spawn along the louver width: -0.7 to +0.7
-      const spreadX = (Math.random() - 0.5) * 1.5;
+      const spreadX = (Math.random() - 0.5) * 1.6;
       particlePositions[idx] = spreadX;
-      particlePositions[idx + 1] = -0.05 + (Math.random() * 0.04);
-      particlePositions[idx + 2] = 0.22;
+      particlePositions[idx + 1] = -0.16 + (Math.random() * 0.04);
+      particlePositions[idx + 2] = 0.24;
 
-      // Base speed factor linked to Fan stage (Quiet = 1, Turbo = 5)
-      const fanSpeeds = [0, 0.018, 0.028, 0.042, 0.062, 0.095, 0.045];
+      const fanSpeeds = [0, 0.016, 0.026, 0.040, 0.058, 0.088, 0.042];
       const speed = fanSpeeds[state.fan] || 0.04;
 
-      // Pitch angle calculated from the physical louver rotation
       let louverPitch = 0.6;
-      if (acGroup && acGroup.louverPivot) {
-        louverPitch = acGroup.louverPivot.rotation.x;
-      }
+      if (louverPivot) louverPitch = louverPivot.rotation.x;
 
-      const forwardZ = Math.cos(louverPitch) * speed * (0.8 + Math.random() * 0.5);
-      const downwardY = -Math.sin(louverPitch) * speed * (0.8 + Math.random() * 0.5);
+      const forwardZ = Math.cos(louverPitch) * speed * (0.8 + Math.random() * 0.4);
+      const downwardY = -Math.sin(louverPitch) * speed * (0.8 + Math.random() * 0.4);
 
-      particleVelocities[idx] = (Math.random() - 0.5) * 0.008;
+      particleVelocities[idx] = (Math.random() - 0.5) * 0.006;
       particleVelocities[idx + 1] = downwardY;
       particleVelocities[idx + 2] = forwardZ;
 
       particleLifespans[i] = immediateSpread ? Math.random() : 0.0;
     }
 
-    // 3D Animation & Render Loop
     let clock = new THREE.Clock();
 
     function animate() {
@@ -1802,91 +1491,75 @@
       const delta = clock.getDelta();
       const time = clock.getElapsedTime();
 
-      // 1. Louver Physical Articulation
-      if (acGroup && acGroup.louverPivot) {
+      // 1. Louver Articulation
+      if (louverPivot) {
         if (state.power === 1) {
           if (state.vane === 0) {
-            // Auto-Swing: Smooth sinusoidal oscillation between ~15° and ~65°
+            // Smooth vertical oscillation
             const swingMin = 0.25;
             const swingMax = 1.05;
             const swingAngle = swingMin + ((Math.sin(time * 2.2) + 1) * 0.5) * (swingMax - swingMin);
-            acGroup.louverPivot.rotation.x = THREE.MathUtils.lerp(acGroup.louverPivot.rotation.x, swingAngle, 0.08);
+            louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, swingAngle, 0.08);
           } else {
-            // Fixed vane steps: 1=Top (~0.25 rad), 3=Mid (~0.6 rad), 5=Bottom (~1.05 rad)
             const targetAngles = { 1: 0.25, 2: 0.42, 3: 0.60, 4: 0.82, 5: 1.05, 6: 0.60 };
-            const desired = targetAngles[state.vane] || 0.6;
-            acGroup.louverPivot.rotation.x = THREE.MathUtils.lerp(acGroup.louverPivot.rotation.x, desired, 0.08);
+            const desired = targetAngles[state.vane] || 0.60;
+            louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, desired, 0.08);
           }
         } else {
-          // Closed tight shut when OFF
-          acGroup.louverPivot.rotation.x = THREE.MathUtils.lerp(acGroup.louverPivot.rotation.x, 0.0, 0.05);
+          // Closed tight
+          louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, 0.0, 0.05);
         }
       }
 
-      // 2. Blower Cross-flow Impeller Drum Spin
-      if (blowerDrum) {
-        if (state.power === 1) {
-          const fanDrumSpeeds = [0, 8, 14, 22, 32, 48, 20];
-          const spinSpeed = fanDrumSpeeds[state.fan] || 18;
-          blowerDrum.rotation.x += spinSpeed * delta;
-        }
+      // 2. Blower Impeller Spin
+      if (blowerDrum && state.power === 1) {
+        const fanDrumSpeeds = [0, 8, 14, 22, 32, 48, 20];
+        blowerDrum.rotation.x += (fanDrumSpeeds[state.fan] || 20) * delta;
       }
 
-      // 3. Airflow Particle Dynamics
+      // 3. Airflow Particles
       if (airflowParticles && particlePositions) {
         const positions = airflowParticles.geometry.attributes.position.array;
-        const fanSpeeds = [0, 0.018, 0.028, 0.042, 0.062, 0.095, 0.045];
+        const fanSpeeds = [0, 0.016, 0.026, 0.040, 0.058, 0.088, 0.042];
         const currentFanSpeed = fanSpeeds[state.fan] || 0.04;
 
         if (state.power === 1) {
           airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.75, 0.05);
 
-          // Update Particle Color based on Temperature & Mode
+          // Color ramp
           if (state.mode === 2) {
-            // Dry Mode: Water Droplet Mist
-            airflowParticles.material.color.set(0x7dd3fc);
+            airflowParticles.material.color.set(0x7dd3fc); // Dry
           } else if (state.mode === 3) {
-            // Fan Mode: Soft White Breeze
-            airflowParticles.material.color.set(0xe2e8f0);
+            airflowParticles.material.color.set(0xe2e8f0); // Fan
           } else if (state.eco === 1) {
-            // Eco Mode: Emerald Glow
-            airflowParticles.material.color.set(0x10b981);
+            airflowParticles.material.color.set(0x10b981); // Eco
           } else if (state.targetTemp <= 19) {
-            // Icy Freeze
-            airflowParticles.material.color.set(0x00f0ff);
+            airflowParticles.material.color.set(0x00f0ff); // Ice Cyan
           } else if (state.targetTemp <= 24) {
-            // Cool Sky
-            airflowParticles.material.color.set(0x38bdf8);
+            airflowParticles.material.color.set(0x38bdf8); // Sky Cool
           } else {
-            // Warm Breeze
-            airflowParticles.material.color.set(0x2dd4bf);
+            airflowParticles.material.color.set(0x2dd4bf); // Mint
           }
 
           for (let i = 0; i < particleCount; i++) {
             particleLifespans[i] += delta * (0.8 + currentFanSpeed * 10);
-            if (particleLifespans[i] > 1.0) {
-              resetParticle(i);
-            }
+            if (particleLifespans[i] > 1.0) resetParticle(i);
 
             const idx = i * 3;
             positions[idx] += particleVelocities[idx];
             positions[idx + 1] += particleVelocities[idx + 1];
             positions[idx + 2] += particleVelocities[idx + 2];
-
-            // Gentle turbulent dispersion as particles travel further
-            positions[idx] += Math.sin(time * 4 + i) * 0.0015;
+            positions[idx] += Math.sin(time * 3 + i) * 0.0012;
           }
         } else {
-          // Unit is OFF: fade out and freeze particles
           airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.0, 0.1);
         }
 
         airflowParticles.geometry.attributes.position.needsUpdate = true;
       }
 
-      // 4. Inverter Compressor Telemetry Pulse
+      // 4. X-Ray Coil Pulsing
       if (coilGroup && coilGroup.visible) {
-        // Coil color linked to coil temperature
         if (state.coilTemp <= 9.0) {
           acGroup.coilMat.color.set(0x00f0ff);
           acGroup.coilMat.emissive.set(0x0284c7);
@@ -1898,7 +1571,6 @@
           acGroup.coilMat.emissive.set(0xb45309);
         }
 
-        // Pulse intensity based on compressor Hz
         const pulseFreq = Math.max(1, state.compHz / 15);
         acGroup.coilMat.emissiveIntensity = 0.5 + Math.sin(time * pulseFreq) * 0.4;
       }
@@ -1907,52 +1579,29 @@
       renderer.render(scene, camera);
     }
 
-    function onWindowResize() {
-      camera.aspect = window.innerWidth / window.innerHeight;
-      camera.updateProjectionMatrix();
-      renderer.setSize(window.innerWidth, window.innerHeight);
-    }
-
-    // Interactive Touch/Click in 3D Space
-    function onDocumentPointerDown(event) {
-      if (event.target.tagName !== 'CANVAS') return;
-
-      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    function onPointerDown(event) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
 
       raycaster.setFromCamera(mouse, camera);
       if (!acGroup) return;
 
-      const intersects = raycaster.intersectObjects(acGroup.children, true);
-      if (intersects.length > 0) {
-        const hit = intersects[0].object;
-
-        // If clicked on the louver: toggle swing
-        if (hit === louverMesh || hit.parent === acGroup.louverPivot) {
+      const hits = raycaster.intersectObjects(acGroup.children, true);
+      if (hits.length > 0) {
+        const hit = hits[0].object;
+        if (hit === louverMesh || hit.parent === louverPivot) {
           playAudio('beep');
-          toggleVaneQuick();
-        }
-        // If clicked on the display: toggle display light
-        else if (hit === displayMesh) {
+          setVane(state.vane === 0 ? 3 : 0);
+        } else if (hit === displayMesh) {
           toggleFeature('light');
-        }
-        // If clicked on the body: slight playful tactile haptic bounce
-        else {
-          gsap.to(acGroup.position, { y: 0.33, duration: 0.15, yoyo: true, repeat: 1, ease: "power1.out" });
+        } else {
+          gsap.to(acGroup.position, { y: 0.08, duration: 0.12, yoyo: true, repeat: 1, ease: "power1.out" });
           playAudio('click');
         }
       }
     }
 
-    function toggleVaneQuick() {
-      if (state.vane === 0) {
-        setVane(3); // Fix middle
-      } else {
-        setVane(0); // Auto swing
-      }
-    }
-
-    // Smooth Camera Transition Views
     function setCameraView(viewKey) {
       state.currentCameraView = viewKey;
 
@@ -1961,23 +1610,25 @@
       if (activeBtn) activeBtn.classList.add('active');
 
       playAudio('click');
+      const aspect = container.clientWidth / container.clientHeight;
 
       if (viewKey === 'hero') {
         setXrayMode(false);
-        gsap.to(camera.position, { x: 0, y: 0.35, z: 3.2, duration: 1.2, ease: "power3.inOut" });
-        gsap.to(controls.target, { x: 0, y: 0, z: 0, duration: 1.2, ease: "power3.inOut" });
+        const zDist = aspect < 1.0 ? 5.2 / aspect * 0.75 : (aspect < 1.5 ? 4.4 : 3.8);
+        gsap.to(camera.position, { x: 0, y: 0.4, z: zDist, duration: 1.0, ease: "power2.inOut" });
+        gsap.to(controls.target, { x: 0, y: 0.05, z: 0, duration: 1.0, ease: "power2.inOut" });
       } else if (viewKey === 'airflow') {
         setXrayMode(false);
-        gsap.to(camera.position, { x: 2.4, y: -0.2, z: 2.1, duration: 1.2, ease: "power3.inOut" });
-        gsap.to(controls.target, { x: 0.4, y: -0.2, z: 0.2, duration: 1.2, ease: "power3.inOut" });
+        gsap.to(camera.position, { x: 2.2, y: -0.15, z: 2.5, duration: 1.0, ease: "power2.inOut" });
+        gsap.to(controls.target, { x: 0.3, y: -0.15, z: 0.2, duration: 1.0, ease: "power2.inOut" });
       } else if (viewKey === 'xray') {
         setXrayMode(true);
-        gsap.to(camera.position, { x: 0, y: 0.2, z: 2.0, duration: 1.2, ease: "power3.inOut" });
-        gsap.to(controls.target, { x: 0, y: 0.05, z: 0, duration: 1.2, ease: "power3.inOut" });
+        gsap.to(camera.position, { x: 0, y: 0.2, z: 2.5, duration: 1.0, ease: "power2.inOut" });
+        gsap.to(controls.target, { x: 0, y: 0.05, z: 0, duration: 1.0, ease: "power2.inOut" });
       } else if (viewKey === 'display') {
         setXrayMode(false);
-        gsap.to(camera.position, { x: 0.52, y: 0.1, z: 1.2, duration: 1.2, ease: "power3.inOut" });
-        gsap.to(controls.target, { x: 0.5, y: 0.02, z: 0.45, duration: 1.2, ease: "power3.inOut" });
+        gsap.to(camera.position, { x: 0.58, y: 0.08, z: 1.4, duration: 1.0, ease: "power2.inOut" });
+        gsap.to(controls.target, { x: 0.56, y: 0.02, z: 0.45, duration: 1.0, ease: "power2.inOut" });
       }
     }
 
@@ -1987,21 +1638,20 @@
 
       if (enable) {
         coilGroup.visible = true;
-        gsap.to(acGroup.casingMat, { opacity: 0.22, transparent: true, roughness: 0.05, wireframe: true, duration: 0.8 });
+        gsap.to(acGroup.casingMat, { opacity: 0.2, transparent: true, wireframe: true, duration: 0.6 });
       } else {
         gsap.to(acGroup.casingMat, {
           opacity: 1.0,
           transparent: false,
-          roughness: 0.16,
           wireframe: false,
-          duration: 0.8,
+          duration: 0.6,
           onComplete: () => { coilGroup.visible = false; }
         });
       }
     }
 
     // =========================================================================
-    // 3. SYNTHESIZED WEB AUDIO API (AUTHENTIC CHIMES & AIRFLOW HUM)
+    // 3. SYNTHESIZED WEB AUDIO API
     // =========================================================================
     let audioCtx = null;
     let fanHumGainNode = null;
@@ -2012,9 +1662,7 @@
         audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         initFanAudioHum();
       }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
+      if (audioCtx.state === 'suspended') audioCtx.resume();
       return audioCtx;
     }
 
@@ -2026,11 +1674,11 @@
 
         const filter = audioCtx.createBiquadFilter();
         filter.type = "lowpass";
-        filter.frequency.setValueAtTime(320, audioCtx.currentTime);
+        filter.frequency.setValueAtTime(300, audioCtx.currentTime);
 
         fanHumOscNode = audioCtx.createOscillator();
         fanHumOscNode.type = "triangle";
-        fanHumOscNode.frequency.setValueAtTime(58, audioCtx.currentTime);
+        fanHumOscNode.frequency.setValueAtTime(55, audioCtx.currentTime);
 
         fanHumOscNode.connect(filter);
         filter.connect(fanHumGainNode);
@@ -2045,7 +1693,6 @@
       if (!ctx) return;
 
       if (type === 'beep') {
-        // Classic Blue Star dual-tone confirmation beep (1760 Hz & 2200 Hz)
         const osc1 = ctx.createOscillator();
         const osc2 = ctx.createOscillator();
         const gain = ctx.createGain();
@@ -2053,7 +1700,7 @@
         osc1.frequency.setValueAtTime(1760, ctx.currentTime);
         osc2.frequency.setValueAtTime(2200, ctx.currentTime + 0.08);
 
-        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.18);
 
         osc1.connect(gain);
@@ -2068,8 +1715,8 @@
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.04);
-        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(250, ctx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.06, ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.04);
         osc.connect(gain);
         gain.connect(ctx.destination);
@@ -2084,9 +1731,8 @@
         fanHumGainNode.gain.setTargetAtTime(0.0001, audioCtx.currentTime, 0.2);
         return;
       }
-      const fanGains = [0, 0.015, 0.03, 0.05, 0.08, 0.14, 0.06];
-      const targetGain = fanGains[state.fan] || 0.04;
-      fanHumGainNode.gain.setTargetAtTime(targetGain, audioCtx.currentTime, 0.3);
+      const fanGains = [0, 0.015, 0.025, 0.045, 0.075, 0.13, 0.05];
+      fanHumGainNode.gain.setTargetAtTime(fanGains[state.fan] || 0.04, audioCtx.currentTime, 0.3);
     }
 
     function toggleSound() {
@@ -2105,83 +1751,23 @@
     }
 
     // =========================================================================
-    // 4. HARDWARE COMMAND DISPATCH & UI CONTROLLERS (BATCHED ENGINE)
+    // 4. UI DISPATCH & STATE SYNC
     // =========================================================================
-    let pendingBatch = {};
-    let batchTimer = null;
-    const BATCH_WINDOW_MS = 900; // 900ms window: merges multiple adjustments into ONE single atomic MQTT request
-
-    function sendCommand(patch, immediate = false) {
-      // 1. Immediately apply to local state & UI for snappy, zero-latency tactile response
+    function sendCommand(patch) {
       Object.assign(state, patch);
-      Object.assign(pendingBatch, patch);
       renderUI();
       updateDisplayTexture();
       updateFanHumAudio();
 
-      // 2. Show visual batching feedback
-      showBatchIndicator(true);
-
-      // 3. Clear existing debounce timer
-      if (batchTimer) {
-        clearTimeout(batchTimer);
-        batchTimer = null;
-      }
-
-      if (immediate) {
-        flushBatch();
-      } else {
-        batchTimer = setTimeout(() => {
-          flushBatch();
-        }, BATCH_WINDOW_MS);
-      }
-    }
-
-    function flushBatch() {
-      if (batchTimer) {
-        clearTimeout(batchTimer);
-        batchTimer = null;
-      }
-      if (Object.keys(pendingBatch).length === 0) return;
-
       if (mqttClient && mqttClient.connected) {
         const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
-        const payload = JSON.stringify(pendingBatch);
-        mqttClient.publish(topic, payload);
-        console.log("[BATCH TX] Sent consolidated request:", payload);
-        pendingBatch = {};
-        showBatchIndicator(false);
+        mqttClient.publish(topic, JSON.stringify(patch));
       }
     }
-
-    function showBatchIndicator(active) {
-      const pill = document.getElementById("connPill");
-      const text = document.getElementById("connStatusText");
-      if (!pill || !text) return;
-      if (active) {
-        const count = Object.keys(pendingBatch).length;
-        text.innerText = count > 1 ? `Batching ${count}...` : "Batching...";
-        pill.classList.add("batching");
-      } else {
-        if (mqttClient && mqttClient.connected) {
-          text.innerText = "Connected";
-          pill.className = "connection-pill connected";
-        }
-      }
-    }
-
-    // Flush any pending changes when page is hidden or closed
-    document.addEventListener("visibilitychange", () => {
-      if (document.hidden) flushBatch();
-    });
-    window.addEventListener("beforeunload", () => {
-      flushBatch();
-    });
 
     function togglePower() {
-      const nextPower = state.power === 1 ? 0 : 1;
       playAudio('beep');
-      sendCommand({ power: nextPower });
+      sendCommand({ power: state.power === 1 ? 0 : 1 });
     }
 
     function adjustTemp(delta) {
@@ -2226,9 +1812,7 @@
       if (featKey === 'light') sendCommand({ light: state.light === 1 ? 0 : 1 });
     }
 
-    // Render HTML Controls to reflect state
     function renderUI() {
-      // 1. Power State
       const pBtn = document.getElementById("mainPowerBtn");
       const pTxt = document.getElementById("powerBtnText");
       const hero = document.getElementById("heroCard");
@@ -2241,31 +1825,25 @@
 
         if (state.roomTemp > 0) {
           const diff = (state.roomTemp - state.targetTemp).toFixed(1);
-          if (Math.abs(diff) <= 0.5) {
-            deltaBadge.innerText = "Comfort Balanced";
-          } else if (diff > 0) {
-            deltaBadge.innerText = `Cooling (${diff}° to target)`;
-          } else {
-            deltaBadge.innerText = "Target Reached";
-          }
+          if (Math.abs(diff) <= 0.5) deltaBadge.innerText = "Comfort Balanced";
+          else if (diff > 0) deltaBadge.innerText = `Cooling (${diff}° to target)`;
+          else deltaBadge.innerText = "Target Reached";
         }
       } else {
         pBtn.classList.remove("on");
         pTxt.innerText = "Standby";
         hero.style.opacity = "0.6";
-        deltaBadge.innerText = "System Offline";
+        deltaBadge.innerText = "System Standby";
       }
 
-      // 2. Temperature Readout & Dial Arc
       document.getElementById("targetTempNum").innerText = Math.round(state.targetTemp);
       document.getElementById("ambientReadout").innerText = `${state.roomTemp.toFixed(1)}°C`;
 
-      // SVG Dial (Range 16 - 30 = 14 deg span, circumference ~ 565)
+      // SVG Dial (Range 16-30 = 14 deg span, circumference ~452)
       const norm = Math.max(0, Math.min(1, (state.targetTemp - 16) / 14));
-      const activeSpan = norm * 420;
-      document.getElementById("dialBar").style.strokeDashoffset = 565 - activeSpan;
+      document.getElementById("dialBar").style.strokeDashoffset = 452 - (norm * 330);
 
-      // 3. Operating Modes
+      // Modes
       const modeNames = ["", "Cooling", "Dehumidify (Dry)", "Fan Only", "AI Auto Pro"];
       document.getElementById("modeBadge").innerText = modeNames[state.mode] || "Cooling";
       for (let i = 1; i <= 4; i++) {
@@ -2273,38 +1851,38 @@
         if (el) el.classList.toggle("active", state.mode === i);
       }
 
-      // 4. Fan Speeds
-      const fanNames = ["", "Quiet", "Low", "Medium", "High", "Turbo Boost", "Auto"];
+      // Fan Speeds
+      const fanNames = ["", "Quiet", "Low", "Medium", "High", "Turbo", "Auto"];
       document.getElementById("fanBadge").innerText = `${fanNames[state.fan]} (Stage ${state.fan})`;
       for (let i = 1; i <= 6; i++) {
         const el = document.getElementById(`fanBtn${i}`);
         if (el) el.classList.toggle("active", state.fan === i);
       }
 
-      // 5. 5-in-1 Convertible
-      const convNames = ["", "100% (1.5 Ton)", "80% Capacity", "60% Eco Saving", "40% Maximum Eco"];
-      document.getElementById("convBadge").innerText = convNames[state.convertible] || "100%";
-      for (let i = 1; i <= 4; i++) {
-        const el = document.getElementById(`convBtn${i}`);
-        if (el) el.classList.toggle("active", state.convertible === i);
-      }
-
-      // 6. Louver & Swing
+      // Louver
       const vaneNames = { 0: "Auto Swing (↕)", 1: "Top Step (1)", 3: "Middle Step (3)", 5: "Bottom Step (5)" };
       document.getElementById("vaneBadge").innerText = vaneNames[state.vane] || "Custom Vane";
       [0, 1, 3, 5].forEach(v => {
         const el = document.getElementById(`vaneBtn${v}`);
         if (el) el.classList.toggle("active", state.vane === v);
       });
-      document.getElementById("hSwingCard").classList.toggle("active", state.hSwing === 1);
+      document.getElementById("hSwingBtn").classList.toggle("active", state.hSwing === 1);
 
-      // 7. Feature Toggles
+      // 5-in-1 Convertible
+      const convNames = ["", "100% (Full Ton)", "80% Capacity", "60% Eco Saving", "40% Maximum Eco"];
+      document.getElementById("convBadge").innerText = convNames[state.convertible] || "100%";
+      for (let i = 1; i <= 4; i++) {
+        const el = document.getElementById(`convBtn${i}`);
+        if (el) el.classList.toggle("active", state.convertible === i);
+      }
+
+      // Features
       document.getElementById("cardTurbo").classList.toggle("on", state.turbo === 1);
       document.getElementById("cardEco").classList.toggle("on", state.eco === 1);
       document.getElementById("cardSleep").classList.toggle("on", state.sleep === 1);
       document.getElementById("cardLight").classList.toggle("on", state.light === 1);
 
-      // 8. Live Telemetry
+      // Telemetry
       document.getElementById("compHzVal").innerText = (state.power === 1 && state.compHz > 0) ? `${state.compHz} Hz` : "Idle";
       document.getElementById("coilTempVal").innerText = `${state.coilTemp.toFixed(1)}°C`;
       document.getElementById("compHoursVal").innerText = `${Math.round(state.compHours)} h`;
@@ -2320,7 +1898,7 @@
     }
 
     // =========================================================================
-    // 5. MQTT PROTOCOL INTEGRATION (ADAFRUIT IO / HIVEMQ)
+    // 5. MQTT INTEGRATION
     // =========================================================================
     function initMqtt() {
       if (!mqttConfig.username || !mqttConfig.password) {
@@ -2329,7 +1907,6 @@
       }
 
       updateConnectionStatus("connecting", "Connecting...");
-
       const url = `wss://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
       const clientId = `BlueStar3D-${Math.random().toString(16).substring(2, 8)}`;
 
@@ -2352,19 +1929,18 @@
         mqttClient.on('message', (topic, message) => {
           try {
             const data = JSON.parse(message.toString());
-            // Sync incoming telemetry from ESP32 (only for fields not actively pending in local batch)
-            if (data.power !== undefined && !('power' in pendingBatch)) state.power = data.power;
-            if (data.targetTemp !== undefined && !('targetTemp' in pendingBatch)) state.targetTemp = Math.round(parseFloat(data.targetTemp));
+            if (data.power !== undefined) state.power = data.power;
+            if (data.targetTemp !== undefined) state.targetTemp = parseFloat(data.targetTemp);
             if (data.roomTemp !== undefined) state.roomTemp = parseFloat(data.roomTemp);
-            if (data.mode !== undefined && !('mode' in pendingBatch)) state.mode = data.mode;
-            if (data.fan !== undefined && !('fan' in pendingBatch)) state.fan = data.fan;
-            if (data.vane !== undefined && !('vane' in pendingBatch)) state.vane = data.vane;
-            if (data.hSwing !== undefined && !('hSwing' in pendingBatch)) state.hSwing = data.hSwing;
-            if (data.convertible !== undefined && !('convertible' in pendingBatch)) state.convertible = data.convertible;
-            if (data.eco !== undefined && !('eco' in pendingBatch)) state.eco = data.eco;
-            if (data.turbo !== undefined && !('turbo' in pendingBatch)) state.turbo = data.turbo;
-            if (data.sleep !== undefined && !('sleep' in pendingBatch)) state.sleep = data.sleep;
-            if (data.light !== undefined && !('light' in pendingBatch)) state.light = data.light;
+            if (data.mode !== undefined) state.mode = data.mode;
+            if (data.fan !== undefined) state.fan = data.fan;
+            if (data.vane !== undefined) state.vane = data.vane;
+            if (data.hSwing !== undefined) state.hSwing = data.hSwing;
+            if (data.convertible !== undefined) state.convertible = data.convertible;
+            if (data.eco !== undefined) state.eco = data.eco;
+            if (data.turbo !== undefined) state.turbo = data.turbo;
+            if (data.sleep !== undefined) state.sleep = data.sleep;
+            if (data.light !== undefined) state.light = data.light;
             if (data.filterAlert !== undefined) state.filterAlert = data.filterAlert;
             if (data.compHz !== undefined) state.compHz = data.compHz;
             if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
@@ -2378,16 +1954,10 @@
           }
         });
 
-        mqttClient.on('error', () => {
-          updateConnectionStatus("error", "Error / Retrying");
-        });
-
-        mqttClient.on('close', () => {
-          updateConnectionStatus("offline", "Disconnected");
-        });
-
+        mqttClient.on('error', () => updateConnectionStatus("error", "Error / Retrying"));
+        mqttClient.on('close', () => updateConnectionStatus("offline", "Disconnected"));
       } catch (err) {
-        updateConnectionStatus("error", "Connection Failed");
+        updateConnectionStatus("error", "Failed");
       }
     }
 
@@ -2395,15 +1965,9 @@
       const pill = document.getElementById("connPill");
       const txt = document.getElementById("connStatusText");
       txt.innerText = label;
-
-      if (type === "connected") {
-        pill.className = "connection-pill connected";
-      } else {
-        pill.className = "connection-pill";
-      }
+      pill.className = type === "connected" ? "connection-pill connected" : "connection-pill";
     }
 
-    // Configuration Modal
     function openConfigModal() {
       document.getElementById("cfgHost").value = mqttConfig.host || "io.adafruit.com";
       document.getElementById("cfgPort").value = mqttConfig.port || 443;
@@ -2421,19 +1985,13 @@
       mqttConfig.port = parseInt(document.getElementById("cfgPort").value) || 443;
       mqttConfig.username = document.getElementById("cfgUser").value.trim();
       mqttConfig.password = document.getElementById("cfgPass").value.trim();
-
       localStorage.setItem("bluestar_mqtt_cfg", JSON.stringify(mqttConfig));
       closeConfigModal();
-
-      if (mqttClient) {
-        mqttClient.end(true);
-      }
+      if (mqttClient) mqttClient.end(true);
       initMqtt();
     }
 
-    // =========================================================================
-    // 6. BOOTSTRAP INITIALIZATION
-    // =========================================================================
+    // Bootstrap
     window.addEventListener('DOMContentLoaded', () => {
       init3D();
       renderUI();
