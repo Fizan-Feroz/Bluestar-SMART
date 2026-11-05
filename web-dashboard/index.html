@@ -186,6 +186,19 @@
       border-color: rgba(16, 185, 129, 0.28);
     }
 
+    .connection-pill.batching {
+      background: rgba(245, 158, 11, 0.16);
+      color: #f59e0b;
+      border-color: rgba(245, 158, 11, 0.4);
+      cursor: pointer;
+    }
+
+    .connection-pill.batching .pulse-dot {
+      background: #f59e0b;
+      box-shadow: 0 0 10px #f59e0b;
+      animation: pulseAnim 0.7s infinite;
+    }
+
     .pulse-dot {
       width: 7px;
       height: 7px;
@@ -916,6 +929,143 @@
         padding-top: 290px;
       }
     }
+    /* Device PIN Lock Screen Overlay */
+    .lock-overlay {
+      position: fixed;
+      inset: 0;
+      background: radial-gradient(circle at 50% 30%, rgba(14, 21, 37, 0.95) 0%, rgba(6, 9, 19, 0.98) 85%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      z-index: 1000;
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+    .lock-overlay.unlocked {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(1.05);
+    }
+    .lock-box {
+      max-width: 320px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+    .lock-shield {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      background: var(--surface-glass-card);
+      border: 1px solid var(--border-glass);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cool-glow);
+      box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
+    }
+    .lock-shield svg { width: 30px; height: 30px; fill: currentColor; }
+    .lock-heading {
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      font-weight: 700;
+      color: #fff;
+      text-align: center;
+    }
+    .lock-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: -8px;
+    }
+    .pin-display {
+      display: flex;
+      gap: 16px;
+      margin: 8px 0;
+    }
+    .pin-dot {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      border: 2px solid var(--border-active);
+      background: transparent;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .pin-dot.filled {
+      background: var(--cool-glow);
+      box-shadow: 0 0 12px var(--cool-glow);
+      transform: scale(1.15);
+    }
+    .pin-dot.error {
+      background: var(--rose);
+      border-color: var(--rose);
+      box-shadow: 0 0 12px var(--rose);
+    }
+    .pin-keypad {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      width: 100%;
+    }
+    .pad-key {
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background: var(--surface-glass-card);
+      border: 1px solid var(--border-glass);
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .pad-key:active {
+      transform: scale(0.92);
+      background: rgba(56, 189, 248, 0.2);
+      border-color: var(--cool-glow);
+    }
+    .pad-key.util {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: transparent;
+      border: none;
+    }
+    .pad-key.util:active {
+      color: #fff;
+    }
+    .remember-toggle {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-top: 4px;
+    }
+    .remember-toggle input {
+      accent-color: var(--cool-primary);
+      width: 15px;
+      height: 15px;
+    }
+    .shake {
+      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+    @keyframes shake {
+      10%, 90% { transform: translate3d(-2px, 0, 0); }
+      20%, 80% { transform: translate3d(4px, 0, 0); }
+      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
+      40%, 60% { transform: translate3d(6px, 0, 0); }
+    }
   </style>
 </head>
 <body>
@@ -940,10 +1090,14 @@
       </div>
 
       <div class="nav-actions">
-        <div class="connection-pill" id="connPill">
+        <div class="connection-pill" id="connPill" onclick="flushBatch()" title="Click to send batched changes immediately">
           <div class="pulse-dot"></div>
           <span id="connStatusText">Offline</span>
         </div>
+
+        <button class="nav-btn" id="lockNavBtn" title="Lock Console" onclick="lockConsole()" style="display: none;">
+          <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
+        </button>
 
         <button class="nav-btn" id="soundBtn" title="Toggle Synthesized Audio" onclick="toggleSound()">
           <svg viewBox="0 0 24 24" id="soundIcon"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6.5H2v11h4.5l5 4.5V2z"/></svg>
@@ -1176,6 +1330,44 @@
 
       </section>
 
+    </div>
+  </div>
+
+  <!-- Device PIN Lock Overlay -->
+  <div class="lock-overlay" id="lockScreen">
+    <div class="lock-box" id="lockBox">
+      <div class="lock-shield">
+        <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 5a3 3 0 0 1 6 0v3H9V7zm3 7a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1-3 0v-2A1.5 1.5 0 0 1 12 14z"/></svg>
+      </div>
+      <div class="lock-heading">Blue Star AC Locked</div>
+      <div class="lock-desc" id="lockStatusMsg">Enter device PIN to access climate controls</div>
+      
+      <div class="pin-display" id="pinDisplay">
+        <div class="pin-dot" id="dot0"></div>
+        <div class="pin-dot" id="dot1"></div>
+        <div class="pin-dot" id="dot2"></div>
+        <div class="pin-dot" id="dot3"></div>
+      </div>
+
+      <div class="pin-keypad">
+        <button class="pad-key" onclick="pressPin('1')">1</button>
+        <button class="pad-key" onclick="pressPin('2')">2</button>
+        <button class="pad-key" onclick="pressPin('3')">3</button>
+        <button class="pad-key" onclick="pressPin('4')">4</button>
+        <button class="pad-key" onclick="pressPin('5')">5</button>
+        <button class="pad-key" onclick="pressPin('6')">6</button>
+        <button class="pad-key" onclick="pressPin('7')">7</button>
+        <button class="pad-key" onclick="pressPin('8')">8</button>
+        <button class="pad-key" onclick="pressPin('9')">9</button>
+        <button class="pad-key util" onclick="clearPin()">Clear</button>
+        <button class="pad-key" onclick="pressPin('0')">0</button>
+        <button class="pad-key util" onclick="backspacePin()">⌫</button>
+      </div>
+
+      <label class="remember-toggle">
+        <input type="checkbox" id="chkRemember" checked>
+        <span>Remember unlock on this browser</span>
+      </label>
     </div>
   </div>
 
@@ -1913,21 +2105,78 @@
     }
 
     // =========================================================================
-    // 4. HARDWARE COMMAND DISPATCH & UI CONTROLLERS
+    // 4. HARDWARE COMMAND DISPATCH & UI CONTROLLERS (BATCHED ENGINE)
     // =========================================================================
-    function sendCommand(patch) {
+    let pendingBatch = {};
+    let batchTimer = null;
+    const BATCH_WINDOW_MS = 900; // 900ms window: merges multiple adjustments into ONE single atomic MQTT request
+
+    function sendCommand(patch, immediate = false) {
+      // 1. Immediately apply to local state & UI for snappy, zero-latency tactile response
       Object.assign(state, patch);
+      Object.assign(pendingBatch, patch);
       renderUI();
       updateDisplayTexture();
       updateFanHumAudio();
 
-      // Publish MQTT payload to ESP32
-      if (mqttClient && mqttClient.connected) {
-        const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
-        const payload = JSON.stringify(patch);
-        mqttClient.publish(topic, payload);
+      // 2. Show visual batching feedback
+      showBatchIndicator(true);
+
+      // 3. Clear existing debounce timer
+      if (batchTimer) {
+        clearTimeout(batchTimer);
+        batchTimer = null;
+      }
+
+      if (immediate) {
+        flushBatch();
+      } else {
+        batchTimer = setTimeout(() => {
+          flushBatch();
+        }, BATCH_WINDOW_MS);
       }
     }
+
+    function flushBatch() {
+      if (batchTimer) {
+        clearTimeout(batchTimer);
+        batchTimer = null;
+      }
+      if (Object.keys(pendingBatch).length === 0) return;
+
+      if (mqttClient && mqttClient.connected) {
+        const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
+        const payload = JSON.stringify(pendingBatch);
+        mqttClient.publish(topic, payload);
+        console.log("[BATCH TX] Sent consolidated request:", payload);
+        pendingBatch = {};
+        showBatchIndicator(false);
+      }
+    }
+
+    function showBatchIndicator(active) {
+      const pill = document.getElementById("connPill");
+      const text = document.getElementById("connStatusText");
+      if (!pill || !text) return;
+      if (active) {
+        const count = Object.keys(pendingBatch).length;
+        text.innerText = count > 1 ? `Batching ${count}...` : "Batching...";
+        pill.classList.add("batching");
+      } else {
+        if (mqttClient && mqttClient.connected) {
+          text.innerText = "Connected";
+          pill.className = "connection-pill connected";
+        }
+      }
+    }
+
+    // Flush any pending changes when page is hidden or closed
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) flushBatch();
+    });
+    window.addEventListener("beforeunload", () => {
+      flushBatch();
+    });
 
     function togglePower() {
       const nextPower = state.power === 1 ? 0 : 1;
@@ -2103,19 +2352,19 @@
         mqttClient.on('message', (topic, message) => {
           try {
             const data = JSON.parse(message.toString());
-            // Sync incoming telemetry from ESP32
-            if (data.power !== undefined) state.power = data.power;
-            if (data.targetTemp !== undefined) state.targetTemp = parseFloat(data.targetTemp);
+            // Sync incoming telemetry from ESP32 (only for fields not actively pending in local batch)
+            if (data.power !== undefined && !('power' in pendingBatch)) state.power = data.power;
+            if (data.targetTemp !== undefined && !('targetTemp' in pendingBatch)) state.targetTemp = Math.round(parseFloat(data.targetTemp));
             if (data.roomTemp !== undefined) state.roomTemp = parseFloat(data.roomTemp);
-            if (data.mode !== undefined) state.mode = data.mode;
-            if (data.fan !== undefined) state.fan = data.fan;
-            if (data.vane !== undefined) state.vane = data.vane;
-            if (data.hSwing !== undefined) state.hSwing = data.hSwing;
-            if (data.convertible !== undefined) state.convertible = data.convertible;
-            if (data.eco !== undefined) state.eco = data.eco;
-            if (data.turbo !== undefined) state.turbo = data.turbo;
-            if (data.sleep !== undefined) state.sleep = data.sleep;
-            if (data.light !== undefined) state.light = data.light;
+            if (data.mode !== undefined && !('mode' in pendingBatch)) state.mode = data.mode;
+            if (data.fan !== undefined && !('fan' in pendingBatch)) state.fan = data.fan;
+            if (data.vane !== undefined && !('vane' in pendingBatch)) state.vane = data.vane;
+            if (data.hSwing !== undefined && !('hSwing' in pendingBatch)) state.hSwing = data.hSwing;
+            if (data.convertible !== undefined && !('convertible' in pendingBatch)) state.convertible = data.convertible;
+            if (data.eco !== undefined && !('eco' in pendingBatch)) state.eco = data.eco;
+            if (data.turbo !== undefined && !('turbo' in pendingBatch)) state.turbo = data.turbo;
+            if (data.sleep !== undefined && !('sleep' in pendingBatch)) state.sleep = data.sleep;
+            if (data.light !== undefined && !('light' in pendingBatch)) state.light = data.light;
             if (data.filterAlert !== undefined) state.filterAlert = data.filterAlert;
             if (data.compHz !== undefined) state.compHz = data.compHz;
             if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);

@@ -474,20 +474,19 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   DeserializationError err = deserializeJson(doc, jsonBuf);
   if (err) return;
 
-  // Security: Verify Device PIN stored on device
-  #ifdef DEVICE_PIN
-  if (!doc.containsKey("pin") || String(doc["pin"].as<const char*>()) != DEVICE_PIN) {
-    Serial.println("[SECURITY] Unauthorized command rejected (incorrect or missing PIN)!");
-    dbgPrintln("[SECURITY] Unauthorized command rejected (incorrect or missing PIN)!");
+  // Power OFF handling: if turning off, clear any pending TX queue and send power=0 immediately
+  if (doc.containsKey("power") && doc["power"] == 0) {
+    acPower = false;
+    txQueue.clear();
+    sendBlueStarRecord("01", "0");
+    publishState(true);
     return;
   }
-  #endif
 
-  // Power
-  if (doc.containsKey("power")) {
-    int p = doc["power"];
-    acPower = (p == 1);
-    sendBlueStarRecord("01", acPower ? "1" : "0");
+  // Power ON
+  if (doc.containsKey("power") && doc["power"] == 1) {
+    acPower = true;
+    sendBlueStarRecord("01", "1");
   }
 
   // Target Temperature (1-degree increments, 16C - 30C)
