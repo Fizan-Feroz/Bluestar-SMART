@@ -503,8 +503,23 @@ void processTelnet() {
   }
 
   while (telnetClient && telnetClient.available()) {
-    char c = telnetClient.read();
-    if (c == 'h' || c == 'H') {
+    String line = telnetClient.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) continue;
+    char c = line[0];
+    if (line.startsWith("c") || line.startsWith("C")) {
+      String step = (line.length() > 1) ? line.substring(1) : "1";
+      telnetClient.printf("\n[CMD] Sending Key 55 (Convertible Mode) = %s\n", step.c_str());
+      sendBlueStarRecord("55", step);
+    } else if (line.startsWith("k:") || line.startsWith("K:")) {
+      int idx = line.indexOf(':', 2);
+      if (idx > 0) {
+        String k = line.substring(2, idx);
+        String v = line.substring(idx + 1);
+        telnetClient.printf("\n[CMD] Sending Key %s = %s\n", k.c_str(), v.c_str());
+        sendBlueStarRecord(k, v);
+      }
+    } else if (c == 'h' || c == 'H') {
       telnetClient.println("\n[CMD] Manual Handshake triggered!");
       sendHandshake();
     } else if (c == 'p' || c == 'P') {

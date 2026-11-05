@@ -497,22 +497,22 @@
 <!-- Settings Modal for HiveMQ Broker Credentials -->
 <div class="modal-overlay" id="settingsModal">
   <div class="modal-box">
-    <div class="modal-title">Cloud MQTT Settings</div>
+    <div class="modal-title">Adafruit IO MQTT Settings</div>
     <div class="input-group">
-      <label class="input-label">WebSocket Host (Cluster URL)</label>
-      <input type="text" class="input-field" id="cfgHost" placeholder="xxxxxxxx.emqxsl.com or hivemq.cloud">
+      <label class="input-label">WebSocket Host</label>
+      <input type="text" class="input-field" id="cfgHost" value="io.adafruit.com">
     </div>
     <div class="input-group">
-      <label class="input-label">WebSocket Port (WSS: 8084 for EMQX, 8884 for HiveMQ)</label>
-      <input type="number" class="input-field" id="cfgPort" value="8084">
+      <label class="input-label">WebSocket Port (WSS)</label>
+      <input type="number" class="input-field" id="cfgPort" value="443">
     </div>
     <div class="input-group">
-      <label class="input-label">MQTT Username</label>
-      <input type="text" class="input-field" id="cfgUser" placeholder="Username">
+      <label class="input-label">Adafruit Username</label>
+      <input type="text" class="input-field" id="cfgUser" placeholder="fizan_feroz">
     </div>
     <div class="input-group">
-      <label class="input-label">MQTT Password</label>
-      <input type="password" class="input-field" id="cfgPass" placeholder="Password">
+      <label class="input-label">Active AIO Key</label>
+      <input type="password" class="input-field" id="cfgPass" placeholder="aio_xxxxxxxxxxxxxxxxxxxxxx">
     </div>
     <div class="modal-buttons">
       <button class="btn-secondary" onclick="closeSettings()">Cancel</button>
@@ -522,10 +522,10 @@
 </div>
 
 <script>
-  // MQTT Config from LocalStorage
+  // Adafruit IO Config (Stored locally in your browser)
   let mqttConfig = JSON.parse(localStorage.getItem("bluestar_mqtt_cfg")) || {
-    host: "",
-    port: 8084,
+    host: "io.adafruit.com",
+    port: 443,
     username: "",
     password: ""
   };
@@ -564,7 +564,7 @@
 
     const url = `wss://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
     const options = {
-      clientId: "VercelACWeb-" + Math.random().toString(16).substr(2, 8),
+      clientId: "VercelAC-" + Math.random().toString(16).substr(2, 8),
       username: mqttConfig.username,
       password: mqttConfig.password,
       clean: true,
@@ -573,11 +573,12 @@
 
     client = mqtt.connect(url, options);
 
+    const statusTopic = `${mqttConfig.username}/feeds/bluestar-ac-status`;
+
     client.on("connect", () => {
       pill.classList.add("online");
-      text.innerText = "Cloud Online";
-      client.subscribe("bluestar/ac/status");
-      client.subscribe("bluestar/ac/lwt");
+      text.innerText = "Adafruit IO Connected";
+      client.subscribe(statusTopic);
     });
 
     client.on("close", () => {
@@ -593,13 +594,10 @@
     client.on("message", (topic, payload) => {
       try {
         const msg = payload.toString();
-        if (topic === "bluestar/ac/lwt") {
-          document.getElementById("espStatusVal").innerText = msg === "online" ? "Online" : "Offline";
-          return;
-        }
-        if (topic === "bluestar/ac/status") {
+        if (topic.includes("bluestar-ac-status")) {
           const data = JSON.parse(msg);
           Object.assign(state, data);
+          document.getElementById("espStatusVal").innerText = "Online";
           renderUI();
         }
       } catch(e) {
@@ -610,7 +608,8 @@
 
   function sendCommand(obj) {
     if (client && client.connected) {
-      client.publish("bluestar/ac/set", JSON.stringify(obj), { qos: 1 });
+      const setTopic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
+      client.publish(setTopic, JSON.stringify(obj), { qos: 1 });
     }
   }
 

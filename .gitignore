@@ -1,4 +1,6 @@
 secrets.yaml
+secrets.h
+**/secrets.h
 .esphome/
 __pycache__/
 *.pyc

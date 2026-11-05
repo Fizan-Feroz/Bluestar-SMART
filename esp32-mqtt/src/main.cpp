@@ -22,20 +22,27 @@
 #include <vector>
 #include <deque>
 
-// ==================== 1. WI-FI & MQTT CREDENTIALS ====================
-const char* ssid = "Bsnl fiber net 2.4";
-const char* pass = "waves123";
+#if __has_include("secrets.h")
+  #include "secrets.h"
+#else
+  #include "secrets.example.h"
+#endif
 
-// Get these from your free HiveMQ Cloud cluster (https://console.hivemq.cloud)
-const char* mqtt_server   = "YOUR_HIVEMQ_CLUSTER_URL.s1.eu.hivemq.cloud";
-const int   mqtt_port     = 8883; // TLS port
-const char* mqtt_user     = "YOUR_MQTT_USERNAME";
-const char* mqtt_password = "YOUR_MQTT_PASSWORD";
+// ==================== 1. WI-FI & ADAFRUIT IO CREDENTIALS ====================
+const char* ssid = WIFI_SSID;
+const char* pass = WIFI_PASS;
 
-// MQTT Topics
-const char* TOPIC_STATUS  = "bluestar/ac/status";
-const char* TOPIC_SET     = "bluestar/ac/set";
-const char* TOPIC_LWT     = "bluestar/ac/lwt";
+// Adafruit IO Broker details
+const char* mqtt_server   = "io.adafruit.com";
+const int   mqtt_port     = 8883; // Secure TLS port
+const char* mqtt_user     = AIO_USERNAME;
+const char* mqtt_password = AIO_KEY;
+
+// Adafruit IO Topics
+String topicStatusStr = String(AIO_USERNAME) + "/feeds/bluestar-ac-status";
+String topicSetStr    = String(AIO_USERNAME) + "/feeds/bluestar-ac-set";
+#define TOPIC_STATUS  topicStatusStr.c_str()
+#define TOPIC_SET     topicSetStr.c_str()
 
 // ==================== 2. UART CONFIGURATION ====================
 #define AC_RX_PIN 16  // Connects to AC R_WIFI (via voltage divider)
@@ -502,13 +509,11 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
 // ==================== 6. MQTT CONNECT & LOOP ====================
 void connectMqtt() {
   while (!mqttClient.connected()) {
-    Serial.print("[MQTT] Connecting to HiveMQ Cloud...");
+    Serial.print("[MQTT] Connecting to Adafruit IO...");
     String clientId = "BlueStarAC-" + String(random(0xffff), HEX);
     
-    // Connect with Last Will & Testament (LWT)
-    if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password, TOPIC_LWT, 1, true, "offline")) {
-      Serial.println(" Connected!");
-      mqttClient.publish(TOPIC_LWT, "online", true);
+    if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
+      Serial.println(" Connected to Adafruit IO!");
       mqttClient.subscribe(TOPIC_SET);
       sendHandshake();
       publishState();

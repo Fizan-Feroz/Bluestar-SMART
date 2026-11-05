@@ -82,9 +82,9 @@ of echoing (worked for keys 24, 25, 29, 61, 62). Writing key `00` = `0` returns 
 | 12 | 1 / 0 | temperature unit °F (setpoint is then re-sent as °F × 10) |
 | 13 | 0 off · 1 Autumn · 2 Summer · 3 Monsoon | "Climate"/season mode (remote Mode+Eco) |
 | 15 | 1 / 0 | display light |
-| 22 | 1 / 0 | energy saver / Eco (forces setpoint 24) |
+| 22 | 1 / 0 | energy saver / Eco (forces setpoint 24, displays "E" on IDU) |
 | 23 | `1`/`2` + packed settings | "Dual user preference" profiles |
-| 55 | 0 normal · 1 100 % · 2 80 % · 3 60 % · 4 40 % | convertible capacity (also caps the fan) |
+| 55 | 0 normal · 1 100 % · 2 80 % · 3 60 % · 4 40 % | convertible capacity (also caps the fan). **Note:** On Megmeet MD50BS / IC318QNU, Key 55 is **read-only / reported** over the Wi-Fi port when changed via the physical IR remote. The AC MCU ignores serial writes (`0x06`) to Key 55. |
 | 58 | 1 muted · 0 | buzzer mute (remote: hold Display 5 s). Every remote press sends `58=0`. |
 
 ### Timers ✅

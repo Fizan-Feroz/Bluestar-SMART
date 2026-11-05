@@ -536,12 +536,16 @@
 
   <!-- 5-in-1 Convertible Inverter -->
   <div class="section-card">
-    <div class="section-title">5-in-1 Convertible Capacity</div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div class="section-title">5-in-1 Convertible Capacity</div>
+      <span style="font-size: 10px; color: var(--text-muted); font-weight: 600;">Hardware IR Controlled</span>
+    </div>
     <div class="button-group">
-      <button class="seg-btn active" id="conv1" onclick="setConvertible(1)">100% Full</button>
+      <button class="seg-btn active" id="conv0" onclick="setConvertible(0)">Normal</button>
+      <button class="seg-btn" id="conv1" onclick="setConvertible(1)">100%</button>
       <button class="seg-btn" id="conv2" onclick="setConvertible(2)">80%</button>
       <button class="seg-btn" id="conv3" onclick="setConvertible(3)">60%</button>
-      <button class="seg-btn" id="conv4" onclick="setConvertible(4)">40% Eco</button>
+      <button class="seg-btn" id="conv4" onclick="setConvertible(4)">40%</button>
     </div>
   </div>
 
@@ -840,7 +844,7 @@
     document.getElementById("cardMute").classList.toggle("active", mute === 1);
 
     // Convertible Capacity
-    for (let i = 1; i <= 4; i++) {
+    for (let i = 0; i <= 4; i++) {
       const el = document.getElementById(`conv${i}`);
       if (el) el.classList.toggle("active", convertible === i);
     }
