@@ -2201,30 +2201,130 @@ html.modal-open body {
     // =========================================================================
     // 1. GLOBAL STATE & ZERO-DEPENDENCY TWEEN ENGINE
     // =========================================================================
+    let hasLiveData = false;
     const state = {
-      power: 1,
-      targetTemp: 24,
-      roomTemp: 27.0,
+      online: false,
+      power: 0,
+      targetTemp: null,
+      roomTemp: null,
       mode: 1,         // 1=Cool, 2=Dry, 3=Fan, 4=Auto
-      fan: 4,          // 1=Quiet, 2=Low, 3=Med, 4=High, 5=Turbo, 6=Auto
+      fan: 6,          // 1=Quiet, 2=Low, 3=Med, 4=High, 5=Turbo, 6=Auto
       vane: 0,         // 0=Auto swing, 1=Top, 3=Mid, 5=Bottom
       hSwing: 0,       // 1=On, 0=Off
       convertible: 1,  // 1=100%, 2=80%, 3=60%, 4=40%
       eco: 0,
-      turbo: 0,
+      turbo: 0,        // Turbo Cool (displays "HC" on Blue Star IDU)
       sleep: 0,
-      light: 1,
+      light: 0,
       mute: 0,
       filterAlert: 0,
       c1Mode: 0,
-      compHz: 48,
-      coilTemp: 7.8,
-      compHours: 1248,
+      compHz: null,
+      coilTemp: null,
+      compHours: null,
+      acHours: null,
       soundEnabled: true,
       currentCameraView: 'hero',
       isXray: false,
       pinHash: 2088290703 // Default hash for "1234"
     };
+
+    // =========================================================================
+    // LUXURY TOAST NOTIFICATION ENGINE
+    // =========================================================================
+    let toastTimer = null;
+    function showToast(message, type = 'info') {
+      const toast = document.getElementById("feedbackToast");
+      if (!toast) return;
+      toast.className = "feedback-toast show" + (type === 'warn' ? ' warn' : '');
+      toast.innerHTML = (type === 'warn' ? '⚠️ ' : 'ℹ️ ') + message;
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.className = "feedback-toast";
+      }, 3000);
+    }
+
+    // =========================================================================
+    // BLUE STAR OPERATION MODE RESTRICTION & VALIDATION MATRIX
+    // =========================================================================
+    function getControlPermissions() {
+      const isOnline = hasLiveData && (state.online !== false);
+      const isPowerOn = isOnline && (state.power === 1);
+      const isHC = isPowerOn && (state.turbo === 1);
+      const isFanMode = isPowerOn && (state.mode === 3);
+      const isDryMode = isPowerOn && (state.mode === 2);
+      const isAutoMode = isPowerOn && (state.mode === 4);
+
+      return {
+        isOnline,
+        isPowerOn,
+        isHC,
+        isFanMode,
+        isDryMode,
+        isAutoMode,
+
+        // Temperature adjustments (+ / - steppers and setpoint)
+        // NOT possible in HC mode (locked to 16°C) or Fan mode (compressor off)
+        canAdjustTemp: isPowerOn && !isHC && !isFanMode,
+        tempDisabledReason: !isOnline ? "AC is offline. Connect bridge to control." :
+                            !isPowerOn ? "System is in standby." :
+                            isHC ? "Temperature is locked to 16°C in HC (Turbo) mode." :
+                            isFanMode ? "Temperature control is not possible in Fan mode." : null,
+
+        // Fan speed adjustments
+        // NOT possible in HC mode (locked to Turbo) or Dry mode (auto managed) or Auto mode
+        canAdjustFan: isPowerOn && !isHC && !isDryMode && !isAutoMode,
+        fanDisabledReason: !isOnline ? "AC is offline. Connect bridge to control." :
+                           !isPowerOn ? "System is in standby." :
+                           isHC ? "Fan speed is locked to Turbo in HC mode." :
+                           isDryMode ? "Fan speed is automatically managed in Dry mode." :
+                           isAutoMode ? "Fan speed is automated in Auto mode." : null,
+
+        // Mode change (Cool, Dry, Fan, Auto)
+        canChangeMode: isPowerOn,
+        modeDisabledReason: !isOnline ? "AC is offline." :
+                            !isPowerOn ? "System is in standby." : null,
+
+        // Louver and 4-way swing
+        canAdjustVane: isPowerOn,
+        vaneDisabledReason: !isOnline ? "AC is offline." :
+                            !isPowerOn ? "System is in standby." : null,
+
+        // Inverter 5-in-1 convertible tonnage
+        canAdjustConvertible: isPowerOn && !isHC && !isFanMode,
+        convDisabledReason: !isOnline ? "AC is offline." :
+                            !isPowerOn ? "System is in standby." :
+                            isHC ? "Cooling capacity is locked at 110% Boost in HC mode." :
+                            isFanMode ? "Compressor capacity is not applicable in Fan mode." : null,
+
+        // Turbo Cool ("HC" mode)
+        // NOT allowed in Fan mode or Dry mode
+        canToggleHC: isPowerOn && !isFanMode && !isDryMode,
+        hcDisabledReason: !isOnline ? "AC is offline." :
+                          !isPowerOn ? "System is in standby." :
+                          isFanMode ? "HC (Turbo) mode is not available in Fan mode." :
+                          isDryMode ? "HC (Turbo) mode is not available in Dry mode." : null,
+
+        // Eco mode
+        // NOT allowed in Fan mode or HC mode
+        canToggleEco: isPowerOn && !isFanMode && !isHC,
+        ecoDisabledReason: !isOnline ? "AC is offline." :
+                           !isPowerOn ? "System is in standby." :
+                           isFanMode ? "Eco mode is not available in Fan mode." :
+                           isHC ? "Eco mode is incompatible with HC (Turbo) mode." : null,
+
+        // Comfort Sleep mode
+        // NOT allowed in Fan mode or HC mode
+        canToggleSleep: isPowerOn && !isFanMode && !isHC,
+        sleepDisabledReason: !isOnline ? "AC is offline." :
+                             !isPowerOn ? "System is in standby." :
+                             isFanMode ? "Sleep mode is unavailable in Fan mode." :
+                             isHC ? "Sleep mode is incompatible with HC (Turbo) mode." : null,
+
+        // Display light
+        canToggleLight: isOnline
+      };
+    }
 
     // =========================================================================
     // DEVICE PIN SECURITY ENGINE (DJB2 32-bit Hash)
@@ -2575,18 +2675,11 @@ html.modal-open body {
       const ctx = brandCanvas.getContext("2d");
       ctx.clearRect(0, 0, brandCanvas.width, brandCanvas.height);
 
-      // The real Q-series unit carries a compact blue badge in the upper-left.
-      const badgeGradient = ctx.createLinearGradient(0, 0, 0, brandCanvas.height);
-      badgeGradient.addColorStop(0, "#1479c9");
-      badgeGradient.addColorStop(1, "#07538f");
-      ctx.fillStyle = badgeGradient;
-      roundedCanvasRect(ctx, 4, 12, 504, 104, 16);
-      ctx.fill();
-
-      const cx = 67;
+      // Direct silkscreen brand emblem on front panel (clean, transparent background)
+      const cx = 58;
       const cy = 64;
-      const outer = 34;
-      const inner = 14.5;
+      const outer = 30;
+      const inner = 13;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const radius = i % 2 === 0 ? outer : inner;
@@ -2597,14 +2690,14 @@ html.modal-open body {
         else ctx.lineTo(x, y);
       }
       ctx.closePath();
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#0c4a6e";
       ctx.fill();
 
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = "#0f2e4a";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.font = "700 52px Outfit, sans-serif";
-      ctx.fillText("BLUE STAR", 122, 66);
+      ctx.font = "700 50px Outfit, sans-serif";
+      ctx.fillText("BLUE STAR", 112, 65);
 
       brandTexture.needsUpdate = true;
     }
@@ -3206,7 +3299,8 @@ html.modal-open body {
       const ctx = displayCanvas.getContext("2d");
       ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
 
-      if (state.power === 1 && state.light === 1) {
+      const perms = getControlPermissions();
+      if (perms.isPowerOn && state.light === 1) {
         ctx.save();
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
@@ -3231,7 +3325,29 @@ html.modal-open body {
           ctx.fillStyle = "rgba(254, 243, 199, 0.75)";
           ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
           ctx.fillText("FULL LOAD", 256, 166);
-        } else {
+        } else if (perms.isHC) {
+          // HC mode displays "HC" on the Blue Star IDU
+          ctx.shadowColor = "rgba(56, 189, 248, 0.7)";
+          ctx.shadowBlur = 24;
+          ctx.fillStyle = "#e0f7ff";
+          ctx.font = "650 120px Outfit, sans-serif";
+          ctx.fillText("HC", 256, 96);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(224, 247, 255, 0.85)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("TURBO COOL", 256, 166);
+        } else if (perms.isFanMode) {
+          // Fan mode displays "Fn"
+          ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+          ctx.shadowBlur = 20;
+          ctx.fillStyle = "#ffffff";
+          ctx.font = "650 120px Outfit, sans-serif";
+          ctx.fillText("Fn", 256, 96);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FAN ONLY", 256, 166);
+        } else if (state.targetTemp != null) {
           const temperature = `${Math.round(state.targetTemp)}°`;
           ctx.font = "620 142px Outfit, sans-serif";
           ctx.shadowColor = "rgba(5, 55, 75, 0.52)";
@@ -3705,6 +3821,18 @@ html.modal-open body {
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + 0.3);
+      } else if (type === 'reject') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(260, ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(130, ctx.currentTime + 0.14);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.14);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.14);
       }
     }
 
@@ -3756,13 +3884,26 @@ html.modal-open body {
     }
 
     function togglePower() {
+      const perms = getControlPermissions();
+      if (!perms.isOnline) {
+        playAudio('reject');
+        showToast("AC is offline. Connect bridge to send power command.", "warn");
+        return;
+      }
       playAudio('beep');
-      sendCommand({ power: state.power === 1 ? 0 : 1 });
+      const nextPower = state.power === 1 ? 0 : 1;
+      sendCommand({ power: nextPower });
     }
 
     function adjustTemp(delta) {
-      if (state.power === 0) return;
-      let newTemp = Math.round(state.targetTemp + delta);
+      const perms = getControlPermissions();
+      if (!perms.canAdjustTemp) {
+        playAudio('reject');
+        showToast(perms.tempDisabledReason, 'warn');
+        return;
+      }
+      const current = state.targetTemp != null ? state.targetTemp : 24;
+      let newTemp = Math.round(current + delta);
       if (newTemp < 16) newTemp = 16;
       if (newTemp > 30) newTemp = 30;
       playAudio('click');
@@ -3770,165 +3911,407 @@ html.modal-open body {
     }
 
     function setMode(modeIdx) {
+      const perms = getControlPermissions();
+      if (!perms.canChangeMode) {
+        playAudio('reject');
+        showToast(perms.modeDisabledReason, 'warn');
+        return;
+      }
       playAudio('click');
-      sendCommand({ mode: modeIdx });
+      const patch = { mode: modeIdx };
+      // Mode restrictions:
+      // If switching to Fan mode (3): HC (Turbo) and Eco mode are ILLEGAL states!
+      if (modeIdx === 3) {
+        if (state.turbo === 1) patch.turbo = 0;
+        if (state.eco === 1) patch.eco = 0;
+        if (state.sleep === 1) patch.sleep = 0;
+        showToast("Fan Only Mode · Compressor idle (Temp, HC & Eco disabled)", "info");
+      } else if (modeIdx === 2) {
+        // If switching to Dry mode (2): Turbo is illegal, fan is auto-managed
+        if (state.turbo === 1) patch.turbo = 0;
+        showToast("Dry Mode · Fan speed is auto-managed", "info");
+      }
+      sendCommand(patch);
     }
 
     function setFan(fanIdx) {
+      const perms = getControlPermissions();
+      if (!perms.canAdjustFan) {
+        playAudio('reject');
+        showToast(perms.fanDisabledReason, 'warn');
+        return;
+      }
       playAudio('click');
       sendCommand({ fan: fanIdx });
     }
 
     function setVane(vaneIdx) {
+      const perms = getControlPermissions();
+      if (!perms.canAdjustVane) {
+        playAudio('reject');
+        showToast(perms.vaneDisabledReason, 'warn');
+        return;
+      }
       playAudio('click');
       sendCommand({ vane: vaneIdx });
     }
 
     function toggleHSwing() {
+      const perms = getControlPermissions();
+      if (!perms.canAdjustVane) {
+        playAudio('reject');
+        showToast(perms.vaneDisabledReason, 'warn');
+        return;
+      }
       playAudio('click');
       sendCommand({ hSwing: state.hSwing === 1 ? 0 : 1 });
     }
 
     function setConvertible(convIdx) {
+      const perms = getControlPermissions();
+      if (!perms.canAdjustConvertible) {
+        playAudio('reject');
+        showToast(perms.convDisabledReason, 'warn');
+        return;
+      }
       playAudio('click');
       sendCommand({ convertible: convIdx });
     }
 
     function toggleFeature(featKey) {
-      playAudio('click');
-      if (featKey === 'turbo') sendCommand({ turbo: state.turbo === 1 ? 0 : 1 });
-      if (featKey === 'eco') sendCommand({ eco: state.eco === 1 ? 0 : 1 });
-      if (featKey === 'sleep') sendCommand({ sleep: state.sleep === 1 ? 0 : 1 });
-      if (featKey === 'light') sendCommand({ light: state.light === 1 ? 0 : 1 });
-      if (featKey === 'c1') {
-        const next = state.c1Mode === 1 ? 0 : 1;
-        if (next === 1) {
-          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
-        } else {
+      const perms = getControlPermissions();
+      if (featKey === 'turbo') {
+        if (state.turbo === 1) {
+          // Turning OFF HC mode
+          playAudio('click');
+          showToast("HC (Turbo) mode disabled · Temp & Fan unlocked", "info");
+          sendCommand({ turbo: 0 });
+          return;
+        }
+        // Turning ON HC mode
+        if (!perms.canToggleHC) {
+          playAudio('reject');
+          showToast(perms.hcDisabledReason, 'warn');
+          return;
+        }
+        playAudio('chime');
+        showToast("HC (Turbo) Active · 110% Boost (Temp & Fan locked)", "info");
+        // Turbo Cool forces: Mode=Cool (1), Fan=Turbo (5), Temp=16, cancels Eco & Sleep
+        sendCommand({
+          turbo: 1,
+          mode: 1,
+          fan: 5,
+          targetTemp: 16,
+          eco: 0,
+          sleep: 0,
+          c1Mode: 0
+        });
+      } else if (featKey === 'eco') {
+        if (state.eco === 1) {
+          playAudio('click');
+          sendCommand({ eco: 0 });
+          return;
+        }
+        if (!perms.canToggleEco) {
+          playAudio('reject');
+          showToast(perms.ecoDisabledReason, 'warn');
+          return;
+        }
+        playAudio('click');
+        showToast("Eco Mode Enabled · Energy Save", "info");
+        sendCommand({ eco: 1, turbo: 0 });
+      } else if (featKey === 'sleep') {
+        if (state.sleep === 1) {
+          playAudio('click');
+          sendCommand({ sleep: 0 });
+          return;
+        }
+        if (!perms.canToggleSleep) {
+          playAudio('reject');
+          showToast(perms.sleepDisabledReason, 'warn');
+          return;
+        }
+        playAudio('click');
+        showToast("Comfort Sleep Enabled", "info");
+        sendCommand({ sleep: 1, turbo: 0 });
+      } else if (featKey === 'light') {
+        if (!perms.canToggleLight) return;
+        playAudio('click');
+        sendCommand({ light: state.light === 1 ? 0 : 1 });
+      } else if (featKey === 'c1') {
+        if (state.c1Mode === 1) {
           sendCommand({ c1Mode: 0, turbo: 0 });
+        } else {
+          if (!perms.isPowerOn) return;
+          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
         }
       }
     }
 
     function renderUI() {
+      const perms = getControlPermissions();
       const pBtn = document.getElementById("mainPowerBtn");
       const pTxt = document.getElementById("powerBtnText");
       const hero = document.getElementById("heroCard");
       const deltaBadge = document.getElementById("climateDeltaBadge");
+      const targetTempNum = document.getElementById("targetTempNum");
+      const ambientReadout = document.getElementById("ambientReadout");
+      const dialBar = document.getElementById("dialBar");
+      const stepMinus = document.getElementById("stepMinus");
+      const stepPlus = document.getElementById("stepPlus");
 
-      if (state.power === 1) {
+      const circumference = 2 * Math.PI * 72;
+
+      // 1. Power State & Hero Card
+      if (perms.isPowerOn) {
         pBtn.classList.add("on");
         pBtn.setAttribute("aria-pressed", "true");
         pTxt.textContent = "System on";
         hero.style.opacity = "1";
-
-        const diff = Number((state.roomTemp - state.targetTemp).toFixed(1));
-        if (Math.abs(diff) <= 0.5) deltaBadge.textContent = "Comfort balanced";
-        else if (diff > 0) deltaBadge.textContent = `${diff.toFixed(1)}° to target`;
-        else deltaBadge.textContent = "Target reached";
       } else {
         pBtn.classList.remove("on");
         pBtn.setAttribute("aria-pressed", "false");
         pTxt.textContent = "Standby";
-        hero.style.opacity = "0.74";
-        deltaBadge.textContent = "System standby";
+        hero.style.opacity = "0.78";
       }
 
-      document.getElementById("targetTempNum").textContent = Math.round(state.targetTemp);
-      document.getElementById("ambientReadout").textContent = `${state.roomTemp.toFixed(1)}°C`;
+      // 2. Stepper Buttons Permission
+      if (stepMinus && stepPlus) {
+        stepMinus.disabled = !perms.canAdjustTemp;
+        stepPlus.disabled = !perms.canAdjustTemp;
+        stepMinus.classList.toggle("restricted", !perms.canAdjustTemp);
+        stepPlus.classList.toggle("restricted", !perms.canAdjustTemp);
+        if (perms.tempDisabledReason) {
+          stepMinus.title = perms.tempDisabledReason;
+          stepPlus.title = perms.tempDisabledReason;
+        } else {
+          stepMinus.title = "Decrease temperature";
+          stepPlus.title = "Increase temperature";
+        }
+      }
 
-      const circumference = 2 * Math.PI * 72;
-      const norm = Math.max(0, Math.min(1, (state.targetTemp - 16) / 14));
-      const visibleArc = 24 + norm * 315;
-      document.getElementById("dialBar").style.strokeDashoffset = String(circumference - visibleArc);
+      // 3. Dial, Target Temp & Delta Badges
+      if (!perms.isOnline) {
+        targetTempNum.textContent = "--";
+        ambientReadout.textContent = "--";
+        deltaBadge.textContent = "AC Offline · Waiting for device";
+        dialBar.style.strokeDashoffset = String(circumference);
+      } else if (!perms.isPowerOn) {
+        targetTempNum.textContent = "--";
+        ambientReadout.textContent = state.roomTemp != null ? `${state.roomTemp.toFixed(1)}°C` : "--";
+        deltaBadge.textContent = "System standby";
+        dialBar.style.strokeDashoffset = String(circumference);
+      } else if (perms.isHC) {
+        targetTempNum.textContent = "16";
+        ambientReadout.textContent = state.roomTemp != null ? `${state.roomTemp.toFixed(1)}°C` : "--";
+        deltaBadge.textContent = "HC · 110% Boost (Temp & Fan locked)";
+        const visibleArc = 24 + 1.0 * 315;
+        dialBar.style.strokeDashoffset = String(circumference - visibleArc);
+      } else if (perms.isFanMode) {
+        targetTempNum.textContent = "Fn";
+        ambientReadout.textContent = state.roomTemp != null ? `${state.roomTemp.toFixed(1)}°C` : "--";
+        deltaBadge.textContent = "Fan ventilation only · No temp control";
+        dialBar.style.strokeDashoffset = String(circumference);
+      } else {
+        const t = state.targetTemp != null ? Math.round(state.targetTemp) : 24;
+        targetTempNum.textContent = t;
+        ambientReadout.textContent = state.roomTemp != null ? `${state.roomTemp.toFixed(1)}°C` : "--";
 
-      // Modes
+        const norm = Math.max(0, Math.min(1, (t - 16) / 14));
+        const visibleArc = 24 + norm * 315;
+        dialBar.style.strokeDashoffset = String(circumference - visibleArc);
+
+        if (state.roomTemp != null) {
+          const diff = Number((state.roomTemp - t).toFixed(1));
+          if (Math.abs(diff) <= 0.5) deltaBadge.textContent = "Comfort balanced";
+          else if (diff > 0) deltaBadge.textContent = `${diff.toFixed(1)}° to target`;
+          else deltaBadge.textContent = "Target reached";
+        } else {
+          deltaBadge.textContent = "Cooling to target";
+        }
+      }
+
+      // 4. Operating Modes
       const modeNames = ["", "Cooling", "Dry", "Fan only", "Auto"];
-      document.getElementById("modeBadge").textContent = modeNames[state.mode] || "Cooling";
+      document.getElementById("modeBadge").textContent = perms.isOnline
+        ? (perms.isPowerOn ? (modeNames[state.mode] || "Cooling") : "Standby")
+        : "—";
+
       for (let i = 1; i <= 4; i++) {
         const el = document.getElementById(`modeBtn${i}`);
         if (el) {
-          const active = state.mode === i;
+          const active = perms.isPowerOn && state.mode === i;
           el.classList.toggle("active", active);
           el.setAttribute("aria-pressed", active ? "true" : "false");
+          el.disabled = !perms.canChangeMode;
+          el.classList.toggle("restricted", !perms.canChangeMode);
         }
       }
 
-      // Fan speeds
+      // 5. Fan Speed Controls
       const fanNames = ["", "Quiet", "Low", "Medium", "High", "Turbo", "Auto"];
-      document.getElementById("fanBadge").textContent = state.fan === 6
-        ? "Auto"
-        : `${fanNames[state.fan] || "High"} / Stage ${state.fan}`;
+      let fanLabel = "—";
+      if (perms.isOnline) {
+        if (!perms.isPowerOn) {
+          fanLabel = "Standby";
+        } else if (perms.isHC) {
+          fanLabel = "Turbo (Locked in HC)";
+        } else if (perms.isDryMode) {
+          fanLabel = "Auto (Dehumidifying)";
+        } else if (perms.isAutoMode) {
+          fanLabel = "AI Auto";
+        } else {
+          fanLabel = state.fan === 6 ? "Auto" : `${fanNames[state.fan] || "High"} / Stage ${state.fan}`;
+        }
+      }
+      document.getElementById("fanBadge").textContent = fanLabel;
+
       for (let i = 1; i <= 6; i++) {
         const el = document.getElementById(`fanBtn${i}`);
         if (el) {
-          const active = state.fan === i;
+          const active = perms.isPowerOn && (perms.isHC ? i === 5 : state.fan === i);
           el.classList.toggle("active", active);
           el.setAttribute("aria-pressed", active ? "true" : "false");
+          el.disabled = !perms.canAdjustFan;
+          el.classList.toggle("restricted", !perms.canAdjustFan);
+          if (perms.fanDisabledReason) el.title = perms.fanDisabledReason;
+          else el.title = `Fan speed ${fanNames[i]}`;
         }
       }
 
-      // Louver direction
+      // 6. Louver Direction
       const vaneNames = { 0: "Auto swing", 1: "Top / 1", 3: "Middle / 3", 5: "Low / 5" };
-      document.getElementById("vaneBadge").textContent = vaneNames[state.vane] || "Custom vane";
+      document.getElementById("vaneBadge").textContent = perms.isOnline
+        ? (perms.isPowerOn ? (vaneNames[state.vane] || "Custom vane") : "Closed")
+        : "—";
+
       [0, 1, 3, 5].forEach((value) => {
         const el = document.getElementById(`vaneBtn${value}`);
         if (el) {
-          const active = state.vane === value;
+          const active = perms.isPowerOn && state.vane === value;
           el.classList.toggle("active", active);
           el.setAttribute("aria-pressed", active ? "true" : "false");
+          el.disabled = !perms.canAdjustVane;
+          el.classList.toggle("restricted", !perms.canAdjustVane);
         }
       });
       const swingBtn = document.getElementById("hSwingBtn");
-      swingBtn.classList.toggle("active", state.hSwing === 1);
-      swingBtn.setAttribute("aria-pressed", state.hSwing === 1 ? "true" : "false");
+      if (swingBtn) {
+        const active = perms.isPowerOn && state.hSwing === 1;
+        swingBtn.classList.toggle("active", active);
+        swingBtn.setAttribute("aria-pressed", active ? "true" : "false");
+        swingBtn.disabled = !perms.canAdjustVane;
+        swingBtn.classList.toggle("restricted", !perms.canAdjustVane);
+      }
 
-      // 5-in-1 convertible
+      // 7. 5-in-1 Convertible Tonnage
       const convNames = ["", "100% / Full ton", "80% / Capacity", "60% / Eco", "40% / Max eco"];
-      document.getElementById("convBadge").textContent = convNames[state.convertible] || "100%";
+      let convLabel = "—";
+      if (perms.isOnline) {
+        if (!perms.isPowerOn) convLabel = "Standby";
+        else if (perms.isHC) convLabel = "110% Boost (HC)";
+        else if (perms.isFanMode) convLabel = "Idle (Fan mode)";
+        else convLabel = convNames[state.convertible] || "100%";
+      }
+      document.getElementById("convBadge").textContent = convLabel;
+
       for (let i = 1; i <= 4; i++) {
         const el = document.getElementById(`convBtn${i}`);
         if (el) {
-          const active = state.convertible === i;
+          const active = perms.isPowerOn && !perms.isHC && !perms.isFanMode && state.convertible === i;
           el.classList.toggle("active", active);
           el.setAttribute("aria-pressed", active ? "true" : "false");
+          el.disabled = !perms.canAdjustConvertible;
+          el.classList.toggle("restricted", !perms.canAdjustConvertible);
+          if (perms.convDisabledReason) el.title = perms.convDisabledReason;
         }
       }
 
-      // Smart features
-      const featureCards = [
-        ["cardTurbo", state.turbo],
-        ["cardEco", state.eco],
-        ["cardSleep", state.sleep],
-        ["cardLight", state.light],
-        ["cardC1", state.c1Mode]
-      ];
-      featureCards.forEach(([id, value]) => {
-        const card = document.getElementById(id);
-        if (!card) return;
-        const active = value === 1;
-        card.classList.toggle("on", active);
-        card.setAttribute("aria-checked", active ? "true" : "false");
-      });
+      // 8. Smart Features & Toggles
+      const cardTurbo = document.getElementById("cardTurbo");
+      if (cardTurbo) {
+        const active = perms.isPowerOn && state.turbo === 1;
+        cardTurbo.classList.toggle("on", active);
+        cardTurbo.setAttribute("aria-checked", active ? "true" : "false");
+        const canClick = perms.canToggleHC || (perms.isPowerOn && state.turbo === 1);
+        cardTurbo.classList.toggle("restricted", !canClick);
+        cardTurbo.setAttribute("aria-disabled", !canClick ? "true" : "false");
+        if (perms.hcDisabledReason && state.turbo !== 1) cardTurbo.title = perms.hcDisabledReason;
+        else cardTurbo.title = "Turbo Cool (HC Mode)";
+      }
 
-      // Telemetry
-      document.getElementById("compHzVal").textContent = (state.power === 1 && state.compHz > 0) ? `${state.compHz} Hz` : "Idle";
-      document.getElementById("coilTempVal").textContent = `${state.coilTemp.toFixed(1)}°C`;
-      document.getElementById("compHoursVal").textContent = `${Math.round(state.compHours).toLocaleString()} h`;
+      const cardEco = document.getElementById("cardEco");
+      if (cardEco) {
+        const active = perms.isPowerOn && state.eco === 1;
+        cardEco.classList.toggle("on", active);
+        cardEco.setAttribute("aria-checked", active ? "true" : "false");
+        const canClick = perms.canToggleEco || (perms.isPowerOn && state.eco === 1);
+        cardEco.classList.toggle("restricted", !canClick);
+        cardEco.setAttribute("aria-disabled", !canClick ? "true" : "false");
+        if (perms.ecoDisabledReason && state.eco !== 1) cardEco.title = perms.ecoDisabledReason;
+        else cardEco.title = "Eco Mode";
+      }
 
+      const cardSleep = document.getElementById("cardSleep");
+      if (cardSleep) {
+        const active = perms.isPowerOn && state.sleep === 1;
+        cardSleep.classList.toggle("on", active);
+        cardSleep.setAttribute("aria-checked", active ? "true" : "false");
+        const canClick = perms.canToggleSleep || (perms.isPowerOn && state.sleep === 1);
+        cardSleep.classList.toggle("restricted", !canClick);
+        cardSleep.setAttribute("aria-disabled", !canClick ? "true" : "false");
+        if (perms.sleepDisabledReason && state.sleep !== 1) cardSleep.title = perms.sleepDisabledReason;
+        else cardSleep.title = "Comfort Sleep";
+      }
+
+      const cardLight = document.getElementById("cardLight");
+      if (cardLight) {
+        const active = perms.isOnline && state.light === 1;
+        cardLight.classList.toggle("on", active);
+        cardLight.setAttribute("aria-checked", active ? "true" : "false");
+        cardLight.disabled = !perms.isOnline;
+        cardLight.classList.toggle("restricted", !perms.isOnline);
+      }
+
+      // 9. Telemetry Bar
+      const compHzVal = document.getElementById("compHzVal");
+      const coilTempVal = document.getElementById("coilTempVal");
+      const compHoursVal = document.getElementById("compHoursVal");
       const filterVal = document.getElementById("filterConditionVal");
-      if (state.filterAlert === 1) {
-        filterVal.textContent = "Alert";
-        filterVal.style.color = "var(--danger)";
+
+      if (!perms.isOnline) {
+        compHzVal.textContent = "—";
+        coilTempVal.textContent = "—";
+        compHoursVal.textContent = "—";
+        filterVal.textContent = "—";
       } else {
-        filterVal.textContent = "Clean";
-        filterVal.style.color = "var(--live)";
+        if (!perms.isPowerOn) {
+          compHzVal.textContent = "Standby";
+        } else if (perms.isFanMode) {
+          compHzVal.textContent = "0 Hz · Fan Mode";
+        } else if (state.compHz != null && state.compHz > 0) {
+          compHzVal.textContent = `${state.compHz} Hz`;
+        } else {
+          compHzVal.textContent = "0 Hz · Idle";
+        }
+
+        coilTempVal.textContent = state.coilTemp != null ? `${state.coilTemp.toFixed(1)}°C` : "—";
+        compHoursVal.textContent = state.compHours != null ? `${Math.round(state.compHours).toLocaleString()} h` : "—";
+
+        if (state.filterAlert === 1) {
+          filterVal.textContent = "Alert";
+          filterVal.style.color = "var(--danger)";
+        } else {
+          filterVal.textContent = "Clean";
+          filterVal.style.color = "var(--live)";
+        }
       }
 
       renderMobileDock();
     }
 
     function renderMobileDock() {
+      const perms = getControlPermissions();
       const dockTemp = document.getElementById("dockTemp");
       const dockMode = document.getElementById("dockMode");
       const dockPower = document.getElementById("dockPower");
@@ -3937,19 +4320,114 @@ html.modal-open body {
       if (!dockTemp || !dockMode || !dockPower) return;
 
       const modeNames = ["", "Cooling", "Dry", "Fan", "Auto"];
-      dockTemp.textContent = `${Math.round(state.targetTemp)}°C`;
-      dockMode.textContent = state.power === 1 ? (modeNames[state.mode] || "Cooling") : "Standby";
-      dockPower.classList.toggle("on", state.power === 1);
-      dockPower.setAttribute("aria-pressed", state.power === 1 ? "true" : "false");
-      dockPower.setAttribute("aria-label", state.power === 1 ? "Turn system off" : "Turn system on");
-      if (dockMinus) dockMinus.disabled = state.power === 0;
-      if (dockPlus) dockPlus.disabled = state.power === 0;
+      if (!perms.isOnline) {
+        dockTemp.textContent = "--";
+        dockMode.textContent = "Offline";
+      } else if (!perms.isPowerOn) {
+        dockTemp.textContent = "--";
+        dockMode.textContent = "Standby";
+      } else if (perms.isHC) {
+        dockTemp.textContent = "16°C";
+        dockMode.textContent = "HC (Turbo)";
+      } else if (perms.isFanMode) {
+        dockTemp.textContent = "Fn";
+        dockMode.textContent = "Fan Only";
+      } else {
+        dockTemp.textContent = `${Math.round(state.targetTemp || 24)}°C`;
+        dockMode.textContent = modeNames[state.mode] || "Cooling";
+      }
+
+      dockPower.classList.toggle("on", perms.isPowerOn);
+      dockPower.setAttribute("aria-pressed", perms.isPowerOn ? "true" : "false");
+      dockPower.setAttribute("aria-label", perms.isPowerOn ? "Turn system off" : "Turn system on");
+      dockPower.disabled = !perms.isOnline;
+
+      if (dockMinus) {
+        dockMinus.disabled = !perms.canAdjustTemp;
+        dockMinus.classList.toggle("restricted", !perms.canAdjustTemp);
+      }
+      if (dockPlus) {
+        dockPlus.disabled = !perms.canAdjustTemp;
+        dockPlus.classList.toggle("restricted", !perms.canAdjustTemp);
+      }
     }
 
     // =========================================================================
-    // 5. MQTT INTEGRATION
+    // 5. MQTT & REST ADAFRUIT IO INTEGRATION
     // =========================================================================
+    function applyAcPacket(data) {
+      if (!data) return;
+      hasLiveData = true;
+      state.online = data.online !== false;
+
+      // Sync PIN security hash broadcast from ESP32
+      if (data.pinHash !== undefined) {
+        devicePinHash = data.pinHash;
+        state.pinHash = data.pinHash;
+        updatePinHint();
+        if (activePin && hashPin(activePin) !== data.pinHash) {
+          lockConsole();
+        }
+      }
+
+      if (data.power !== undefined) state.power = Number(data.power);
+      if (data.targetTemp !== undefined) state.targetTemp = parseFloat(data.targetTemp);
+      if (data.roomTemp !== undefined) state.roomTemp = parseFloat(data.roomTemp);
+      if (data.mode !== undefined) state.mode = Number(data.mode);
+      if (data.fan !== undefined) state.fan = Number(data.fan);
+      if (data.vane !== undefined) state.vane = Number(data.vane);
+      if (data.hSwing !== undefined) state.hSwing = Number(data.hSwing);
+      if (data.convertible !== undefined) state.convertible = Number(data.convertible);
+      if (data.eco !== undefined) state.eco = Number(data.eco);
+      if (data.turbo !== undefined) state.turbo = Number(data.turbo);
+      if (data.sleep !== undefined) state.sleep = Number(data.sleep);
+      if (data.light !== undefined) state.light = Number(data.light);
+      if (data.filterAlert !== undefined) state.filterAlert = Number(data.filterAlert);
+      if (data.compHz !== undefined) state.compHz = Number(data.compHz);
+      if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
+      if (data.compHours !== undefined) state.compHours = parseFloat(data.compHours);
+      if (data.acHours !== undefined) state.acHours = parseFloat(data.acHours);
+
+      renderUI();
+      updateDisplayTexture();
+      updateFanHumAudio();
+      setSyncLabel("Synced just now");
+    }
+
+    async function fetchLastAcStatus() {
+      if (!mqttConfig.username || !mqttConfig.password) return;
+      try {
+        const url = `https://io.adafruit.com/api/v2/${mqttConfig.username}/feeds/bluestar-ac-status/data/last`;
+        const resp = await fetch(url, {
+          headers: { 'X-AIO-Key': mqttConfig.password },
+          cache: 'no-store'
+        });
+        if (!resp.ok) return;
+        const item = await resp.json();
+        if (item && item.value) {
+          const data = JSON.parse(item.value);
+          const recordTime = new Date(item.created_at || item.updated_at).getTime();
+          const ageMinutes = (Date.now() - recordTime) / (1000 * 60);
+          if (ageMinutes < 180 && data.online !== false) {
+            updateConnectionStatus("connected", "Live");
+            applyAcPacket(data);
+          } else {
+            state.online = false;
+            hasLiveData = false;
+            updateConnectionStatus("offline", "Offline");
+            renderUI();
+            updateDisplayTexture();
+          }
+        }
+      } catch (err) {
+        console.warn("Bootstrap status fetch failed:", err);
+      }
+    }
+
     function initMqtt() {
+      // 1. Instant Bootstrap from Adafruit IO REST API
+      fetchLastAcStatus();
+
       if (typeof mqtt === 'undefined') {
         updateConnectionStatus("offline", "Offline");
         return;
@@ -3983,41 +4461,7 @@ html.modal-open body {
         mqttClient.on('message', (topic, message) => {
           try {
             const data = JSON.parse(message.toString());
-            // Sync PIN security hash broadcast from ESP32
-            if (data.pinHash !== undefined) {
-              devicePinHash = data.pinHash;
-              state.pinHash = data.pinHash;
-              updatePinHint();
-              if (activePin && hashPin(activePin) !== data.pinHash) {
-                lockConsole();
-              }
-            }
-            if (data.power !== undefined) state.power = data.power;
-            if (data.targetTemp !== undefined) state.targetTemp = parseFloat(data.targetTemp);
-            if (data.roomTemp !== undefined) state.roomTemp = parseFloat(data.roomTemp);
-            if (data.mode !== undefined) state.mode = data.mode;
-            if (data.fan !== undefined) state.fan = data.fan;
-            if (data.vane !== undefined) state.vane = data.vane;
-            if (data.hSwing !== undefined) state.hSwing = data.hSwing;
-            if (data.convertible !== undefined) state.convertible = data.convertible;
-            if (data.eco !== undefined) state.eco = data.eco;
-            if (data.turbo !== undefined) state.turbo = data.turbo;
-            if (data.sleep !== undefined) state.sleep = data.sleep;
-            if (data.light !== undefined) state.light = data.light;
-            if (data.filterAlert !== undefined) state.filterAlert = data.filterAlert;
-            if (data.compHz !== undefined) state.compHz = data.compHz;
-            if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
-            if (data.compHours !== undefined) state.compHours = parseFloat(data.compHours);
-            if (data.c1Mode !== undefined) {
-              state.c1Mode = data.c1Mode;
-            } else {
-              state.c1Mode = (state.power === 1 && state.mode === 1 && Math.round(state.targetTemp) === 17 && state.fan === 4 && state.turbo === 1) ? 1 : 0;
-            }
-
-            renderUI();
-            updateDisplayTexture();
-            updateFanHumAudio();
-            setSyncLabel("Synced just now");
+            applyAcPacket(data);
           } catch (e) {
             console.warn("MQTT Parse error:", e);
           }
@@ -4030,6 +4474,9 @@ html.modal-open body {
         mqttClient.on('close', () => {
           updateConnectionStatus("offline", "Offline");
           setSyncLabel("Waiting for bridge");
+          state.online = false;
+          renderUI();
+          updateDisplayTexture();
         });
       } catch (err) {
         updateConnectionStatus("error", "Connection Failed");
