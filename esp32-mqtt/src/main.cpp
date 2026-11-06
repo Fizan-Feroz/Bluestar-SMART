@@ -127,7 +127,7 @@ void dbgPrint(const String &str) {
 }
 
 void dbgPrintf(const char *format, ...) {
-  char buf[256];
+  char buf[768];
   va_list args;
   va_start(args, format);
   vsnprintf(buf, sizeof(buf), format, args);
@@ -632,18 +632,21 @@ void processC1Sequence() {
   }
   else if (c1SeqStep == C1_SEQ_HC_PULSE) {
     // Step 3: Exactly 6 presses of Turbo, spaced by 1000ms
-    if (now - c1SeqTimer >= 1000 && txQueue.empty()) {
+    if (now - c1SeqTimer >= 800 && txQueue.empty()) {
       c1SeqTimer = now;
       c1PulseCount++;
 
-      dbgPrintf("[C1] Turbo Press %d/6 -> Sending Turbo (Key 07 = 3)...\n", c1PulseCount);
-      sendBlueStarRecord("07", "3");
+      // Alternate ON ("3") and OFF ("0")
+      String turboVal = (c1PulseCount % 2 != 0) ? "3" : "0";
+      dbgPrintf("[C1] Turbo Press %d/6 -> Alternate %s (Key 07 = %s)...\n",
+                c1PulseCount, (turboVal == "3") ? "ON" : "OFF", turboVal.c_str());
+      sendBlueStarRecord("07", turboVal);
 
       if (c1PulseCount >= c1TotalPulses) {
         // Exactly 6 presses completed! STOP here!
         c1SeqStep = C1_SEQ_DONE;
         dbgPrintln("[C1] ==================================================");
-        dbgPrintln("[C1] Completed exactly 6 Turbo presses within 5 seconds!");
+        dbgPrintln("[C1] Completed 6 alternating Turbo presses (3, 0, 3, 0, 3, 0) within 5 seconds!");
         dbgPrintln("[C1] AC Indoor Unit Display should now show 'C1'.");
         dbgPrintln("[C1] ==================================================");
         publishState(true);
