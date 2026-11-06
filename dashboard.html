@@ -4094,21 +4094,35 @@ html.modal-open body {
     // =========================================================================
     // 4. UI DISPATCH & STATE SYNC
     // =========================================================================
+    let commandDebounceTimer = null;
+    let pendingCommands = {};
+
     function sendCommand(patch) {
       if (!isUnlocked || !activePin) {
         document.getElementById("lockScreen").classList.remove("unlocked");
         return;
       }
-      const cmd = Object.assign({}, patch, { pin: activePin });
       Object.assign(state, patch);
+      Object.assign(pendingCommands, patch);
+      lastTelemetryTime = Date.now(); // Keep session alive during active user interaction
+
       renderUI();
       updateDisplayTexture();
       updateFanHumAudio();
 
-      if (mqttClient && mqttClient.connected) {
-        const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
-        mqttClient.publish(topic, JSON.stringify(cmd));
-      }
+      clearTimeout(commandDebounceTimer);
+      // Rapid stepped inputs (e.g. temp +/-) are debounced 350ms to prevent Adafruit IO rate-limit disconnects
+      const isSteppedInput = patch.targetTemp !== undefined;
+      const delay = isSteppedInput ? 350 : 60;
+
+      commandDebounceTimer = setTimeout(() => {
+        if (mqttClient && mqttClient.connected) {
+          const cmd = Object.assign({}, pendingCommands, { pin: activePin });
+          pendingCommands = {};
+          const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
+          mqttClient.publish(topic, JSON.stringify(cmd));
+        }
+      }, delay);
     }
 
     function togglePower() {
@@ -4736,7 +4750,7 @@ html.modal-open body {
           const data = JSON.parse(item.value);
           const recordTime = new Date(item.created_at || item.updated_at).getTime();
           const ageSeconds = (Date.now() - recordTime) / 1000;
-          if (ageSeconds < 25 && data.online !== false) {
+          if (ageSeconds < 60 && data.online !== false) {
             lastTelemetryTime = recordTime;
             applyAcPacket(data);
           } else {
@@ -4808,16 +4822,16 @@ html.modal-open body {
           updateDisplayTexture();
         });
 
-        // Watchdog: detect power cut / lost telemetry within 12 seconds
+        // Watchdog: detect real power cut (no telemetry for > 40s) without false trips during temp stepping
         setInterval(() => {
-          if (state.online && lastTelemetryTime && (Date.now() - lastTelemetryTime > 12000)) {
+          if (state.online && lastTelemetryTime && (Date.now() - lastTelemetryTime > 40000)) {
             state.online = false;
             updateConnectionStatus("offline", "AC Mains Off");
             setSyncLabel("Offline (no power/signal)");
             renderUI();
             updateDisplayTexture();
           }
-        }, 2500);
+        }, 3000);
       } catch (err) {
         updateConnectionStatus("error", "Connection Failed");
       }

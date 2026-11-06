@@ -812,7 +812,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   }
   #endif
 
-  publishState();
+  pendingMqttPublish = true;
 }
 
 // ==================== 6. NON-BLOCKING MQTT CONNECT ====================
