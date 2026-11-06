@@ -1809,6 +1809,179 @@ html.modal-open body {
   display: none;
 }
 
+
+    /* Tapo P110 Energy Panel */
+    .energy-panel {
+      background: var(--surface-2);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .energy-hero {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .energy-hero-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      background: rgba(245, 158, 11, 0.12);
+      color: #f59e0b;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+    }
+
+    .energy-hero-icon svg {
+      width: 22px;
+      height: 22px;
+      fill: currentColor;
+    }
+
+    .energy-hero-info {
+      flex: 1 1 auto;
+      min-width: 0;
+    }
+
+    .energy-val-main {
+      font-family: var(--font-display);
+      font-size: 24px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.1;
+      font-variant-numeric: tabular-nums;
+      letter-spacing: -0.02em;
+    }
+
+    .energy-val-main .unit {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-3);
+      margin-left: 2px;
+    }
+
+    .energy-lbl-main {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-3);
+      margin-top: 2px;
+    }
+
+    .energy-relay-wrap {
+      flex: 0 0 auto;
+    }
+
+    .plug-switch-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+
+    .plug-switch-track {
+      display: block;
+      width: 44px;
+      height: 24px;
+      border-radius: 12px;
+      background: var(--surface-3);
+      border: 1px solid var(--line);
+      position: relative;
+      transition: background-color 200ms ease, border-color 200ms ease;
+    }
+
+    .plug-switch-thumb {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 200ms cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    }
+
+    .plug-switch-btn.on .plug-switch-track {
+      background: #10b981;
+      border-color: #10b981;
+    }
+
+    .plug-switch-btn.on .plug-switch-thumb {
+      transform: translateX(20px);
+    }
+
+    .energy-stats-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .energy-stat-col {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 10px;
+    }
+
+    .energy-stat-lbl {
+      font-size: 10px;
+      font-weight: 500;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .energy-stat-num {
+      font-family: var(--font-display);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      font-variant-numeric: tabular-nums;
+      white-space: nowrap;
+    }
+
+    .energy-foot {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    .btn-plug-cycle {
+      background: var(--surface);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      color: var(--text-2);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    .btn-plug-cycle:hover {
+      background: var(--surface-3);
+      color: var(--text);
+    }
+
+    .btn-plug-cycle svg {
+      width: 12px;
+      height: 12px;
+      fill: currentColor;
+    }
+
   </style>
 </head>
 <body>
@@ -1875,6 +2048,10 @@ html.modal-open body {
         <div class="tel-pill">
           <span class="tel-lbl">Coil temp</span>
           <span class="tel-val" id="coilTempVal">—</span>
+        </div>
+        <div class="tel-pill">
+          <span class="tel-lbl"><span class="tel-full">Grid power</span><span class="tel-short">Power</span></span>
+          <span class="tel-val glow-cyan" id="gridPowerVal">—</span>
         </div>
         <div class="tel-pill">
           <span class="tel-lbl">Run hours</span>
@@ -2062,6 +2239,51 @@ html.modal-open body {
         </div>
       </section>
 
+      <section class="group" id="energyGroup">
+        <div class="group-head">
+          <span class="group-title">Power & Energy (Tapo P110)</span>
+          <span class="group-value" id="plugStatusBadge">--</span>
+        </div>
+        <div class="energy-panel">
+          <div class="energy-hero">
+            <div class="energy-hero-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+            </div>
+            <div class="energy-hero-info">
+              <div class="energy-val-main" id="plugPowerVal">-- <span class="unit">W</span></div>
+              <div class="energy-lbl-main">Active AC Power Draw</div>
+            </div>
+            <div class="energy-relay-wrap">
+              <button class="plug-switch-btn on" id="plugRelayBtn" type="button" role="switch" aria-checked="true" aria-label="Smart plug socket power" onclick="togglePlugRelay()">
+                <span class="plug-switch-track"><span class="plug-switch-thumb"></span></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="energy-stats-row">
+            <div class="energy-stat-col">
+              <span class="energy-stat-lbl">Today's energy</span>
+              <span class="energy-stat-num" id="plugTodayKwh">-- kWh</span>
+            </div>
+            <div class="energy-stat-col">
+              <span class="energy-stat-lbl">Monthly energy</span>
+              <span class="energy-stat-num" id="plugMonthKwh">-- kWh</span>
+            </div>
+            <div class="energy-stat-col">
+              <span class="energy-stat-lbl">Today runtime</span>
+              <span class="energy-stat-num" id="plugRuntimeVal">--</span>
+            </div>
+          </div>
+
+          <div class="energy-foot">
+            <button class="btn-plug-cycle" type="button" onclick="cyclePlugPower()" title="Power-cycle the AC mains via smart plug">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17.65 6.35A7.958 7.958 0 0 0 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08A5.99 5.99 0 0 1 12 18c-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>
+              <span>Hard reboot AC (5s)</span>
+            </button>
+          </div>
+        </div>
+      </section>
+
       <footer class="panel-foot">
         <span class="foot-dot" aria-hidden="true"></span>
         <span>Megmeet MD50BS</span>
@@ -2223,6 +2445,12 @@ html.modal-open body {
       coilTemp: null,
       compHours: null,
       acHours: null,
+      p110_power: null,
+      p110_todayKwh: null,
+      p110_monthKwh: null,
+      p110_relay: 1,
+      p110_online: 0,
+      p110_runtime: null,
       soundEnabled: true,
       currentCameraView: 'hero',
       isXray: false,
@@ -2640,8 +2868,8 @@ html.modal-open body {
         bevelEnabled: true,
         bevelThickness: bevel,
         bevelSize: bevel,
-        bevelSegments: 8,
-        curveSegments: curveSegments || 64
+        bevelSegments: 5,
+        curveSegments: curveSegments || 28
       });
       geometry.translate(0, 0, -depth / 2);
       return geometry;
@@ -2663,12 +2891,9 @@ html.modal-open body {
 
     function makeBrandCanvas() {
       brandCanvas = document.createElement("canvas");
-      brandCanvas.width = 2048;
-      brandCanvas.height = 512;
+      brandCanvas.width = 512;
+      brandCanvas.height = 128;
       brandTexture = new THREE.CanvasTexture(brandCanvas);
-      brandTexture.generateMipmaps = true;
-      brandTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      brandTexture.magFilter = THREE.LinearFilter;
       if (renderer) brandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       drawBrandTexture();
     }
@@ -2678,11 +2903,11 @@ html.modal-open body {
       const ctx = brandCanvas.getContext("2d");
       ctx.clearRect(0, 0, brandCanvas.width, brandCanvas.height);
 
-      // Direct silkscreen brand emblem on front panel (Ultra-HD vector clarity)
-      const cx = 232;
-      const cy = 256;
-      const outer = 120;
-      const inner = 52;
+      // Direct silkscreen brand emblem on front panel (clean, transparent background)
+      const cx = 58;
+      const cy = 64;
+      const outer = 30;
+      const inner = 13;
       ctx.beginPath();
       for (let i = 0; i < 10; i++) {
         const radius = i % 2 === 0 ? outer : inner;
@@ -2693,15 +2918,14 @@ html.modal-open body {
         else ctx.lineTo(x, y);
       }
       ctx.closePath();
-      ctx.fillStyle = "#0284c7";
+      ctx.fillStyle = "#0c4a6e";
       ctx.fill();
 
-      ctx.fillStyle = "#0c4a6e";
+      ctx.fillStyle = "#0f2e4a";
       ctx.textAlign = "left";
       ctx.textBaseline = "middle";
-      ctx.font = "700 200px Outfit, sans-serif";
-      ctx.letterSpacing = "4px";
-      ctx.fillText("BLUE STAR", 448, 260);
+      ctx.font = "700 50px Outfit, sans-serif";
+      ctx.fillText("BLUE STAR", 112, 65);
 
       brandTexture.needsUpdate = true;
     }
@@ -2939,30 +3163,30 @@ html.modal-open body {
       acGroup.add(facadeGroup);
 
       casingMat = new THREE.MeshPhysicalMaterial({
-        color: 0xf0f4f8,
-        metalness: 0.02,
-        roughness: 0.18,
-        clearcoat: 0.55,
-        clearcoatRoughness: 0.14,
-        envMapIntensity: 0.65
+        color: 0xeef3f8,
+        metalness: 0.015,
+        roughness: 0.28,
+        clearcoat: 0.38,
+        clearcoatRoughness: 0.26,
+        envMapIntensity: 0.45
       });
 
       panelMat = new THREE.MeshPhysicalMaterial({
-        color: 0xfcfdfe,
+        color: 0xf7fafc,
         metalness: 0.01,
-        roughness: 0.14,
-        clearcoat: 0.72,
-        clearcoatRoughness: 0.10,
-        envMapIntensity: 0.8
+        roughness: 0.22,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.2,
+        envMapIntensity: 0.5
       });
 
       const louverMat = new THREE.MeshPhysicalMaterial({
         color: 0xf3f7fb,
         metalness: 0.02,
-        roughness: 0.20,
-        clearcoat: 0.6,
-        clearcoatRoughness: 0.15,
-        envMapIntensity: 0.65
+        roughness: 0.24,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.2,
+        envMapIntensity: 0.48
       });
 
       // --- Casing with a real air-outlet cutout -----------------------
@@ -3104,13 +3328,10 @@ html.modal-open body {
 
       // --- Hidden LED window (as on the real Q-series panel) -------------
       displayCanvas = document.createElement("canvas");
-      displayCanvas.width = 1024;
-      displayCanvas.height = 512;
+      displayCanvas.width = 512;
+      displayCanvas.height = 192;
       displayTexture = new THREE.CanvasTexture(displayCanvas);
-      displayTexture.generateMipmaps = true;
-      displayTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      displayTexture.magFilter = THREE.LinearFilter;
-      if (renderer) displayTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      displayTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       displayMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(0.285, 0.107),
         new THREE.MeshBasicMaterial({
@@ -3141,23 +3362,19 @@ html.modal-open body {
       facadeGroup.add(logoMesh);
 
       const inverterCanvas = document.createElement("canvas");
-      inverterCanvas.width = 2048;
-      inverterCanvas.height = 512;
+      inverterCanvas.width = 512;
+      inverterCanvas.height = 100;
       const inverterCtx = inverterCanvas.getContext("2d");
-      inverterCtx.clearRect(0, 0, 2048, 512);
+      inverterCtx.clearRect(0, 0, 512, 100);
       inverterCtx.textBaseline = "middle";
-      inverterCtx.font = "600 184px 'Plus Jakarta Sans', sans-serif";
-      inverterCtx.letterSpacing = "10px";
-      inverterCtx.fillStyle = "rgba(74, 95, 107, 0.92)";
+      inverterCtx.font = "600 46px 'Plus Jakarta Sans', sans-serif";
+      inverterCtx.fillStyle = "rgba(74, 95, 107, 0.9)";
       const inverterWidth = inverterCtx.measureText("INVERTER").width;
-      inverterCtx.fillText("INVERTER", 1024 - inverterWidth / 2, 256);
-      inverterCtx.fillStyle = "rgba(34, 197, 94, 0.95)";
-      inverterCtx.fillRect(1024 + 100, 144, 20, 128);
+      inverterCtx.fillText("INVERTER", 256 - inverterWidth / 2, 54);
+      inverterCtx.fillStyle = "rgba(62, 154, 91, 0.95)";
+      inverterCtx.fillRect(256 + 16, 26, 5, 32);
       const inverterTexture = new THREE.CanvasTexture(inverterCanvas);
-      inverterTexture.generateMipmaps = true;
-      inverterTexture.minFilter = THREE.LinearMipmapLinearFilter;
-      inverterTexture.magFilter = THREE.LinearFilter;
-      if (renderer) inverterTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      inverterTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
       const inverterMesh = new THREE.Mesh(
         new THREE.PlaneGeometry(0.26, 0.051),
         new THREE.MeshBasicMaterial({
@@ -3318,57 +3535,57 @@ html.modal-open body {
 
         if (state.filterAlert === 1) {
           ctx.shadowColor = "#fb7185";
-          ctx.shadowBlur = 48;
+          ctx.shadowBlur = 24;
           ctx.fillStyle = "#ffd8de";
-          ctx.font = "650 216px Outfit, sans-serif";
-          ctx.fillText("FC", 512, 210);
+          ctx.font = "650 108px Outfit, sans-serif";
+          ctx.fillText("FC", 256, 96);
           ctx.shadowBlur = 0;
-          ctx.fillStyle = "rgba(255, 216, 222, 0.8)";
-          ctx.font = "600 48px 'Plus Jakarta Sans', sans-serif";
-          ctx.fillText("FILTER", 512, 360);
+          ctx.fillStyle = "rgba(255, 216, 222, 0.72)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FILTER", 256, 166);
         } else if (state.c1Mode === 1) {
-          ctx.shadowColor = "rgba(245, 158, 11, 0.7)";
-          ctx.shadowBlur = 48;
+          ctx.shadowColor = "rgba(245, 158, 11, 0.6)";
+          ctx.shadowBlur = 24;
           ctx.fillStyle = "#fef3c7";
-          ctx.font = "650 224px Outfit, sans-serif";
-          ctx.fillText("C1", 512, 210);
+          ctx.font = "650 112px Outfit, sans-serif";
+          ctx.fillText("C1", 256, 96);
           ctx.shadowBlur = 0;
-          ctx.fillStyle = "rgba(254, 243, 199, 0.85)";
-          ctx.font = "600 48px 'Plus Jakarta Sans', sans-serif";
-          ctx.fillText("FULL LOAD", 512, 360);
+          ctx.fillStyle = "rgba(254, 243, 199, 0.75)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FULL LOAD", 256, 166);
         } else if (perms.isHC) {
           // HC mode displays "HC" on the Blue Star IDU
-          ctx.shadowColor = "rgba(56, 189, 248, 0.8)";
-          ctx.shadowBlur = 48;
+          ctx.shadowColor = "rgba(56, 189, 248, 0.7)";
+          ctx.shadowBlur = 24;
           ctx.fillStyle = "#e0f7ff";
-          ctx.font = "650 240px Outfit, sans-serif";
-          ctx.fillText("HC", 512, 210);
+          ctx.font = "650 120px Outfit, sans-serif";
+          ctx.fillText("HC", 256, 96);
           ctx.shadowBlur = 0;
-          ctx.fillStyle = "rgba(224, 247, 255, 0.9)";
-          ctx.font = "600 48px 'Plus Jakarta Sans', sans-serif";
-          ctx.fillText("TURBO COOL", 512, 360);
+          ctx.fillStyle = "rgba(224, 247, 255, 0.85)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("TURBO COOL", 256, 166);
         } else if (perms.isFanMode) {
           // Fan mode displays "Fn"
-          ctx.shadowColor = "rgba(255, 255, 255, 0.6)";
-          ctx.shadowBlur = 40;
+          ctx.shadowColor = "rgba(255, 255, 255, 0.5)";
+          ctx.shadowBlur = 20;
           ctx.fillStyle = "#ffffff";
-          ctx.font = "650 240px Outfit, sans-serif";
-          ctx.fillText("Fn", 512, 210);
+          ctx.font = "650 120px Outfit, sans-serif";
+          ctx.fillText("Fn", 256, 96);
           ctx.shadowBlur = 0;
-          ctx.fillStyle = "rgba(255, 255, 255, 0.85)";
-          ctx.font = "600 48px 'Plus Jakarta Sans', sans-serif";
-          ctx.fillText("FAN ONLY", 512, 360);
+          ctx.fillStyle = "rgba(255, 255, 255, 0.75)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FAN ONLY", 256, 166);
         } else if (state.targetTemp != null) {
           const temperature = `${Math.round(state.targetTemp)}°`;
-          ctx.font = "620 284px Outfit, sans-serif";
+          ctx.font = "620 142px Outfit, sans-serif";
           ctx.shadowColor = "rgba(5, 55, 75, 0.52)";
-          ctx.shadowBlur = 14;
+          ctx.shadowBlur = 7;
           ctx.fillStyle = "#8cecff";
-          ctx.fillText(temperature, 512, 220);
-          ctx.shadowColor = "rgba(56, 189, 248, 0.55)";
-          ctx.shadowBlur = 48;
-          ctx.fillStyle = "rgba(150, 240, 255, 0.6)";
-          ctx.fillText(temperature, 512, 220);
+          ctx.fillText(temperature, 256, 101);
+          ctx.shadowColor = "rgba(56, 189, 248, 0.42)";
+          ctx.shadowBlur = 25;
+          ctx.fillStyle = "rgba(150, 240, 255, 0.5)";
+          ctx.fillText(temperature, 256, 101);
         }
         ctx.restore();
       }
@@ -3526,11 +3743,6 @@ html.modal-open body {
       const width = container.clientWidth;
       const height = container.clientHeight;
       if (!width || !height || !camera) return;
-
-      const dpr = Math.min(window.devicePixelRatio || 1, 2.5);
-      if (renderer && renderer.getPixelRatio() !== dpr) {
-        renderer.setPixelRatio(dpr);
-      }
 
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
@@ -3911,6 +4123,21 @@ html.modal-open body {
       sendCommand({ power: nextPower });
     }
 
+
+    function togglePlugRelay() {
+      const nextRelay = state.p110_relay === 1 ? 0 : 1;
+      playAudio('click');
+      sendCommand({ p110_relay: nextRelay });
+      showToast(nextRelay === 1 ? "Turning smart plug socket ON" : "Turning smart plug socket OFF");
+    }
+
+    function cyclePlugPower() {
+      if (!confirm("Reboot AC via smart plug? This will cut power for 5 seconds and turn it back on.")) return;
+      playAudio('beep');
+      sendCommand({ p110_reboot: 1 });
+      showToast("Sent power cycle command to Tapo P110");
+    }
+
     function adjustTemp(delta) {
       const perms = getControlPermissions();
       if (!perms.canAdjustTemp) {
@@ -4056,13 +4283,10 @@ html.modal-open body {
         sendCommand({ light: state.light === 1 ? 0 : 1 });
       } else if (featKey === 'c1') {
         if (state.c1Mode === 1) {
-          playAudio('click');
-          showToast("C1 Full Load Mode cancelled", "info");
-          sendCommand({ c1Mode: 0 });
+          sendCommand({ c1Mode: 0, turbo: 0 });
         } else {
-          playAudio('beep');
-          showToast("Starting C1 Sequence: Setting 17°C High Fan, waiting, then pulsing HC...", "info");
-          sendCommand({ c1Mode: 1 });
+          if (!perms.isPowerOn) return;
+          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
         }
       }
     }
@@ -4326,6 +4550,70 @@ html.modal-open body {
         }
       }
 
+      // 10. Tapo P110 Energy & Power
+      const gridPowerVal = document.getElementById("gridPowerVal");
+      const plugStatusBadge = document.getElementById("plugStatusBadge");
+      const plugPowerVal = document.getElementById("plugPowerVal");
+      const plugTodayKwh = document.getElementById("plugTodayKwh");
+      const plugMonthKwh = document.getElementById("plugMonthKwh");
+      const plugRuntimeVal = document.getElementById("plugRuntimeVal");
+      const plugRelayBtn = document.getElementById("plugRelayBtn");
+
+      if (gridPowerVal) {
+        if (!perms.isOnline || state.p110_power == null || state.p110_online === 0) {
+          gridPowerVal.textContent = "—";
+        } else {
+          gridPowerVal.textContent = state.p110_power >= 100 ? `${Math.round(state.p110_power)} W` : `${state.p110_power.toFixed(1)} W`;
+        }
+      }
+
+      if (plugStatusBadge) {
+        if (!perms.isOnline) {
+          plugStatusBadge.textContent = "Offline";
+          plugStatusBadge.style.color = "var(--text-3)";
+        } else if (state.p110_online === 1) {
+          plugStatusBadge.textContent = "Plug Live";
+          plugStatusBadge.style.color = "var(--live)";
+        } else {
+          plugStatusBadge.textContent = "Plug Unreachable";
+          plugStatusBadge.style.color = "var(--text-3)";
+        }
+      }
+
+      if (plugPowerVal) {
+        if (!perms.isOnline || state.p110_power == null) {
+          plugPowerVal.innerHTML = `-- <span class="unit">W</span>`;
+        } else {
+          const pVal = state.p110_power.toFixed(1);
+          plugPowerVal.innerHTML = `${pVal} <span class="unit">W</span>`;
+        }
+      }
+
+      if (plugTodayKwh) {
+        plugTodayKwh.textContent = (perms.isOnline && state.p110_todayKwh != null) ? `${state.p110_todayKwh.toFixed(3)} kWh` : "-- kWh";
+      }
+
+      if (plugMonthKwh) {
+        plugMonthKwh.textContent = (perms.isOnline && state.p110_monthKwh != null) ? `${state.p110_monthKwh.toFixed(2)} kWh` : "-- kWh";
+      }
+
+      if (plugRuntimeVal) {
+        if (perms.isOnline && state.p110_runtime != null) {
+          const mins = state.p110_runtime;
+          const h = Math.floor(mins / 60);
+          const m = mins % 60;
+          plugRuntimeVal.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+        } else {
+          plugRuntimeVal.textContent = "--";
+        }
+      }
+
+      if (plugRelayBtn) {
+        const isRelayOn = (state.p110_relay === 1);
+        plugRelayBtn.classList.toggle("on", isRelayOn);
+        plugRelayBtn.setAttribute("aria-checked", isRelayOn ? "true" : "false");
+      }
+
       renderMobileDock();
     }
 
@@ -4406,6 +4694,12 @@ html.modal-open body {
       if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
       if (data.compHours !== undefined) state.compHours = parseFloat(data.compHours);
       if (data.acHours !== undefined) state.acHours = parseFloat(data.acHours);
+      if (data.p110_power !== undefined) state.p110_power = parseFloat(data.p110_power);
+      if (data.p110_todayKwh !== undefined) state.p110_todayKwh = parseFloat(data.p110_todayKwh);
+      if (data.p110_monthKwh !== undefined) state.p110_monthKwh = parseFloat(data.p110_monthKwh);
+      if (data.p110_relay !== undefined) state.p110_relay = Number(data.p110_relay);
+      if (data.p110_online !== undefined) state.p110_online = Number(data.p110_online);
+      if (data.p110_runtime !== undefined) state.p110_runtime = Number(data.p110_runtime);
 
       renderUI();
       updateDisplayTexture();

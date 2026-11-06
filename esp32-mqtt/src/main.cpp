@@ -89,9 +89,10 @@ enum C1SequenceStep {
 C1SequenceStep c1SeqStep = C1_SEQ_IDLE;
 uint32_t c1SeqTimer = 0;
 int c1PulseCount = 0;
-const int C1_TOTAL_PULSES = 12; // Alternating 3 and 0 for 6 complete HC cycles
+int c1PulseType = 1; // 1 = 6 pulses alternating (3,0,3,0,3,0), 2 = 6 pulses of 3, 3 = 6 ONs (11 pulses)
+int c1TotalPulses = 6;
 
-void startC1Sequence();
+void startC1Sequence(int type = 1);
 void cancelC1Sequence();
 void processC1Sequence();
 
@@ -126,7 +127,7 @@ void dbgPrint(const String &str) {
 }
 
 void dbgPrintf(const char *format, ...) {
-  char buf[256];
+  char buf[768];
   va_list args;
   va_start(args, format);
   vsnprintf(buf, sizeof(buf), format, args);
@@ -137,6 +138,80 @@ void dbgPrintf(const char *format, ...) {
 void dbgPrintln(const String &str = "") {
   dbgPrint(str + "\n");
 }
+
+// ==================== TAPO P110 ENERGY POLLEDAEMON (CORE 0) ====================
+#if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+#include "tapo_p110.h"
+
+static TapoP110 tapoPlug;
+static TapoEnergyData tapoData;
+static SemaphoreHandle_t tapoMutex = NULL;
+static volatile bool tapoPlugTurnOnRequested = false;
+static volatile bool tapoPlugTurnOffRequested = false;
+static volatile bool tapoPlugCycleRequested = false;
+
+void tapoPollerTask(void *pvParameters) {
+  dbgPrintln("[TAPO TASK] Started on FreeRTOS Core 0");
+  vTaskDelay(pdMS_TO_TICKS(4000)); // Grace period for Wi-Fi and MQTT connection
+
+  if (String(TAPO_USER) != "YOUR_TAPO_EMAIL" && String(TAPO_USER).length() > 0) {
+    dbgPrintf("[TAPO TASK] Connecting to P110 at %s...\n", TAPO_IP);
+    tapoPlug.begin(TAPO_IP, TAPO_USER, TAPO_PASS);
+  }
+
+  while (true) {
+    // Check for any relay command flags
+    if (tapoPlugTurnOnRequested) {
+      tapoPlugTurnOnRequested = false;
+      dbgPrintln("[TAPO TASK] Executing Relay ON command...");
+      if (tapoPlug.setRelay(true)) {
+        if (xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+          tapoData.relayOn = true;
+          xSemaphoreGive(tapoMutex);
+        }
+      }
+    } else if (tapoPlugTurnOffRequested) {
+      tapoPlugTurnOffRequested = false;
+      dbgPrintln("[TAPO TASK] Executing Relay OFF command...");
+      if (tapoPlug.setRelay(false)) {
+        if (xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+          tapoData.relayOn = false;
+          xSemaphoreGive(tapoMutex);
+        }
+      }
+    } else if (tapoPlugCycleRequested) {
+      tapoPlugCycleRequested = false;
+      dbgPrintln("[TAPO TASK] Executing Power Cycle: Turning OFF for 5s...");
+      tapoPlug.setRelay(false);
+      vTaskDelay(pdMS_TO_TICKS(5000));
+      dbgPrintln("[TAPO TASK] Power Cycle: Turning back ON...");
+      tapoPlug.setRelay(true);
+      if (xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        tapoData.relayOn = true;
+        xSemaphoreGive(tapoMutex);
+      }
+    }
+
+    // Energy Polling
+    if (WiFi.status() == WL_CONNECTED && String(TAPO_USER) != "YOUR_TAPO_EMAIL" && String(TAPO_USER).length() > 0) {
+      TapoEnergyData temp;
+      if (tapoPlug.updateEnergy(temp)) {
+        if (xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+          tapoData = temp;
+          xSemaphoreGive(tapoMutex);
+        }
+      } else {
+        if (xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(200)) == pdTRUE) {
+          tapoData.online = false;
+          xSemaphoreGive(tapoMutex);
+        }
+      }
+    }
+
+    vTaskDelay(pdMS_TO_TICKS(TAPO_POLL_INTERVAL_MS));
+  }
+}
+#endif
 
 // ==================== 4. CRC-16 / MODBUS ====================
 uint16_t crc16_modbus(const char *data, size_t len) {
@@ -264,7 +339,19 @@ void publishState(bool force = false) {
   doc["pinHash"]      = hashPin(DEVICE_PIN);
   #endif
 
-  char buffer[512];
+  #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+  if (tapoMutex && xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    doc["p110_power"]    = serialized(String(tapoData.powerWatts, 1));
+    doc["p110_todayKwh"] = serialized(String(tapoData.todayKwh, 3));
+    doc["p110_monthKwh"] = serialized(String(tapoData.monthKwh, 2));
+    doc["p110_relay"]    = tapoData.relayOn ? 1 : 0;
+    doc["p110_online"]   = tapoData.online ? 1 : 0;
+    doc["p110_runtime"]  = tapoData.todayRuntimeMin;
+    xSemaphoreGive(tapoMutex);
+  }
+  #endif
+
+  char buffer[768];
   size_t n = serializeJson(doc, buffer);
   mqttClient.publish(TOPIC_STATUS, (const uint8_t*)buffer, n, true); // Retain flag true
   dbgPrintf("[MQTT TX] Published State: %s\n", buffer);
@@ -479,10 +566,13 @@ void processTxQueue() {
 }
 
 // ==================== C1 FULL LOAD SEQUENCE STATE MACHINE ====================
-void startC1Sequence() {
+void startC1Sequence(int type) {
+  c1PulseType = type;
+  c1TotalPulses = 6; // Exactly 6 presses of Turbo button within 10 seconds
+
   dbgPrintln("\n[C1] ==================================================");
-  dbgPrintln("[C1] Starting C1 Full Load Sequence");
-  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan...");
+  dbgPrintln("[C1] Starting C1 Full Load Sequence: 6 Turbo presses");
+  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan, Turbo OFF...");
   dbgPrintln("[C1] ==================================================");
 
   c1ModeActive = true;
@@ -495,11 +585,12 @@ void startC1Sequence() {
   // Clear any existing pending commands
   txQueue.clear();
 
-  // Step 1: Set 17C and High Fan
+  // Step 1: Set 17C, High Fan, and ensure Turbo is OFF first
   sendBlueStarRecord("01", "1");   // Power ON
   sendBlueStarRecord("03", "2");   // Mode = Cool
   sendBlueStarRecord("02", "0AA"); // Setpoint = 17C
   sendBlueStarRecord("04", "4");   // Fan = High
+  sendBlueStarRecord("07", "0");   // Turbo = OFF (ensures AC settles before Turbo cycle)
 
   c1SeqStep = C1_SEQ_WAIT_SETTLE;
   c1SeqTimer = millis();
@@ -525,37 +616,39 @@ void processC1Sequence() {
 
   if (c1SeqStep == C1_SEQ_WAIT_SETTLE) {
     // Step 2: WAIT
-    // Ensure all 4 setting frames have been transmitted over UART first
+    // Ensure all 5 setting frames have been transmitted over UART first
     if (!txQueue.empty()) {
       c1SeqTimer = now;
       return;
     }
-    // Now wait a full 3 seconds for AC MCU to process and settle in Cool 17C High Fan
+    // Wait a full 3 seconds for AC MCU to process and settle in Cool 17C High Fan
     if (now - c1SeqTimer >= 3000) {
-      dbgPrintln("\n[C1] Step 2: Settings settled at 17C High Fan!");
-      dbgPrintln("[C1] Step 3: Starting HC cycle (Pulsing Turbo 6x within 10s)...");
+      dbgPrintln("\n[C1] Step 2: AC settled at 17C High Fan!");
+      dbgPrintln("[C1] Step 3: Sending 6 exact Turbo presses spaced by 1000ms...");
       c1SeqStep = C1_SEQ_HC_PULSE;
       c1PulseCount = 0;
-      c1SeqTimer = now;
+      c1SeqTimer = now - 1000; // Trigger first pulse immediately
     }
   }
   else if (c1SeqStep == C1_SEQ_HC_PULSE) {
-    // Step 3: HC cycle - pulse every 500ms
-    if (now - c1SeqTimer >= 500 && txQueue.empty()) {
+    // Step 3: Exactly 6 presses of Turbo, spaced by 1000ms
+    if (now - c1SeqTimer >= 800 && txQueue.empty()) {
       c1SeqTimer = now;
       c1PulseCount++;
-      // Odd pulse -> 3 (Turbo ON / "HC"), Even pulse -> 0 (Turbo OFF)
-      bool turboOn = (c1PulseCount % 2 != 0);
-      dbgPrintf("[C1] HC Pulse %d/%d -> Turbo Key 07 = %s\n",
-                c1PulseCount, C1_TOTAL_PULSES, turboOn ? "3 (HC)" : "0");
-      sendBlueStarRecord("07", turboOn ? "3" : "0");
 
-      if (c1PulseCount >= C1_TOTAL_PULSES) {
-        // Final pulse: ensure Turbo locked ON
-        sendBlueStarRecord("07", "3");
-        turboCool = true;
+      // Alternate ON ("3") and OFF ("0")
+      String turboVal = (c1PulseCount % 2 != 0) ? "3" : "0";
+      dbgPrintf("[C1] Turbo Press %d/6 -> Alternate %s (Key 07 = %s)...\n",
+                c1PulseCount, (turboVal == "3") ? "ON" : "OFF", turboVal.c_str());
+      sendBlueStarRecord("07", turboVal);
+
+      if (c1PulseCount >= c1TotalPulses) {
+        // Exactly 6 presses completed! STOP here!
         c1SeqStep = C1_SEQ_DONE;
-        dbgPrintln("[C1] HC pulse cycle complete! C1 Full Load Mode active (Indoor Display: C1)");
+        dbgPrintln("[C1] ==================================================");
+        dbgPrintln("[C1] Completed 6 alternating Turbo presses (3, 0, 3, 0, 3, 0) within 5 seconds!");
+        dbgPrintln("[C1] AC Indoor Unit Display should now show 'C1'.");
+        dbgPrintln("[C1] ==================================================");
         publishState(true);
       }
     }
@@ -701,6 +794,23 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     sendBlueStarRecord("58", buzzerMute ? "1" : "0");
   }
 
+  #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+  // Tapo P110 Relay Control (1=On, 0=Off)
+  if (doc.containsKey("p110_relay")) {
+    int r = doc["p110_relay"];
+    if (r == 1) {
+      tapoPlugTurnOnRequested = true;
+    } else if (r == 0) {
+      tapoPlugTurnOffRequested = true;
+    }
+  }
+
+  // Tapo P110 Emergency Power Cycle (1=Power Cycle 5s)
+  if (doc.containsKey("p110_reboot") && doc["p110_reboot"] == 1) {
+    tapoPlugCycleRequested = true;
+  }
+  #endif
+
   publishState();
 }
 
@@ -736,7 +846,7 @@ void processTelnet() {
                           WiFi.RSSI(),
                           mqttClient.connected() ? "CONNECTED" : "DISCONNECTED",
                           mqttClient.state());
-      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [c]1 full load, [i]nfo, [r]eboot ESP");
+      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [c]1 full load, [p]110 energy, [i]nfo, [r]eboot ESP");
     } else {
       WiFiClient rejectClient = telnetServer.available();
       rejectClient.stop();
@@ -744,8 +854,45 @@ void processTelnet() {
   }
 
   while (telnetClient && telnetClient.available()) {
-    char c = telnetClient.read();
-    if (c == 'r' || c == 'R') {
+    String line = telnetClient.readStringUntil('\n');
+    line.trim();
+    if (line.length() == 0) continue;
+    char c = line[0];
+
+    if (line.equalsIgnoreCase("c") || line.equalsIgnoreCase("c1")) {
+      telnetClient.println("\n[CMD] Triggering C1 (Type 1: 6 presses alternating: 3, 0, 3, 0, 3, 0)...");
+      startC1Sequence(1);
+    } else if (line.equalsIgnoreCase("c2")) {
+      telnetClient.println("\n[CMD] Triggering C1 (Type 2: 6 presses of 3: 3, 3, 3, 3, 3, 3)...");
+      startC1Sequence(2);
+    } else if (line.equalsIgnoreCase("c3")) {
+      telnetClient.println("\n[CMD] Triggering C1 (Type 3: 6 ONs ending on 3: 11 pulses)...");
+      startC1Sequence(3);
+    } else if (c == 'p' || c == 'P') {
+      #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+      if (tapoMutex && xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(100)) == pdTRUE) {
+        telnetClient.printf("\n[TAPO P110] Online: %s | Power: %.1f W | Today: %.3f kWh | Month: %.2f kWh | Relay: %s\n",
+                            tapoData.online ? "YES" : "NO",
+                            tapoData.powerWatts,
+                            tapoData.todayKwh,
+                            tapoData.monthKwh,
+                            tapoData.relayOn ? "ON" : "OFF");
+        xSemaphoreGive(tapoMutex);
+      } else {
+        telnetClient.println("\n[TAPO P110] Mutex busy");
+      }
+      #else
+      telnetClient.println("\n[TAPO P110] Disabled in firmware build");
+      #endif
+    } else if (line.startsWith("k:") || line.startsWith("K:")) {
+      int idx = line.indexOf(':', 2);
+      if (idx > 0) {
+        String k = line.substring(2, idx);
+        String v = line.substring(idx + 1);
+        telnetClient.printf("\n[CMD] Sending Raw Key %s = %s\n", k.c_str(), v.c_str());
+        sendBlueStarRecord(k, v);
+      }
+    } else if (c == 'r' || c == 'R') {
       telnetClient.println("\n[CMD] Rebooting ESP32...");
       ESP.restart();
     } else if (c == 'h' || c == 'H') {
@@ -754,9 +901,6 @@ void processTelnet() {
     } else if (c == 's' || c == 'S') {
       telnetClient.println("\n[CMD] Sending Heartbeat...");
       queueTuyaFrame(CMD_HEARTBEAT);
-    } else if (c == 'c' || c == 'C') {
-      telnetClient.println("\n[CMD] Triggering C1 Mode: Setting 17C & High Fan first, waiting 3s, then starting HC cycle...");
-      startC1Sequence();
     } else if (c == 'q' || c == 'Q') {
       telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 62)...");
       sendBlueStarRecord("24", "0");
@@ -766,6 +910,15 @@ void processTelnet() {
       telnetClient.printf("[INFO] MQTT: %s (rc=%d) | Broker: %s:%d\n", mqttClient.connected() ? "CONNECTED" : "DISCONNECTED", mqttClient.state(), mqtt_server, mqtt_port);
       telnetClient.printf("[INFO] AC Power: %s | Mode: %d | Fan: %d | Target: %.1f C | Room: %.1f C\n", acPower ? "ON" : "OFF", acMode, acFan, targetTemp, roomTemp);
       telnetClient.printf("[INFO] Comp: %ld Hz | Coil: %.1f C | AC Hours: %.1f | Comp Hours: %.1f\n", compressorHz, coilTemp, acRunHours, compRunHours);
+      #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+      if (tapoMutex && xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+        telnetClient.printf("[INFO] Tapo P110: %s | Power: %.1f W | Today: %.3f kWh | Relay: %s\n",
+                            tapoData.online ? "ONLINE" : "OFFLINE",
+                            tapoData.powerWatts, tapoData.todayKwh,
+                            tapoData.relayOn ? "ON" : "OFF");
+        xSemaphoreGive(tapoMutex);
+      }
+      #endif
     }
   }
 }
@@ -798,11 +951,25 @@ void setup() {
   espClient.setInsecure();
   mqttClient.setServer(mqtt_server, mqtt_port);
   mqttClient.setCallback(onMqttMessage);
-  mqttClient.setBufferSize(512);
+  mqttClient.setBufferSize(768);
 
   // OTA Setup for Wireless Updates
   ArduinoOTA.setHostname("bluestar-ac");
   ArduinoOTA.begin();
+
+  #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
+  tapoMutex = xSemaphoreCreateMutex();
+  xTaskCreatePinnedToCore(
+    tapoPollerTask,
+    "tapoPollerTask",
+    8192,
+    NULL,
+    1,
+    NULL,
+    0 // Pin strictly to Core 0 (Zero timing impact on Core 1 UART)
+  );
+  dbgPrintln("[TAPO] Background poller task pinned to Core 0");
+  #endif
 
   sendHandshake();
 }
@@ -825,8 +992,10 @@ void loop() {
     publishState();
   }
 
-  // Heartbeat every 15 seconds
-  if (millis() - lastHeartbeatTime >= 15000) {
+  // Heartbeat every 15 seconds (suppressed during C1 sequence)
+  if (c1SeqStep != C1_SEQ_IDLE) {
+    lastHeartbeatTime = millis();
+  } else if (millis() - lastHeartbeatTime >= 15000) {
     lastHeartbeatTime = millis();
     if (millis() - lastValidFrameTime > SILENCE_REHANDSHAKE_MS) {
       sendHandshake();
