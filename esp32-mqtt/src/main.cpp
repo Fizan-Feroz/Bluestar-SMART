@@ -334,13 +334,20 @@ void publishState(bool force = false) {
   doc["coilTemp"]     = serialized(String(coilTemp, 1));
   doc["acHours"]      = serialized(String(acRunHours, 1));
   doc["compHours"]    = serialized(String(compRunHours, 1));
-  doc["online"]       = true;
+  bool acMainsAlive = true;
+  if (millis() - lastValidFrameTime > 25000) {
+    acMainsAlive = false;
+  }
+
   #ifdef DEVICE_PIN
   doc["pinHash"]      = hashPin(DEVICE_PIN);
   #endif
 
   #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
   if (tapoMutex && xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
+    if (tapoData.online && !tapoData.relayOn) {
+      acMainsAlive = false;
+    }
     doc["p110_power"]    = serialized(String(tapoData.powerWatts, 1));
     doc["p110_todayKwh"] = serialized(String(tapoData.todayKwh, 3));
     doc["p110_monthKwh"] = serialized(String(tapoData.monthKwh, 2));
@@ -350,6 +357,11 @@ void publishState(bool force = false) {
     xSemaphoreGive(tapoMutex);
   }
   #endif
+
+  doc["online"]       = acMainsAlive;
+  if (!acMainsAlive) {
+    doc["power"]      = 0;
+  }
 
   char buffer[768];
   size_t n = serializeJson(doc, buffer);
@@ -824,7 +836,8 @@ void checkMqtt() {
     dbgPrint("[MQTT] Connecting to Adafruit IO... ");
     String clientId = "BlueStarAC-" + String(random(0xffff), HEX);
     
-    if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password)) {
+    const char* willMsg = "{\"online\":false,\"p110_online\":0,\"power\":0}";
+    if (mqttClient.connect(clientId.c_str(), mqtt_user, mqtt_password, TOPIC_STATUS, 1, true, willMsg)) {
       dbgPrintln("Connected!");
       mqttClient.subscribe(TOPIC_SET);
       sendHandshake();
@@ -986,6 +999,11 @@ void loop() {
   processTxQueue();
   processC1Sequence();
   processTelnet();
+
+  // Periodic telemetry publisher every 3s (keeps dashboard watchdog fresh & live power streaming)
+  if (mqttClient.connected() && (millis() - lastMqttPublishTime >= 3000)) {
+    pendingMqttPublish = true;
+  }
 
   // Rate-limited status publisher
   if (pendingMqttPublish && millis() - lastMqttPublishTime >= MQTT_PUBLISH_INTERVAL_MS) {

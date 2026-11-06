@@ -4662,10 +4662,25 @@ html.modal-open body {
     // =========================================================================
     // 5. MQTT & REST ADAFRUIT IO INTEGRATION
     // =========================================================================
+    let lastTelemetryTime = 0;
+
     function applyAcPacket(data) {
       if (!data) return;
+      lastTelemetryTime = Date.now();
+
+      if (data.online === false || data.online === 0) {
+        state.online = false;
+        hasLiveData = true;
+        updateConnectionStatus("offline", "AC Mains Off");
+        setSyncLabel("Offline (Mains Cut)");
+        renderUI();
+        updateDisplayTexture();
+        return;
+      }
+
       hasLiveData = true;
-      state.online = data.online !== false;
+      state.online = true;
+      updateConnectionStatus("connected", "Live");
 
       // Sync PIN security hash broadcast from ESP32
       if (data.pinHash !== undefined) {
@@ -4720,14 +4735,15 @@ html.modal-open body {
         if (item && item.value) {
           const data = JSON.parse(item.value);
           const recordTime = new Date(item.created_at || item.updated_at).getTime();
-          const ageMinutes = (Date.now() - recordTime) / (1000 * 60);
-          if (ageMinutes < 180 && data.online !== false) {
-            updateConnectionStatus("connected", "Live");
+          const ageSeconds = (Date.now() - recordTime) / 1000;
+          if (ageSeconds < 25 && data.online !== false) {
+            lastTelemetryTime = recordTime;
             applyAcPacket(data);
           } else {
             state.online = false;
             hasLiveData = false;
-            updateConnectionStatus("offline", "Offline");
+            updateConnectionStatus("offline", "AC Mains Off");
+            setSyncLabel("Offline (Mains Cut)");
             renderUI();
             updateDisplayTexture();
           }
@@ -4765,8 +4781,8 @@ html.modal-open body {
         });
 
         mqttClient.on('connect', () => {
-          updateConnectionStatus("connected", "Live");
-          setSyncLabel("Bridge live");
+          updateConnectionStatus("connecting", "Syncing");
+          setSyncLabel("Waiting for AC...");
           const statusTopic = `${mqttConfig.username}/feeds/bluestar-ac-status`;
           mqttClient.subscribe(statusTopic);
         });
@@ -4791,6 +4807,17 @@ html.modal-open body {
           renderUI();
           updateDisplayTexture();
         });
+
+        // Watchdog: detect power cut / lost telemetry within 12 seconds
+        setInterval(() => {
+          if (state.online && lastTelemetryTime && (Date.now() - lastTelemetryTime > 12000)) {
+            state.online = false;
+            updateConnectionStatus("offline", "AC Mains Off");
+            setSyncLabel("Offline (no power/signal)");
+            renderUI();
+            updateDisplayTexture();
+          }
+        }, 2500);
       } catch (err) {
         updateConnectionStatus("error", "Connection Failed");
       }
