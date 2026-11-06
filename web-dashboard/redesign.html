@@ -5,19 +5,19 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Blue Star Smart Climate — Pure Architecture</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230284c7'/%3E%3Cpath d='M16 5l2.9 8.4 8.8.3-7 5.5 2.4 8.5L16 22.7l-7.1 5 2.4-8.5-7-5.5 8.8-.3z' fill='white'/%3E%3C/svg%3E">
-  <meta name="description" content="Next-generation 3D digital twin and climate architecture console for Blue Star smart inverter ACs.">
+  <meta name="description" content="Next-generation 3D digital twin and climate architecture console for Blue Star smart inverter air conditioners.">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-title" content="Blue Star">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#07090e">
+  <meta name="theme-color" content="#08090d">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Luxury Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
   <script>
     (function() {
@@ -35,33 +35,37 @@
 
   <style>
 /* =========================================================================
-   LUXURY BRAND DESIGN TOKENS (DARK & LIGHT)
+   LUXURY BRAND DESIGN TOKENS (OBSIDIAN DARK & CERAMIC LIGHT)
    ========================================================================= */
 :root {
   color-scheme: dark;
-  --bg: #07090e;
-  --bg-gradient: radial-gradient(circle at 35% 30%, #101726 0%, #07090e 100%);
-  --surface: #0e131d;
-  --surface-glass: rgba(14, 19, 29, 0.72);
-  --surface-2: #141b27;
-  --surface-3: #1c2637;
-  --surface-hover: #243147;
+  --bg: #08090d;
+  --bg-gradient: radial-gradient(ellipse 90% 60% at 50% -10%, #162032 0%, #08090d 80%);
+  --surface: #10141e;
+  --surface-glass: rgba(16, 20, 30, 0.72);
+  --surface-2: #161c2b;
+  --surface-3: #1f273b;
+  --surface-hover: #29344e;
+  --well: #0b0e15;
   --line: rgba(255, 255, 255, 0.08);
   --line-strong: rgba(255, 255, 255, 0.16);
-  --text: #f8fafc;
+  --text: #ffffff;
   --text-2: #94a3b8;
   --text-3: #64748b;
   --accent: #38bdf8;
+  --accent-rgb: 56, 189, 248;
   --accent-ink: #041424;
   --accent-soft: rgba(56, 189, 248, 0.12);
-  --accent-glow: rgba(56, 189, 248, 0.35);
-  --live: #34d399;
-  --warn: #fbbf24;
-  --danger: #f87171;
-  --shadow-float: 0 24px 60px -12px rgba(0, 0, 0, 0.65), 0 0 1px 1px rgba(255, 255, 255, 0.08);
-  --shadow-card: 0 10px 30px -10px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --accent-glow: rgba(56, 189, 248, 0.38);
+  --accent-gradient: linear-gradient(135deg, #0284c7 0%, #38bdf8 100%);
+  --live: #10b981;
+  --warn: #f59e0b;
+  --danger: #ef4444;
+  --shadow-float: 0 24px 60px -12px rgba(0, 0, 0, 0.75), 0 0 1px 1px rgba(255, 255, 255, 0.08);
+  --shadow-card: 0 12px 32px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
   --nav-h: 68px;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -72,27 +76,30 @@
 
 html[data-theme="light"] {
   color-scheme: light;
-  --bg: #f5f7fb;
-  --bg-gradient: radial-gradient(circle at 40% 30%, #ffffff 0%, #eef2f8 100%);
+  --bg: #f7f9fc;
+  --bg-gradient: radial-gradient(ellipse 90% 60% at 50% -10%, #ffffff 0%, #edf2f7 85%);
   --surface: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass: rgba(255, 255, 255, 0.88);
   --surface-2: #f1f4f9;
   --surface-3: #e2e8f0;
   --surface-hover: #cbd5e1;
+  --well: #e9eef5;
   --line: rgba(15, 23, 42, 0.07);
-  --line-strong: rgba(15, 23, 42, 0.15);
+  --line-strong: rgba(15, 23, 42, 0.16);
   --text: #090e17;
   --text-2: #475569;
   --text-3: #64748b;
-  --accent: #0284c7;
+  --accent: #0066cc;
+  --accent-rgb: 0, 102, 204;
   --accent-ink: #ffffff;
-  --accent-soft: rgba(2, 132, 199, 0.10);
-  --accent-glow: rgba(2, 132, 199, 0.22);
+  --accent-soft: rgba(0, 102, 204, 0.09);
+  --accent-glow: rgba(0, 102, 204, 0.22);
+  --accent-gradient: linear-gradient(135deg, #0052a3 0%, #0077e6 100%);
   --live: #059669;
-  --warn: #b45309;
-  --danger: #b91c1c;
+  --warn: #d97706;
+  --danger: #dc2626;
   --shadow-float: 0 20px 48px -10px rgba(15, 23, 42, 0.12), 0 0 1px 1px rgba(15, 23, 42, 0.06);
-  --shadow-card: 0 8px 24px -8px rgba(15, 23, 42, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+  --shadow-card: 0 6px 20px -6px rgba(15, 23, 42, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.95);
 }
 
 *, *::before, *::after {
@@ -169,8 +176,8 @@ button:disabled {
   gap: 16px;
   border-bottom: 1px solid var(--line);
   background: var(--surface-glass);
-  backdrop-filter: blur(24px) saturate(140%);
-  -webkit-backdrop-filter: blur(24px) saturate(140%);
+  backdrop-filter: blur(24px) saturate(160%);
+  -webkit-backdrop-filter: blur(24px) saturate(160%);
 }
 
 .brand {
@@ -183,11 +190,11 @@ button:disabled {
   width: 36px;
   height: 36px;
   border-radius: 10px;
-  background: linear-gradient(135deg, #0284c7, #38bdf8);
+  background: var(--accent-gradient);
   display: grid;
   place-items: center;
   color: #fff;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.4);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 .brand-badge svg {
@@ -281,8 +288,8 @@ button:disabled {
 }
 
 .nav-icon-btn {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -322,7 +329,7 @@ html[data-theme="light"] .theme-moon { display: block; }
   flex: 1 1 auto;
   min-height: 0;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 420px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(380px, 460px);
   overflow: hidden;
 }
 
@@ -401,7 +408,7 @@ html[data-theme="light"] .theme-moon { display: block; }
   backdrop-filter: blur(16px);
 }
 
-/* Floating Stage Bento Telemetry */
+/* Floating Stage Bento Telemetry Strip */
 .stage-bento-telemetry {
   position: absolute;
   bottom: 24px;
@@ -476,8 +483,8 @@ html[data-theme="light"] .theme-moon { display: block; }
   overflow-x: hidden;
   display: flex;
   flex-direction: column;
-  gap: 24px;
-  padding: 28px 24px 48px;
+  gap: 20px;
+  padding: 24px 22px 48px;
   scrollbar-width: thin;
   scrollbar-color: var(--line) transparent;
 }
@@ -495,14 +502,14 @@ html[data-theme="light"] .theme-moon { display: block; }
 .glass-card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 24px;
-  padding: 20px;
+  border-radius: 22px;
+  padding: 18px 20px;
   box-shadow: var(--shadow-card);
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   position: relative;
-  transition: border-color 200ms ease;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
 }
 
 .glass-card:hover {
@@ -518,7 +525,7 @@ html[data-theme="light"] .theme-moon { display: block; }
 
 .card-title {
   font-family: var(--font-display);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -547,7 +554,7 @@ html[data-theme="light"] .theme-moon { display: block; }
    HERO CLIMATE THERMOSTAT DIAL CARD
    ========================================================================= */
 .hero-climate-card {
-  padding: 24px 20px 20px;
+  padding: 22px 20px 18px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -632,9 +639,9 @@ html[data-theme="light"] .theme-moon { display: block; }
 /* Dial Center Piece */
 .dial-wrapper {
   position: relative;
-  width: 230px;
-  height: 230px;
-  margin: 16px auto 12px;
+  width: 220px;
+  height: 220px;
+  margin: 12px auto 8px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -653,14 +660,21 @@ html[data-theme="light"] .theme-moon { display: block; }
 .dial-track {
   fill: none;
   stroke: var(--line);
-  stroke-width: 7;
+  stroke-width: 6;
   stroke-linecap: round;
+}
+
+.dial-ticks {
+  fill: none;
+  stroke: var(--line-strong);
+  stroke-width: 2;
+  stroke-dasharray: 2 12;
 }
 
 .dial-glow-halo {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 16;
+  stroke-width: 14;
   stroke-linecap: round;
   opacity: 0.28;
   filter: blur(6px);
@@ -698,9 +712,9 @@ html[data-theme="light"] .theme-moon { display: block; }
   display: flex;
   align-items: flex-start;
   font-family: var(--font-display);
-  font-size: 72px;
+  font-size: 68px;
   font-weight: 500;
-  line-height: 0.88;
+  line-height: 0.9;
   letter-spacing: -0.04em;
   color: var(--text);
   font-variant-numeric: tabular-nums;
@@ -708,7 +722,7 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .target-deg {
-  font-size: 26px;
+  font-size: 24px;
   font-weight: 400;
   color: var(--text-2);
   margin-top: 6px;
@@ -733,26 +747,25 @@ html[data-theme="light"] .theme-moon { display: block; }
   align-items: center;
   justify-content: center;
   gap: 28px;
-  margin-top: 6px;
+  margin-top: 4px;
 }
 
 .stepper-circle-btn {
-  width: 50px;
-  height: 50px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
   display: grid;
   place-items: center;
   background: var(--surface-2);
   border: 1px solid var(--line);
   color: var(--text);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
-  transition: all 160ms ease;
+  transition: all 180ms ease;
 }
 
 .stepper-circle-btn:hover {
   background: var(--surface-3);
   border-color: var(--line-strong);
-  transform: translateY(-1px);
+  transform: scale(1.06);
 }
 
 .stepper-circle-btn:active {
@@ -766,50 +779,52 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 /* =========================================================================
-   AIRFLOW & LOUVER DIRECTOR CARD (THE STANDOUT REVAMP!)
+   CARD 2: REVAMPED LOUVER & AIRFLOW DIRECTOR
    ========================================================================= */
 .louver-director-card {
-  overflow: hidden;
+  gap: 14px;
 }
 
 .louver-vector-screen {
-  position: relative;
-  width: 100%;
-  height: 80px;
-  border-radius: 16px;
-  background: var(--surface-2);
+  background: var(--well);
   border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 16px;
+  gap: 16px;
+  position: relative;
   overflow: hidden;
 }
 
 .louver-preview-stage {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
 }
 
 .louver-svg-crosssection {
   width: 90px;
   height: 54px;
+  flex: 0 0 90px;
+  overflow: visible;
+  color: var(--text-2);
 }
 
 .louver-flap-blade {
-  transition: transform 600ms cubic-bezier(0.16, 1, 0.3, 1);
   transform-origin: 30px 42px;
+  transition: transform 60ms linear;
 }
 
-.airflow-vector-rays path {
-  stroke-dasharray: 4 4;
-  animation: airFlowRay 1.4s linear infinite;
+.airflow-vector-rays {
+  animation: rayFlow 1.8s linear infinite;
 }
 
-@keyframes airFlowRay {
-  from { stroke-dashoffset: 8; }
-  to { stroke-dashoffset: 0; }
+@keyframes rayFlow {
+  0% { stroke-dashoffset: 20; opacity: 0.3; }
+  50% { opacity: 0.9; }
+  100% { stroke-dashoffset: 0; opacity: 0.3; }
 }
 
 .louver-readout-col {
@@ -820,40 +835,40 @@ html[data-theme="light"] .theme-moon { display: block; }
 
 .louver-digital-angle {
   font-family: var(--font-display);
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
   color: var(--accent);
+  font-variant-numeric: tabular-nums;
 }
 
 .louver-mode-caption {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-2);
+  margin-top: 2px;
 }
 
-/* 5-Button Segmented Louver Grid */
 .louver-pill-grid {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(5, 1fr);
   gap: 6px;
 }
 
 .pill-card-btn {
-  min-height: 48px;
-  padding: 6px 4px;
-  border-radius: 14px;
-  background: var(--surface-2);
-  border: 1px solid var(--line);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 6px;
+  padding: 10px 4px;
+  border-radius: 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   color: var(--text-2);
   font-size: 11px;
   font-weight: 600;
-  transition: all 200ms var(--ease);
+  transition: all 180ms ease;
 }
 
 .pill-card-btn:hover {
@@ -862,75 +877,46 @@ html[data-theme="light"] .theme-moon { display: block; }
   border-color: var(--line-strong);
 }
 
-.pill-card-btn:active {
-  transform: scale(0.95);
-}
-
 .pill-card-btn.active {
-  background: var(--accent-soft);
-  color: var(--text);
+  background: var(--accent);
+  color: var(--accent-ink);
   border-color: var(--accent);
-  box-shadow: 0 0 12px var(--accent-glow);
+  box-shadow: 0 4px 14px var(--accent-glow);
 }
 
 .pill-card-btn svg {
-  width: 17px;
-  height: 17px;
-  fill: currentColor;
-}
-
-.pill-card-btn.active svg {
-  color: var(--accent);
-}
-
-@keyframes swingOscillate {
-  0%, 100% { transform: rotate(0deg); }
-  50% { transform: rotate(-22deg); }
-}
-
-.pill-card-btn.active .animated-swing-blade {
-  animation: swingOscillate 2.4s ease-in-out infinite;
-  transform-origin: 4px 11px;
-}
-
-@keyframes lateralPulseSweep {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-3px); }
-  75% { transform: translateX(3px); }
-}
-
-.pill-card-btn.active .animated-4way-arrows {
-  animation: lateralPulseSweep 1.8s ease-in-out infinite;
+  width: 20px;
+  height: 20px;
 }
 
 /* =========================================================================
-   CONTINUOUS CAPSULE SEGMENTED CONTROLS (MODE & FAN)
+   CARD 3 & 4: SEGMENTED CONTROLS (CLIMATE MODE & FAN SPEED)
    ========================================================================= */
 .capsule-track {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 4px;
   padding: 4px;
-  border-radius: 16px;
-  background: var(--surface-2);
+  border-radius: 14px;
+  background: var(--well);
   border: 1px solid var(--line);
 }
 
 .capsule-track.cols-6 {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(6, 1fr);
 }
 
 .capsule-seg {
-  min-height: 42px;
-  border-radius: 12px;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 3px;
+  gap: 4px;
+  padding: 8px 4px;
+  border-radius: 10px;
+  color: var(--text-2);
   font-size: 11px;
   font-weight: 600;
-  color: var(--text-2);
   transition: all 180ms ease;
 }
 
@@ -941,8 +927,15 @@ html[data-theme="light"] .theme-moon { display: block; }
 .capsule-seg.active {
   background: var(--surface);
   color: var(--text);
-  border: 1px solid var(--line-strong);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+
+html[data-theme="light"] .capsule-seg.active {
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.1);
+}
+
+.capsule-seg.active svg {
+  fill: var(--accent);
 }
 
 .capsule-seg svg {
@@ -951,27 +944,25 @@ html[data-theme="light"] .theme-moon { display: block; }
   fill: currentColor;
 }
 
-.capsule-seg.active svg {
-  color: var(--accent);
-}
-
-/* Convertible Grid */
+/* =========================================================================
+   CARD 5: CONVERTIBLE INVERTER CAPACITY
+   ========================================================================= */
 .convertible-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 6px;
 }
 
 .conv-pill {
-  height: 38px;
+  padding: 9px 0;
   border-radius: 12px;
   background: var(--surface-2);
   border: 1px solid var(--line);
-  display: grid;
-  place-items: center;
-  font-size: 12px;
-  font-weight: 600;
   color: var(--text-2);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
   transition: all 180ms ease;
 }
 
@@ -981,32 +972,36 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .conv-pill.active {
-  background: var(--accent-soft);
-  color: var(--text);
+  background: var(--accent);
+  color: var(--accent-ink);
   border-color: var(--accent);
+  box-shadow: 0 2px 10px var(--accent-glow);
 }
 
 /* =========================================================================
-   SMART FEATURES LIST
+   CARD 6: INTELLIGENT FEATURES LIST
    ========================================================================= */
 .features-list {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 6px;
 }
 
 .feature-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 12px;
+  padding: 10px 14px;
   border-radius: 14px;
-  transition: background-color 160ms ease;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
   cursor: pointer;
+  transition: all 180ms ease;
 }
 
 .feature-row:hover {
-  background: var(--surface-2);
+  background: var(--surface-3);
+  border-color: var(--line-strong);
 }
 
 .feature-left {
@@ -1016,14 +1011,13 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .feature-icon-square {
-  width: 32px;
-  height: 32px;
-  border-radius: 10px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--surface-3);
   display: grid;
   place-items: center;
-  background: var(--surface-2);
   color: var(--text-2);
-  border: 1px solid var(--line);
 }
 
 .feature-icon-square svg {
@@ -1032,26 +1026,20 @@ html[data-theme="light"] .theme-moon { display: block; }
   fill: currentColor;
 }
 
-.feature-row.on .feature-icon-square {
-  background: var(--accent-soft);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
 .feature-label {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--text);
 }
 
 .luxury-switch {
   position: relative;
-  width: 44px;
-  height: 26px;
+  width: 36px;
+  height: 20px;
   border-radius: 999px;
-  background: var(--surface-3);
-  border: 1px solid var(--line);
-  transition: all 220ms var(--ease);
+  background: var(--well);
+  border: 1px solid var(--line-strong);
+  transition: all 220ms ease;
 }
 
 .luxury-switch::after {
@@ -1059,8 +1047,8 @@ html[data-theme="light"] .theme-moon { display: block; }
   position: absolute;
   top: 2px;
   left: 2px;
-  width: 20px;
-  height: 20px;
+  width: 14px;
+  height: 14px;
   border-radius: 50%;
   background: var(--text-3);
   transition: all 220ms var(--ease);
@@ -1069,12 +1057,16 @@ html[data-theme="light"] .theme-moon { display: block; }
 .feature-row.on .luxury-switch {
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 0 10px var(--accent-glow);
 }
 
 .feature-row.on .luxury-switch::after {
-  transform: translateX(18px);
+  transform: translateX(16px);
   background: var(--accent-ink);
+}
+
+.feature-row.on .feature-icon-square {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* Console Footer */
@@ -1082,8 +1074,7 @@ html[data-theme="light"] .theme-moon { display: block; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 12px;
-  border-top: 1px solid var(--line);
+  padding-top: 8px;
   font-size: 11px;
   font-weight: 500;
   color: var(--text-3);
@@ -1095,59 +1086,55 @@ html[data-theme="light"] .theme-moon { display: block; }
 .lock-overlay {
   position: fixed;
   inset: 0;
-  z-index: 1000;
+  z-index: 100;
+  background: rgba(8, 9, 13, 0.88);
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
   display: grid;
   place-items: center;
   padding: 24px;
-  background: var(--bg);
-  background-image: var(--bg-gradient);
-  backdrop-filter: blur(40px);
-  -webkit-backdrop-filter: blur(40px);
-  transition: opacity 300ms ease, visibility 300ms ease;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 280ms ease;
 }
 
-.lock-overlay.unlocked {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+.lock-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .lock-box {
   width: 100%;
-  max-width: 340px;
+  max-width: 320px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  padding: 32px 24px 28px;
+  box-shadow: var(--shadow-float);
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 16px;
-}
-
-.lock-box.shake {
-  animation: lockShake 400ms ease-in-out;
-}
-
-@keyframes lockShake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-8px); }
-  40%, 80% { transform: translateX(8px); }
 }
 
 .lock-title {
   font-family: var(--font-display);
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
   color: var(--text);
+  margin-bottom: 4px;
 }
 
 .lock-msg {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-2);
+  margin-bottom: 24px;
 }
 
 .pin-dots {
   display: flex;
-  gap: 14px;
-  margin: 12px 0 16px;
+  gap: 16px;
+  margin-bottom: 28px;
 }
 
 .pin-dot {
@@ -1155,19 +1142,14 @@ html[data-theme="light"] .theme-moon { display: block; }
   height: 14px;
   border-radius: 50%;
   border: 2px solid var(--line-strong);
-  transition: all 200ms ease;
+  transition: all 180ms ease;
 }
 
 .pin-dot.filled {
   background: var(--accent);
   border-color: var(--accent);
-  box-shadow: 0 0 10px var(--accent-glow);
-}
-
-.pin-dot.error {
-  background: var(--danger);
-  border-color: var(--danger);
-  box-shadow: 0 0 10px var(--danger);
+  box-shadow: 0 0 12px var(--accent-glow);
+  transform: scale(1.15);
 }
 
 .pin-keypad {
@@ -1178,55 +1160,53 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .pad-key {
-  height: 64px;
-  border-radius: 20px;
-  background: var(--surface-glass);
+  height: 52px;
+  border-radius: 16px;
+  background: var(--surface-2);
   border: 1px solid var(--line);
   font-family: var(--font-display);
-  font-size: 24px;
-  font-weight: 500;
+  font-size: 20px;
+  font-weight: 600;
   color: var(--text);
   display: grid;
   place-items: center;
-  transition: all 120ms ease;
+  transition: all 150ms ease;
 }
 
 .pad-key:hover {
-  background: var(--surface-2);
+  background: var(--surface-3);
+  border-color: var(--line-strong);
 }
 
 .pad-key:active {
-  background: var(--surface-3);
-  transform: scale(0.94);
+  transform: scale(0.92);
+  background: var(--accent-soft);
 }
 
 .pad-key.util {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-2);
 }
 
-/* =========================================================================
-   SETTINGS MODAL
-   ========================================================================= */
+/* Modal Backdrops */
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  z-index: 500;
+  z-index: 90;
   background: rgba(0, 0, 0, 0.65);
-  backdrop-filter: blur(16px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   display: grid;
   place-items: center;
   padding: 24px;
   opacity: 0;
-  visibility: hidden;
   pointer-events: none;
-  transition: all 250ms ease;
+  transition: opacity 240ms ease;
 }
 
 .modal-backdrop.open {
   opacity: 1;
-  visibility: visible;
   pointer-events: auto;
 }
 
@@ -1245,8 +1225,9 @@ html[data-theme="light"] .theme-moon { display: block; }
 
 .modal-title {
   font-family: var(--font-display);
-  font-size: 18px;
+  font-size: 16px;
   font-weight: 700;
+  color: var(--text);
 }
 
 .form-group {
@@ -1256,19 +1237,20 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .form-group label {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .form-group input {
-  height: 42px;
-  border-radius: 12px;
-  padding: 0 12px;
-  background: var(--surface-2);
+  height: 40px;
+  padding: 0 14px;
+  border-radius: 10px;
+  background: var(--well);
   border: 1px solid var(--line);
   color: var(--text);
-  font-size: 13px;
 }
 
 .form-group input:focus {
@@ -1276,7 +1258,7 @@ html[data-theme="light"] .theme-moon { display: block; }
   outline: none;
 }
 
-.modal-btn-row {
+.modal-btns {
   display: flex;
   justify-content: flex-end;
   gap: 10px;
@@ -1284,65 +1266,109 @@ html[data-theme="light"] .theme-moon { display: block; }
 }
 
 .btn-secondary {
-  padding: 10px 18px;
-  border-radius: 12px;
+  padding: 8px 16px;
+  border-radius: 10px;
   background: var(--surface-2);
   border: 1px solid var(--line);
+  color: var(--text-2);
   font-weight: 600;
-  color: var(--text);
 }
 
 .btn-primary {
-  padding: 10px 20px;
-  border-radius: 12px;
+  padding: 8px 18px;
+  border-radius: 10px;
   background: var(--accent);
   color: var(--accent-ink);
-  font-weight: 600;
+  font-weight: 700;
+  box-shadow: 0 2px 10px var(--accent-glow);
 }
 
-/* =========================================================================
-   RESPONSIVE LAYOUT BREAKPOINTS
-   ========================================================================= */
-@media (max-width: 1100px) {
-  body {
-    overflow-y: auto;
-    height: auto;
-    min-height: 100vh;
-  }
+/* Toast Notifications */
+.toast-shelf {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+}
+
+.toast {
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-float);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transform: translateY(20px);
+  opacity: 0;
+  transition: all 260ms var(--ease);
+}
+
+.toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 960px) {
   .app-arena {
-    display: flex;
-    flex-direction: column;
-    overflow: visible;
+    grid-template-columns: 1fr;
+    grid-template-rows: 320px 1fr;
   }
   .stage-3d {
-    height: clamp(380px, 52svh, 540px);
-    flex: 0 0 auto;
-    border-bottom: 1px solid var(--line);
+    min-height: 320px;
   }
   .control-console {
-    max-width: 580px;
-    width: 100%;
-    margin: 0 auto;
     border-left: 0;
-    overflow: visible;
+    border-top: 1px solid var(--line);
   }
 }
 
 @media (max-width: 700px) {
-  .top-nav {
-    padding: var(--safe-top) 16px 0;
+  body {
+    overflow-y: auto;
   }
-  .preview-tag {
+  .top-nav {
+    padding: var(--safe-top) 16px 0 16px;
+  }
+  .brand-sub, .preview-tag {
     display: none;
+  }
+  .app-arena {
+    display: flex;
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
   }
   .stage-3d {
-    height: 46svh;
+    height: 280px;
+    flex: 0 0 280px;
   }
-  .stage-bento-telemetry {
+  .stage-top-controls {
+    top: 12px;
+    left: 12px;
+    right: 12px;
+  }
+  .stage-orbit-hint {
     display: none;
   }
+  .stage-bento-telemetry {
+    left: 12px;
+    bottom: 12px;
+    padding: 6px 12px;
+  }
   .control-console {
-    padding: 20px 16px calc(110px + var(--safe-bottom));
+    padding: 16px 14px 100px;
+    overflow: visible;
+    height: auto;
   }
   .mobile-dock {
     position: fixed;
@@ -1354,7 +1380,7 @@ html[data-theme="light"] .theme-moon { display: block; }
     align-items: center;
     justify-content: space-between;
     height: 64px;
-    padding: 8px 12px;
+    padding: 8px 14px;
     border-radius: 22px;
     background: var(--surface-glass);
     border: 1px solid var(--line);
@@ -1504,6 +1530,7 @@ html[data-theme="light"] .theme-moon { display: block; }
               </linearGradient>
             </defs>
             <circle class="dial-track" cx="90" cy="90" r="72"/>
+            <circle class="dial-ticks" cx="90" cy="90" r="64"/>
             <circle class="dial-glow-halo" id="dialGlow" cx="90" cy="90" r="72"/>
             <circle class="dial-progress-arc" id="dialBar" cx="90" cy="90" r="72"/>
           </svg>
@@ -1573,7 +1600,7 @@ html[data-theme="light"] .theme-moon { display: block; }
           <button class="pill-card-btn active" id="vaneBtn0" type="button" onclick="setVane(0)">
             <svg viewBox="0 0 24 24">
               <rect x="2" y="4" width="20" height="7" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/>
-              <path class="animated-swing-blade" d="M4 11c3 4 8 4 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              <path d="M4 11c3 4 8 4 11 0" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
               <path d="M7 16c2.5 1.8 7.5 1.8 10 0" fill="none" stroke="currentColor" stroke-width="1.4" stroke-dasharray="2 2" opacity="0.6"/>
             </svg>
             <span>Auto</span>
@@ -1603,7 +1630,7 @@ html[data-theme="light"] .theme-moon { display: block; }
             <span>Floor</span>
           </button>
           <button class="pill-card-btn" id="hSwingBtn" type="button" onclick="toggleHSwing()">
-            <svg viewBox="0 0 24 24" class="animated-4way-arrows">
+            <svg viewBox="0 0 24 24">
               <path d="M7 8l-4 4 4 4M17 8l4 4-4 4M3 12h18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
             <span>4-Way</span>
@@ -1727,8 +1754,8 @@ html[data-theme="light"] .theme-moon { display: block; }
 
       <!-- Console Footer -->
       <div class="console-foot">
-        <span>Megmeet MD50BS Controller</span>
-        <span id="syncLabel">Synchronized · Adafruit IO</span>
+        <span>Megmeet MD50BS Architecture</span>
+        <span id="syncLabel">Synchronized · Pure Architecture</span>
       </div>
 
     </aside>
@@ -1797,219 +1824,224 @@ html[data-theme="light"] .theme-moon { display: block; }
       </div>
       <div class="form-group">
         <label>Username</label>
-        <input type="text" id="cfgUser" value="fizan_feroz">
+        <input type="text" id="cfgUser" value="">
       </div>
       <div class="form-group">
         <label>AIO Key / Password</label>
-        <input type="password" id="cfgKey" placeholder="••••••••">
+        <input type="password" id="cfgPass" value="">
       </div>
-      <div class="modal-btn-row">
+      <div class="modal-btns">
         <button class="btn-secondary" type="button" onclick="closeConfigModal()">Cancel</button>
-        <button class="btn-primary" type="button" onclick="saveMqttConfig()">Save & Connect</button>
+        <button class="btn-primary" type="button" onclick="saveMqttConfig()">Connect</button>
       </div>
     </div>
   </div>
 
-  <!-- Three.js and MQTT Engines -->
+  <!-- Toast Shelf -->
+  <div class="toast-shelf" id="toastShelf"></div>
+
+  <!-- Scripts: Three.js & MQTT.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
   <script>
     // =========================================================================
-    // GLOBAL STATE & SYSTEM DATA
+    // STATE ENGINE & HARDWARE TOPIC FIDELITY
     // =========================================================================
     const state = {
       power: 1,
       targetTemp: 24,
       roomTemp: 27.0,
-      mode: 1,         // 1=Cool, 2=Dry, 3=Fan, 4=Auto
-      fan: 4,          // 1=Quiet, 2=Low, 3=Med, 4=High, 5=Turbo, 6=Auto
-      vane: 0,         // 0=Auto swing, 1=Top, 3=Mid, 5=Bottom
-      hSwing: 0,       // 1=On, 0=Off
-      convertible: 1,  // 1=100%, 2=80%, 3=60%, 4=40%
-      eco: 0,
+      mode: 1,        // 1=Cool, 2=Dry, 3=Fan, 4=Auto
+      fan: 4,         // 1=Quiet, 2=Low, 3=Med, 4=High, 5=Turbo, 6=Auto
+      vane: 0,        // 0=Swing, 1=Top, 2=HighMid, 3=Mid, 4=MidLow, 5=Floor
+      hSwing: 0,      // 0=Off, 1=4-Way Auto
       turbo: 0,
+      eco: 0,
       sleep: 0,
-      light: 1,
-      mute: 0,
-      filterAlert: 0,
+      light: 1,       // 1=On (Indoor unit front LED active)
+      convertible: 1, // 1=100%, 2=80%, 3=60%, 4=40%
       c1Mode: 0,
       compHz: 48,
       coilTemp: 7.8,
       compHours: 1248,
-      soundEnabled: true,
-      currentCameraView: 'hero',
-      isXray: false,
-      pinHash: 2088290703 // DJB2 for 1234
+      filterAlert: 0
     };
 
-    // =========================================================================
-    // PIN SECURITY SYSTEM
-    // =========================================================================
-    let activePin = localStorage.getItem("bluestar_device_pin") || "";
-    let pinBuffer = "";
-    let isUnlocked = false;
+    let audioContext = null;
+    let isMuted = false;
+    let enteredPin = "";
+    const DEVICE_PIN = "1234";
 
-    function hashPin(p) {
-      let h = 5381;
-      for (let i = 0; i < p.length; i++) h = (((h << 5) + h) + p.charCodeAt(i)) >>> 0;
-      return h;
-    }
-
-    function updatePinDots(dotState) {
-      for (let i = 0; i < 4; i++) {
-        const dot = document.getElementById(`dot${i}`);
-        if (!dot) continue;
-        dot.className = "pin-dot";
-        if (dotState === "error") dot.classList.add("error");
-        else if (i < pinBuffer.length) dot.classList.add("filled");
+    // Web Audio Synthesizer
+    function getAudioCtx() {
+      if (!audioContext) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioContext = new AudioCtx();
       }
-    }
-
-    function pressPin(d) {
-      playAudio('tick');
-      if (isUnlocked) return;
-      if (pinBuffer.length >= 4) { pinBuffer = ""; updatePinDots(); }
-      pinBuffer += d;
-      updatePinDots();
-      if (pinBuffer.length === 4) setTimeout(() => validatePin(pinBuffer), 120);
-    }
-
-    function backspacePin() {
-      playAudio('tick');
-      if (isUnlocked || pinBuffer.length === 0) return;
-      pinBuffer = pinBuffer.slice(0, -1);
-      updatePinDots();
-    }
-
-    function clearPin() {
-      playAudio('tick');
-      if (isUnlocked) return;
-      pinBuffer = "";
-      updatePinDots();
-    }
-
-    function validatePin(candidate) {
-      if (hashPin(candidate) === state.pinHash) {
-        playAudio('chime');
-        activePin = candidate;
-        isUnlocked = true;
-        localStorage.setItem("bluestar_device_pin", candidate);
-        document.getElementById("lockScreen").classList.add("unlocked");
-        pinBuffer = "";
-        updatePinDots();
-      } else {
-        playAudio('beep');
-        const box = document.getElementById("lockBox");
-        const msg = document.getElementById("lockStatusMsg");
-        updatePinDots("error");
-        if (box) box.classList.add("shake");
-        if (msg) msg.textContent = "Incorrect PIN. Try again.";
-        setTimeout(() => {
-          if (box) box.classList.remove("shake");
-          pinBuffer = "";
-          updatePinDots();
-          if (msg) msg.textContent = "Enter device 4-digit PIN";
-        }, 1200);
+      if (audioContext && audioContext.state === 'suspended') {
+        audioContext.resume();
       }
+      return audioContext;
     }
 
-    function lockConsole() {
-      playAudio('click');
-      isUnlocked = false;
-      localStorage.removeItem("bluestar_device_pin");
-      document.getElementById("lockScreen").classList.remove("unlocked");
-      pinBuffer = "";
-      updatePinDots();
-    }
-
-    if (activePin && hashPin(activePin) === state.pinHash) {
-      isUnlocked = true;
-      document.getElementById("lockScreen").classList.add("unlocked");
-    }
-
-    // =========================================================================
-    // AUDIO SYNTHESIZER
-    // =========================================================================
-    let audioCtx = null;
     function playAudio(type) {
-      if (!state.soundEnabled) return;
+      if (isMuted) return;
       try {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        const t = audioCtx.currentTime;
-        if (type === 'tick') {
-          osc.frequency.setValueAtTime(800, t);
-          gain.gain.setValueAtTime(0.04, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.03);
-          osc.start(t); osc.stop(t + 0.03);
-        } else if (type === 'click') {
-          osc.frequency.setValueAtTime(1200, t);
-          gain.gain.setValueAtTime(0.06, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
-          osc.start(t); osc.stop(t + 0.05);
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+        if (type === 'click') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1400, now);
+          osc.frequency.exponentialRampToValueAtTime(400, now + 0.03);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.03);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.03);
         } else if (type === 'chime') {
-          osc.type = 'triangle';
-          osc.frequency.setValueAtTime(523.25, t);
-          osc.frequency.exponentialRampToValueAtTime(1046.5, t + 0.2);
-          gain.gain.setValueAtTime(0.08, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.35);
-          osc.start(t); osc.stop(t + 0.35);
-        } else if (type === 'beep') {
+          [880, 1174.66, 1760].forEach((freq, i) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(freq, now + i * 0.06);
+            gain.gain.setValueAtTime(0.06, now + i * 0.06);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.22);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + i * 0.06);
+            osc.stop(now + i * 0.06 + 0.22);
+          });
+        } else if (type === 'error') {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
           osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(220, t);
-          gain.gain.setValueAtTime(0.08, t);
-          gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.25);
-          osc.start(t); osc.stop(t + 0.25);
+          osc.frequency.setValueAtTime(180, now);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.16);
         }
       } catch (e) {}
     }
 
     function toggleSound() {
-      state.soundEnabled = !state.soundEnabled;
+      isMuted = !isMuted;
+      showToast(isMuted ? "Sound feedback muted" : "Sound feedback enabled", "info");
+      document.getElementById("soundBtn").style.opacity = isMuted ? "0.45" : "1";
+    }
+
+    function showToast(text, type = "info") {
+      const shelf = document.getElementById("toastShelf");
+      const toast = document.createElement("div");
+      toast.className = "toast";
+      toast.textContent = text;
+      shelf.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.add("show"));
+      setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+      }, 2800);
+    }
+
+    // Security PIN Pad
+    function lockConsole() {
+      playAudio('chime');
+      enteredPin = "";
+      updatePinDots();
+      document.getElementById("lockStatusMsg").textContent = "Enter device 4-digit PIN";
+      document.getElementById("lockScreen").classList.add("open");
+    }
+
+    function pressPin(digit) {
+      if (enteredPin.length >= 4) return;
       playAudio('click');
-      document.getElementById("soundBtn").style.opacity = state.soundEnabled ? "1" : "0.4";
+      enteredPin += digit;
+      updatePinDots();
+      if (enteredPin.length === 4) {
+        setTimeout(verifyPin, 140);
+      }
+    }
+
+    function clearPin() {
+      playAudio('click');
+      enteredPin = "";
+      updatePinDots();
+    }
+
+    function backspacePin() {
+      playAudio('click');
+      enteredPin = enteredPin.slice(0, -1);
+      updatePinDots();
+    }
+
+    function updatePinDots() {
+      for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById(`dot${i}`);
+        if (dot) dot.classList.toggle("filled", i < enteredPin.length);
+      }
+    }
+
+    function verifyPin() {
+      if (enteredPin === DEVICE_PIN || enteredPin === "1234") {
+        playAudio('chime');
+        document.getElementById("lockScreen").classList.remove("open");
+        showToast("Console Unlocked", "success");
+      } else {
+        playAudio('error');
+        const box = document.getElementById("lockBox");
+        box.style.transform = "translateX(-8px)";
+        setTimeout(() => box.style.transform = "translateX(8px)", 70);
+        setTimeout(() => box.style.transform = "translateX(-4px)", 140);
+        setTimeout(() => box.style.transform = "translateX(0)", 210);
+        document.getElementById("lockStatusMsg").textContent = "Incorrect PIN. Try again.";
+        enteredPin = "";
+        updatePinDots();
+      }
     }
 
     // =========================================================================
-    // THREE.JS 3D DIGITAL TWIN & KINEMATIC SWING ENGINE
+    // 3D DIGITAL TWIN & KINEMATICS ENGINE
     // =========================================================================
-    let scene, camera, renderer, clock = null;
+    let scene, camera, renderer, clock;
     let acGroup, facadeGroup, casingMesh, louverPivot, louverMesh, blowerDrum;
     let ventVanes = [];
-    let airflowParticles, particlePositions, particleVelocities, particleLifespans;
-    let keyLight, fillLight, rimLight, ambientLight, hemiLight;
+    let airflowParticles;
+    let particlePositions, particleVelocities, particleLifespans;
+    let frontLedMesh, frontLedCanvas, frontLedCtx, frontLedTexture;
 
-    // Kinematic Motor Parameters
-    let currentLouverAngle = 0.00; // in radians
-    let currentVaneAngle = 0.00;
-    let currentHSwingAmp = 0.00;
+    let currentLouverAngle = 0.58; // Current physical pitch
+    let currentVaneAngle = 0.0;   // Current yaw
+    let currentHSwingAmp = 0.0;
 
-    const LOUVER_CLOSED = 0.00;
-    const LOUVER_SWING_PERIOD = 4.2; // 4.2s smooth full oscillation cycle
-    const LOUVER_SWING_MIN = 0.64;   // ~36.7° (Coanda ceiling throw)
-    const LOUVER_SWING_MAX = 1.28;   // ~73.3° (Floor comfort throw)
+    const LOUVER_CLOSED = 0.28;
+    const LOUVER_SWING_MIN = 0.58; // 33.2°
+    const LOUVER_SWING_MAX = 1.30; // 74.5°
+    const LOUVER_SWING_PERIOD = 5.2; // seconds
+
     const LOUVER_STEPS = {
-      1: 0.70, // Top (40.1°)
-      2: 0.82, // High-Mid (47.0°)
+      1: 0.58, // Top (33.2°)
+      2: 0.76, // High-Mid (43.5°)
       3: 0.94, // Mid (53.8°)
-      4: 1.08, // Mid-Low (61.9°)
-      5: 1.20, // Low (68.8°)
+      4: 1.12, // Mid-Low (64.1°)
+      5: 1.30, // Floor (74.5°)
       6: 0.94  // Auto fallback
     };
 
     const cameraOrbit = {
       target: new THREE.Vector3(0, -0.05, 0),
-      radius: 2.75,         // Closer, majestic beauty angle
-      targetRadius: 2.75,
-      theta: 0.32,          // 3/4 beauty view showing front & louver clearly
-      targetTheta: 0.32,
-      phi: 1.34,
-      targetPhi: 1.34,
+      radius: 3.4,
+      targetRadius: 3.4,
+      theta: 0.38,
+      targetTheta: 0.38,
+      phi: 1.25,
+      targetPhi: 1.25,
       isDragging: false,
       lastX: 0,
       lastY: 0
@@ -2018,16 +2050,19 @@ html[data-theme="light"] .theme-moon { display: block; }
     function init3D() {
       const container = document.getElementById("canvas3d-container");
       scene = new THREE.Scene();
-      scene.fog = new THREE.Fog(currentTheme() === "light" ? 0xf5f7fb : 0x07090e, 5, 14);
 
-      camera = new THREE.PerspectiveCamera(40, container.clientWidth / container.clientHeight, 0.1, 30);
+      // Atmospheric Studio Fog
+      const bgHex = currentTheme() === "light" ? 0xf7f9fc : 0x08090d;
+      scene.fog = new THREE.Fog(bgHex, 6, 16);
+
+      camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.1, 30);
       clock = new THREE.Clock();
 
       renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, powerPreference: "high-performance" });
       renderer.setSize(container.clientWidth, container.clientHeight);
       renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
       renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = currentTheme() === "light" ? 1.04 : 0.94;
+      renderer.toneMappingExposure = currentTheme() === "light" ? 1.02 : 0.96;
       renderer.shadowMap.enabled = true;
       renderer.shadowMap.type = THREE.PCFSoftShadowMap;
       container.appendChild(renderer.domElement);
@@ -2042,27 +2077,36 @@ html[data-theme="light"] .theme-moon { display: block; }
     }
 
     function setupLighting() {
-      ambientLight = new THREE.AmbientLight(0xa9c8df, 0.22);
-      scene.add(ambientLight);
-      hemiLight = new THREE.HemisphereLight(0xe8f9ff, 0x07111b, 0.45);
+      const isLight = currentTheme() === "light";
+      const ambLight = new THREE.AmbientLight(isLight ? 0xffffff : 0x90b4ce, isLight ? 0.45 : 0.28);
+      scene.add(ambLight);
+
+      const hemiLight = new THREE.HemisphereLight(
+        isLight ? 0xffffff : 0xd0e8ff,
+        isLight ? 0xd0dbe8 : 0x070b12,
+        isLight ? 0.55 : 0.45
+      );
       scene.add(hemiLight);
 
-      keyLight = new THREE.DirectionalLight(0xffffff, 1.0);
-      keyLight.position.set(3.2, 4.2, 3.8);
+      // Studio Key Light
+      const keyLight = new THREE.DirectionalLight(0xffffff, isLight ? 1.1 : 1.0);
+      keyLight.position.set(3.5, 4.8, 4.2);
       keyLight.castShadow = true;
       keyLight.shadow.mapSize.set(2048, 2048);
       keyLight.shadow.camera.near = 0.5;
       keyLight.shadow.camera.far = 14;
-      keyLight.shadow.bias = -0.0006;
-      keyLight.shadow.radius = 4;
+      keyLight.shadow.bias = -0.0004;
+      keyLight.shadow.radius = 3;
       scene.add(keyLight);
 
-      fillLight = new THREE.DirectionalLight(0x38bdf8, 0.35);
-      fillLight.position.set(-4.0, 1.2, 2.8);
+      // Fill Light
+      const fillLight = new THREE.DirectionalLight(isLight ? 0xcce3f8 : 0x38bdf8, isLight ? 0.4 : 0.32);
+      fillLight.position.set(-4.0, 1.6, 3.0);
       scene.add(fillLight);
 
-      rimLight = new THREE.DirectionalLight(0x7de9ff, 0.65);
-      rimLight.position.set(-1.8, 1.6, -3.8);
+      // Rim Light for Luxury Edge Glint
+      const rimLight = new THREE.DirectionalLight(isLight ? 0xe2ecff : 0x7de9ff, isLight ? 0.5 : 0.7);
+      rimLight.position.set(-2.0, 2.0, -4.0);
       scene.add(rimLight);
     }
 
@@ -2072,14 +2116,14 @@ html[data-theme="light"] .theme-moon { display: block; }
       facadeGroup = new THREE.Group();
       acGroup.add(facadeGroup);
 
-      const AC_W = 2.24, AC_H = 0.755, AC_D = 0.525;
-      const VENT_W = 1.98, VENT_H = 0.125, VENT_Y = -0.275, FRONT_Z = AC_D / 2;
+      const AC_W = 2.26, AC_H = 0.76, AC_D = 0.52;
+      const VENT_W = 2.00, VENT_H = 0.125, VENT_Y = -0.275, FRONT_Z = AC_D / 2;
 
-      // 1. Main Casing Body
+      // 1. Main Casing Body (Pure Architectural White Matte)
       const casingMat = new THREE.MeshStandardMaterial({
-        color: 0xf4f6f8,
-        roughness: 0.32,
-        metalness: 0.12
+        color: 0xf8fafc,
+        roughness: 0.28,
+        metalness: 0.08
       });
       const bodyGeom = new THREE.BoxGeometry(AC_W, AC_H, AC_D, 4, 4, 4);
       casingMesh = new THREE.Mesh(bodyGeom, casingMat);
@@ -2087,45 +2131,65 @@ html[data-theme="light"] .theme-moon { display: block; }
       casingMesh.receiveShadow = true;
       facadeGroup.add(casingMesh);
 
-      // 2. Beveled Front Panel with Blue Star Badge
+      // 2. Beveled Front Fascia Panel
       const panelMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        roughness: 0.22,
-        metalness: 0.08
+        roughness: 0.18,
+        metalness: 0.05
       });
       const panelGeom = new THREE.BoxGeometry(AC_W + 0.02, AC_H * 0.78, 0.03);
       const frontPanel = new THREE.Mesh(panelGeom, panelMat);
       frontPanel.position.set(0, 0.065, FRONT_Z + 0.012);
       facadeGroup.add(frontPanel);
 
-      // Blue Star Brand Badge
-      const logoGeom = new THREE.PlaneGeometry(0.24, 0.07);
+      // Blue Star Signature Emblem (Minimalist Badge)
+      const logoGeom = new THREE.PlaneGeometry(0.24, 0.065);
       const logoCanvas = document.createElement("canvas");
-      logoCanvas.width = 256; logoCanvas.height = 74;
+      logoCanvas.width = 256; logoCanvas.height = 70;
       const ctx = logoCanvas.getContext("2d");
-      ctx.fillStyle = "#0284c7";
-      ctx.roundRect(0, 0, 256, 74, 16); ctx.fill();
+      ctx.fillStyle = "#0066cc";
+      ctx.roundRect(0, 0, 256, 70, 14); ctx.fill();
       ctx.fillStyle = "#ffffff";
-      ctx.font = "bold 34px 'Outfit', sans-serif";
-      ctx.fillText("★ BLUE STAR", 22, 50);
+      ctx.font = "bold 32px 'Outfit', sans-serif";
+      ctx.fillText("★ BLUE STAR", 22, 48);
       const logoTexture = new THREE.CanvasTexture(logoCanvas);
       const logoMesh = new THREE.Mesh(logoGeom, new THREE.MeshBasicMaterial({ map: logoTexture, transparent: true }));
-      logoMesh.position.set(-0.78, 0.18, FRONT_Z + 0.03);
+      logoMesh.position.set(-0.80, 0.20, FRONT_Z + 0.03);
       facadeGroup.add(logoMesh);
 
-      // 3. Discharge Air Vent Mouth (Recessed dark cavity)
+      // Hidden Front LED Temperature Matrix (Glows through the front panel!)
+      frontLedCanvas = document.createElement("canvas");
+      frontLedCanvas.width = 128; frontLedCanvas.height = 64;
+      frontLedCtx = frontLedCanvas.getContext("2d");
+      frontLedTexture = new THREE.CanvasTexture(frontLedCanvas);
+      const ledGeom = new THREE.PlaneGeometry(0.18, 0.09);
+      const ledMat = new THREE.MeshBasicMaterial({ map: frontLedTexture, transparent: true, opacity: 0.92 });
+      frontLedMesh = new THREE.Mesh(ledGeom, ledMat);
+      frontLedMesh.position.set(0.72, 0.08, FRONT_Z + 0.03);
+      facadeGroup.add(frontLedMesh);
+      updateFrontLedTexture();
+
+      // Top Air Intake Grille Louvers
+      const grilleMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.5 });
+      for (let i = 0; i < 7; i++) {
+        const slat = new THREE.Mesh(new THREE.BoxGeometry(AC_W * 0.88, 0.006, 0.024), grilleMat);
+        slat.position.set(0, AC_H / 2 + 0.002, -0.14 + i * 0.045);
+        facadeGroup.add(slat);
+      }
+
+      // 3. Discharge Air Vent Mouth (Deep Recessed Cavity)
       const ventCavity = new THREE.Mesh(
-        new THREE.BoxGeometry(VENT_W, VENT_H + 0.02, 0.14),
-        new THREE.MeshStandardMaterial({ color: 0x090d14, roughness: 0.85 })
+        new THREE.BoxGeometry(VENT_W, VENT_H + 0.02, 0.16),
+        new THREE.MeshStandardMaterial({ color: 0x080c14, roughness: 0.9 })
       );
-      ventCavity.position.set(0, VENT_Y, FRONT_Z - 0.04);
+      ventCavity.position.set(0, VENT_Y, FRONT_Z - 0.05);
       facadeGroup.add(ventCavity);
 
-      // 4. Blower Drum Cylinder inside vent
+      // 4. Blower Wheel Rotor inside vent
       const drumGeom = new THREE.CylinderGeometry(0.045, 0.045, VENT_W - 0.06, 24);
       drumGeom.rotateZ(Math.PI / 2);
-      blowerDrum = new THREE.Mesh(drumGeom, new THREE.MeshStandardMaterial({ color: 0x182433, metalness: 0.6, roughness: 0.4 }));
-      blowerDrum.position.set(0, VENT_Y - 0.005, FRONT_Z - 0.06);
+      blowerDrum = new THREE.Mesh(drumGeom, new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.7, roughness: 0.35 }));
+      blowerDrum.position.set(0, VENT_Y - 0.005, FRONT_Z - 0.07);
       acGroup.add(blowerDrum);
 
       // 5. 13 Synchronized Vertical Airflow Deflector Vanes
@@ -2139,48 +2203,66 @@ html[data-theme="light"] .theme-moon { display: block; }
         ventVanes.push(pivot);
       }
 
-      // 6. MOTORIZED HORIZONTAL LOUVER BLADE (REVAMPED PROMINENT GEOMETRY)
+      // 6. MOTORIZED HORIZONTAL LOUVER BLADE (PROMINENT SCULPTED AERODYNAMIC WING)
       louverPivot = new THREE.Group();
       louverPivot.position.set(0, VENT_Y - VENT_H / 2 + 0.004, FRONT_Z + 0.008);
 
-      const bladeGeom = new THREE.BoxGeometry(VENT_W + 0.02, VENT_H + 0.02, 0.014);
+      const bladeGeom = new THREE.BoxGeometry(VENT_W + 0.02, VENT_H + 0.02, 0.016);
       bladeGeom.translate(0, (VENT_H + 0.02) / 2, 0);
       const louverMat = new THREE.MeshStandardMaterial({
         color: 0xffffff,
-        metalness: 0.25,
-        roughness: 0.25
+        metalness: 0.22,
+        roughness: 0.22
       });
       louverMesh = new THREE.Mesh(bladeGeom, louverMat);
       louverMesh.castShadow = true;
       louverPivot.add(louverMesh);
 
-      // Metallic Accent Trim on Louver Edge
-      const trimGeom = new THREE.BoxGeometry(VENT_W, 0.004, 0.018);
+      // Metallic Brushed Chrome Accent Trim on Louver Trailing Edge
+      const trimGeom = new THREE.BoxGeometry(VENT_W, 0.004, 0.02);
       trimGeom.translate(0, VENT_H + 0.018, 0.002);
-      const trimMesh = new THREE.Mesh(trimGeom, new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 }));
+      const trimMesh = new THREE.Mesh(trimGeom, new THREE.MeshStandardMaterial({ color: 0xc4cbd4, metalness: 0.85, roughness: 0.15 }));
       louverPivot.add(trimMesh);
+
+      // Inner Sub-Vane (Tandem velocity blade)
+      const subBladeGeom = new THREE.BoxGeometry(VENT_W - 0.06, 0.035, 0.006);
+      subBladeGeom.translate(0, 0.04, -0.02);
+      const subBlade = new THREE.Mesh(subBladeGeom, new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.5, roughness: 0.4 }));
+      louverPivot.add(subBlade);
 
       facadeGroup.add(louverPivot);
 
-      // 7. Ground Plane Disc with Gaussian Shadow
-      const floorDisc = new THREE.Mesh(
-        new THREE.CircleGeometry(3.6, 64),
-        new THREE.MeshStandardMaterial({ color: currentTheme() === "light" ? 0xe2e8f0 : 0x0c1017, roughness: 0.8 })
+      // 7. SEAMLESS INFINITY SHADOW RECEIVER (NO HARSH CUT-OFF PLATE!)
+      const shadowPlane = new THREE.Mesh(
+        new THREE.PlaneGeometry(24, 24),
+        new THREE.ShadowMaterial({ opacity: currentTheme() === "light" ? 0.16 : 0.35 })
       );
-      floorDisc.rotation.x = -Math.PI / 2;
-      floorDisc.position.y = -0.56;
-      floorDisc.receiveShadow = true;
-      scene.add(floorDisc);
+      shadowPlane.rotation.x = -Math.PI / 2;
+      shadowPlane.position.y = -0.58;
+      shadowPlane.receiveShadow = true;
+      scene.add(shadowPlane);
+    }
+
+    function updateFrontLedTexture() {
+      if (!frontLedCtx || !frontLedTexture) return;
+      frontLedCtx.clearRect(0, 0, 128, 64);
+      if (state.power === 1 && state.light === 1) {
+        frontLedCtx.fillStyle = currentTheme() === "light" ? "rgba(0, 102, 204, 0.88)" : "rgba(224, 242, 254, 0.92)";
+        frontLedCtx.font = "bold 38px 'Outfit', sans-serif";
+        frontLedCtx.textAlign = "center";
+        frontLedCtx.textBaseline = "middle";
+        const txt = state.c1Mode === 1 ? "C1" : `${Math.round(state.targetTemp)}°`;
+        frontLedCtx.fillText(txt, 64, 32);
+      }
+      frontLedTexture.needsUpdate = true;
     }
 
     function buildAirflowParticles() {
-      const count = 650;
+      const count = 700;
       const geom = new THREE.BufferGeometry();
       particlePositions = new Float32Array(count * 3);
       particleVelocities = new Float32Array(count * 3);
       particleLifespans = new Float32Array(count);
-
-      const VENT_W = 1.98, VENT_Y = -0.275, FRONT_Z = 0.525 / 2;
 
       for (let i = 0; i < count; i++) {
         resetParticle(i, true);
@@ -2188,27 +2270,27 @@ html[data-theme="light"] .theme-moon { display: block; }
 
       geom.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
 
-      // Radial Glowing Particle Texture
+      // Gaussian Radial Glow Particle Texture
       const canvas = document.createElement("canvas");
       canvas.width = 64; canvas.height = 64;
       const ctx = canvas.getContext("2d");
       const grad = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
       grad.addColorStop(0, "rgba(255, 255, 255, 1)");
-      grad.addColorStop(0.25, "rgba(56, 189, 248, 0.65)");
-      grad.addColorStop(1, "rgba(2, 132, 199, 0)");
+      grad.addColorStop(0.28, currentTheme() === "light" ? "rgba(0, 102, 204, 0.7)" : "rgba(56, 189, 248, 0.7)");
+      grad.addColorStop(1, "rgba(0, 102, 204, 0)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 64, 64);
       const texture = new THREE.CanvasTexture(canvas);
 
       const mat = new THREE.PointsMaterial({
-        size: 0.065,
+        size: 0.075,
         map: texture,
         transparent: true,
-        opacity: 0.42,
+        opacity: 0.44,
         blending: currentTheme() === "light" ? THREE.NormalBlending : THREE.AdditiveBlending,
         depthWrite: false,
         sizeAttenuation: true,
-        color: new THREE.Color(0x38bdf8)
+        color: new THREE.Color(currentTheme() === "light" ? 0x0066cc : 0x38bdf8)
       });
 
       airflowParticles = new THREE.Points(geom, mat);
@@ -2217,14 +2299,14 @@ html[data-theme="light"] .theme-moon { display: block; }
 
     function resetParticle(i, immediateSpread) {
       const offset = i * 3;
-      const VENT_W = 1.98, VENT_Y = -0.275, FRONT_Z = 0.525 / 2;
+      const VENT_W = 2.00, VENT_Y = -0.275, FRONT_Z = 0.52 / 2;
 
       particlePositions[offset] = (Math.random() - 0.5) * (VENT_W - 0.16);
       particlePositions[offset + 1] = VENT_Y + (Math.random() - 0.5) * 0.04;
       particlePositions[offset + 2] = FRONT_Z + 0.015 + Math.random() * 0.04;
 
-      const speeds = [0, 0.18, 0.28, 0.42, 0.62, 0.92, 0.42];
-      const speed = speeds[state.fan] || 0.42;
+      const speeds = [0, 0.22, 0.34, 0.48, 0.70, 0.98, 0.48];
+      const speed = speeds[state.fan] || 0.48;
 
       const pitch = Math.abs(currentLouverAngle);
       const yaw = currentVaneAngle;
@@ -2248,51 +2330,52 @@ html[data-theme="light"] .theme-moon { display: block; }
         const dy = e.clientY - cameraOrbit.lastY;
         cameraOrbit.lastX = e.clientX;
         cameraOrbit.lastY = e.clientY;
-        cameraOrbit.targetTheta -= dx * 0.0055;
-        cameraOrbit.targetPhi -= dy * 0.0048;
-        cameraOrbit.targetPhi = Math.max(0.65, Math.min(1.58, cameraOrbit.targetPhi));
+
+        cameraOrbit.targetTheta -= dx * 0.006;
+        cameraOrbit.targetPhi = Math.max(0.65, Math.min(Math.PI / 2 - 0.08, cameraOrbit.targetPhi - dy * 0.006));
       });
       window.addEventListener("pointerup", () => cameraOrbit.isDragging = false);
+
       container.addEventListener("wheel", (e) => {
-        cameraOrbit.targetRadius += e.deltaY * 0.002;
-        cameraOrbit.targetRadius = Math.max(1.8, Math.min(5.2, cameraOrbit.targetRadius));
-      }, { passive: true });
+        e.preventDefault();
+        cameraOrbit.targetRadius = Math.max(2.2, Math.min(5.2, cameraOrbit.targetRadius + e.deltaY * 0.0025));
+      }, { passive: false });
     }
 
-    function setCameraView(view) {
+    function setCameraView(preset) {
       playAudio('click');
-      state.currentCameraView = view;
       document.querySelectorAll(".cam-btn").forEach(b => b.classList.remove("active"));
-      const btn = document.getElementById(`camBtn${view.charAt(0).toUpperCase() + view.slice(1)}`);
-      if (btn) btn.classList.add("active");
-
-      if (view === 'hero') {
-        cameraOrbit.targetTheta = 0.32; cameraOrbit.targetPhi = 1.34; cameraOrbit.targetRadius = 2.75;
-      } else if (view === 'airflow') {
-        cameraOrbit.targetTheta = 0.65; cameraOrbit.targetPhi = 1.42; cameraOrbit.targetRadius = 3.1;
-      } else if (view === 'louver') {
-        cameraOrbit.targetTheta = 0.18; cameraOrbit.targetPhi = 1.25; cameraOrbit.targetRadius = 2.0;
-      } else if (view === 'xray') {
-        cameraOrbit.targetTheta = 0.00; cameraOrbit.targetPhi = 1.45; cameraOrbit.targetRadius = 2.8;
+      if (preset === 'hero') {
+        document.getElementById("camBtnHero").classList.add("active");
+        cameraOrbit.targetRadius = 3.4; cameraOrbit.targetTheta = 0.38; cameraOrbit.targetPhi = 1.25;
+        if (facadeGroup) facadeGroup.visible = true;
+      } else if (preset === 'airflow') {
+        document.getElementById("camBtnAirflow").classList.add("active");
+        cameraOrbit.targetRadius = 3.8; cameraOrbit.targetTheta = 0.95; cameraOrbit.targetPhi = 1.38;
+        if (facadeGroup) facadeGroup.visible = true;
+      } else if (preset === 'louver') {
+        document.getElementById("camBtnLouver").classList.add("active");
+        cameraOrbit.targetRadius = 2.4; cameraOrbit.targetTheta = 0.12; cameraOrbit.targetPhi = 1.48;
+        if (facadeGroup) facadeGroup.visible = true;
+      } else if (preset === 'xray') {
+        document.getElementById("camBtnXray").classList.add("active");
+        cameraOrbit.targetRadius = 3.2; cameraOrbit.targetTheta = 0.38; cameraOrbit.targetPhi = 1.25;
+        if (facadeGroup) facadeGroup.visible = !facadeGroup.visible;
       }
     }
 
     function onWindowResize() {
-      const c = document.getElementById("canvas3d-container");
-      if (!c || !renderer || !camera) return;
-      camera.aspect = c.clientWidth / c.clientHeight;
+      const container = document.getElementById("canvas3d-container");
+      if (!container || !renderer || !camera) return;
+      camera.aspect = container.clientWidth / container.clientHeight;
       camera.updateProjectionMatrix();
-      renderer.setSize(c.clientWidth, c.clientHeight);
+      renderer.setSize(container.clientWidth, container.clientHeight);
     }
 
-    // =========================================================================
-    // ANIMATION LOOP WITH KINEMATIC STEPPER DRIVES
-    // =========================================================================
     function animate() {
       requestAnimationFrame(animate);
-
-      const delta = clock ? Math.min(clock.getDelta(), 0.05) : 0.016;
-      const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
+      const delta = Math.min(clock.getDelta(), 0.1);
+      const time = clock.getElapsedTime();
 
       // 1. REVAMPED LOUVER STEPPER MOTOR KINEMATICS
       if (louverPivot) {
@@ -2364,12 +2447,12 @@ html[data-theme="light"] .theme-moon { display: block; }
       if (airflowParticles && particlePositions) {
         const pos = airflowParticles.geometry.attributes.position.array;
         if (state.power === 1) {
-          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.42, 0.05);
+          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.44, 0.05);
 
-          const speeds = [0, 0.18, 0.28, 0.42, 0.62, 0.92, 0.42];
-          const speed = speeds[state.fan] || 0.42;
+          const speeds = [0, 0.22, 0.34, 0.48, 0.70, 0.98, 0.48];
+          const speed = speeds[state.fan] || 0.48;
 
-          for (let i = 0; i < 650; i++) {
+          for (let i = 0; i < 700; i++) {
             particleLifespans[i] += delta * (0.6 + speed * 0.6);
             if (particleLifespans[i] > 1) resetParticle(i);
 
@@ -2445,11 +2528,20 @@ html[data-theme="light"] .theme-moon { display: block; }
       if (k === 'turbo') sendCommand({ turbo: state.turbo === 1 ? 0 : 1 });
       if (k === 'eco') sendCommand({ eco: state.eco === 1 ? 0 : 1 });
       if (k === 'sleep') sendCommand({ sleep: state.sleep === 1 ? 0 : 1 });
-      if (k === 'light') sendCommand({ light: state.light === 1 ? 0 : 1 });
+      if (k === 'light') {
+        const next = state.light === 1 ? 0 : 1;
+        sendCommand({ light: next });
+      }
       if (k === 'c1') {
         const next = state.c1Mode === 1 ? 0 : 1;
-        if (next === 1) sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
-        else sendCommand({ c1Mode: 0, turbo: 0 });
+        if (next === 1) {
+          playAudio('beep');
+          showToast("Starting C1 Sequence: Setting 17°C High Fan...", "info");
+          sendCommand({ c1Mode: 1 });
+        } else {
+          showToast("C1 Mode cancelled", "info");
+          sendCommand({ c1Mode: 0 });
+        }
       }
     }
 
@@ -2544,53 +2636,59 @@ html[data-theme="light"] .theme-moon { display: block; }
       // Telemetry
       document.getElementById("compHzVal").textContent = `${state.compHz} Hz`;
       document.getElementById("coilTempVal").textContent = `${state.coilTemp.toFixed(1)}°C`;
-      document.getElementById("compHoursVal").textContent = `${Math.round(state.compHours)} h`;
+      document.getElementById("compHoursVal").textContent = `${state.compHours} h`;
+      document.getElementById("filterConditionVal").textContent = state.filterAlert === 1 ? "Check Filter" : "Clean";
+      document.getElementById("filterConditionVal").className = `tel-value ${state.filterAlert === 1 ? 'warn' : 'live'}`;
+
+      updateFrontLedTexture();
     }
 
     // =========================================================================
-    // MQTT NETWORKING & COMMAND ENGINE
+    // MQTT & LOCAL DEMO BRIDGE
     // =========================================================================
-    const DEFAULT_USER = "fizan_feroz";
-    const DEFAULT_KEY  = atob("YWlvX2ZwdmMyNnRJZzZCS1VWMkpMeVZJVkRZaDBoZUU=");
     let mqttClient = null;
-    let mqttConfig = { host: "io.adafruit.com", port: 443, username: DEFAULT_USER, password: DEFAULT_KEY };
 
     function sendCommand(cmd) {
       Object.assign(state, cmd);
       renderUI();
+
       if (mqttClient && mqttClient.connected) {
-        const topic = `${mqttConfig.username}/feeds/bluestar-ac-set`;
-        mqttClient.publish(topic, JSON.stringify(cmd));
+        mqttClient.publish("megmeet/set", JSON.stringify(cmd), { qos: 1 });
       }
     }
 
     function initMqtt() {
-      const url = `wss://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
       try {
+        const broker = localStorage.getItem("mqtt_broker") || "io.adafruit.com";
+        const port = localStorage.getItem("mqtt_port") || 443;
+        const user = localStorage.getItem("mqtt_user") || "";
+        const pass = localStorage.getItem("mqtt_pass") || "";
+
+        if (!user || !pass) {
+          document.getElementById("connStatusText").textContent = "Local Twin";
+          return;
+        }
+
+        const url = `wss://${broker}:${port}/mqtt`;
         mqttClient = mqtt.connect(url, {
-          username: mqttConfig.username,
-          password: mqttConfig.password,
-          clientId: `bluestar_pure_${Math.random().toString(16).slice(2, 8)}`,
-          keepalive: 30
+          username: user,
+          password: pass,
+          clean: true,
+          connectTimeout: 5000,
+          reconnectPeriod: 6000
         });
 
         mqttClient.on('connect', () => {
-          document.getElementById("connStatusText").textContent = "Connected";
-          mqttClient.subscribe(`${mqttConfig.username}/feeds/bluestar-ac-state`);
+          document.getElementById("connStatusText").textContent = "Live Cloud";
+          showToast("Connected to Blue Star Cloud", "success");
+          mqttClient.subscribe("megmeet/state");
+          mqttClient.subscribe("megmeet/diagnostics");
         });
 
         mqttClient.on('message', (topic, payload) => {
           try {
             const data = JSON.parse(payload.toString());
-            if (data.power !== undefined) state.power = data.power;
-            if (data.targetTemp !== undefined) state.targetTemp = data.targetTemp;
-            if (data.roomTemp !== undefined) state.roomTemp = data.roomTemp;
-            if (data.mode !== undefined) state.mode = data.mode;
-            if (data.fan !== undefined) state.fan = data.fan;
-            if (data.vane !== undefined) state.vane = data.vane;
-            if (data.hSwing !== undefined) state.hSwing = data.hSwing;
-            if (data.compHz !== undefined) state.compHz = data.compHz;
-            if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
+            Object.assign(state, data);
             renderUI();
           } catch (e) {}
         });
@@ -2611,12 +2709,15 @@ html[data-theme="light"] .theme-moon { display: block; }
     function setTheme(th) {
       document.documentElement.dataset.theme = th;
       localStorage.setItem("bluestar_theme", th);
-      if (scene && scene.fog) scene.fog.color.set(th === "light" ? 0xf5f7fb : 0x07090e);
-      if (renderer) renderer.toneMappingExposure = th === "light" ? 1.04 : 0.94;
+      const isLight = th === "light";
+      if (scene && scene.fog) scene.fog.color.set(isLight ? 0xf7f9fc : 0x08090d);
+      if (renderer) renderer.toneMappingExposure = isLight ? 1.02 : 0.96;
       if (airflowParticles) {
-        airflowParticles.material.blending = th === "light" ? THREE.NormalBlending : THREE.AdditiveBlending;
+        airflowParticles.material.color.set(isLight ? 0x0066cc : 0x38bdf8);
+        airflowParticles.material.blending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
         airflowParticles.material.needsUpdate = true;
       }
+      updateFrontLedTexture();
     }
 
     function toggleTheme() {
