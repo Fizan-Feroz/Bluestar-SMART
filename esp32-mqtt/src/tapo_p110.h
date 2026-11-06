@@ -433,6 +433,8 @@ public:
     // Check device relay state if present in energy payload
     if (!res["device_on"].isNull()) {
       out.relayOn = res["device_on"].as<bool>();
+    } else if (out.powerWatts > 0.5f || out.todayRuntimeMin > 0) {
+      out.relayOn = true;
     }
 
     return true;

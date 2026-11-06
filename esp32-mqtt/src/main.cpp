@@ -334,20 +334,12 @@ void publishState(bool force = false) {
   doc["coilTemp"]     = serialized(String(coilTemp, 1));
   doc["acHours"]      = serialized(String(acRunHours, 1));
   doc["compHours"]    = serialized(String(compRunHours, 1));
-  bool acMainsAlive = true;
-  if (millis() - lastValidFrameTime > 25000) {
-    acMainsAlive = false;
-  }
-
   #ifdef DEVICE_PIN
   doc["pinHash"]      = hashPin(DEVICE_PIN);
   #endif
 
   #if defined(TAPO_P110_ENABLED) && (TAPO_P110_ENABLED == 1)
   if (tapoMutex && xSemaphoreTake(tapoMutex, pdMS_TO_TICKS(50)) == pdTRUE) {
-    if (tapoData.online && !tapoData.relayOn) {
-      acMainsAlive = false;
-    }
     doc["p110_power"]    = serialized(String(tapoData.powerWatts, 1));
     doc["p110_todayKwh"] = serialized(String(tapoData.todayKwh, 3));
     doc["p110_monthKwh"] = serialized(String(tapoData.monthKwh, 2));
@@ -358,10 +350,7 @@ void publishState(bool force = false) {
   }
   #endif
 
-  doc["online"]       = acMainsAlive;
-  if (!acMainsAlive) {
-    doc["power"]      = 0;
-  }
+  doc["online"]       = true;
 
   char buffer[768];
   size_t n = serializeJson(doc, buffer);
