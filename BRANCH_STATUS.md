@@ -4,111 +4,120 @@
 **Base Branch:** `main`  
 **Status:** In Review / Ready for Evaluation (Non-Destructive Staging)  
 **Preview File:** [`web-dashboard/redesign.html`](file:///c:/Users/fizan/OneDrive/Documents/Bluestar-SMART/web-dashboard/redesign.html) / [`redesign.html`](file:///c:/Users/fizan/OneDrive/Documents/Bluestar-SMART/redesign.html)  
-**Production File:** [`web-dashboard/index.html`](file:///c:/Users/fizan/OneDrive/Documents/Bluestar-SMART/web-dashboard/index.html) (Untouched & Pristine)
+**Production File:** [`web-dashboard/index.html`](file:///c:/Users/fizan/OneDrive/Documents/Bluestar-SMART/web-dashboard/index.html) (Untouched & Pristine)  
+**Detailed Specification:** [`web-dashboard/DESIGN.md`](file:///c:/Users/fizan/OneDrive/Documents/Bluestar-SMART/web-dashboard/DESIGN.md)  
 
 ---
 
 ## 1. Executive Summary
 
-Per design direction, this branch implements an Apple/Dyson/Nest-grade minimalist UI revamp for the Blue Star Smart AC controller. To ensure zero risk to your live setup, the redesign is isolated in dedicated files:
-- **`web-dashboard/redesign.html`** (served at `/redesign` on Vercel)
-- **`redesign.html`** (root mirror for local offline testing)
+Per design direction ("minimalistic theme, keep dark and light modes, also swing animation needs to be revamped aswell. it should look like a really polished app from a big brand"), this branch implements a complete architectural visual overhaul modeled after **Apple Home**, **Dyson Link**, and **Nest**.
+
+To ensure **zero risk** to your live production setup:
+- The entire redesign lives in **`web-dashboard/redesign.html`** and root **`redesign.html`**.
 - The production file **`web-dashboard/index.html`** remains completely untouched.
-- If you like the design, it can be merged directly into `index.html` and `main` with a single command.
+- Service workers from `localhost` are cleanly uncurbed to guarantee instant cache-free reloads.
+- If you like the redesign, you can merge it directly into production with a single command.
 
 ---
 
-## 2. Key Features Implemented in the Redesign
+## 2. Visual Architecture & Color Science
 
-### 2.1 Minimalist Brand-Grade Design System (Dark & Light)
-- **Dark Mode**:
-  - Deep space obsidian background (`#080a0f`) with soft multilayered ink surfaces (`#0f131c`, `#151b26`, `#1d2535`).
-  - Ultra-thin translucent hairline borders (`rgba(255, 255, 255, 0.07)`).
-  - Vibrant precision electric sky accent (`#38bdf8`) with soft ambient luminescence (`--accent-glow`).
-- **Light Mode**:
-  - Clean architectural gallery alabaster (`#f8fafc`) with crisp white panels (`#ffffff`).
-  - High-contrast slate-900 typography (`#0f172a`) meeting WCAG AAA contrast requirements.
-  - Deep electric azure active states (`#0284c7`).
-  - Studio-grade three-point lighting in the 3D scene that illuminates the unit with natural contact shadows.
-- **Theme Persistence**:
-  - Single-click theme toggle with smooth rotating sun/moon icon transition.
-  - Saved to `localStorage` (`bluestar_theme`) with zero-flash inline initialization.
+### 2.1 Obsidian Dark Mode ("Night Console")
+- **Base Canvas**: Deep space obsidian (`#08090d`) with subtle zenith radial glow (`radial-gradient(ellipse 90% 60% at 50% -10%, #162032 0%, #08090d 80%)`).
+- **Surface Elevation**: Layered frosted glass panels (`rgba(16, 20, 30, 0.72)`) with `28px` backdrop blur and hairline borders (`rgba(255, 255, 255, 0.08)`).
+- **Accents**: Glacier Sky cyan (`#38bdf8`) with soft halo bloom (`rgba(56, 189, 248, 0.38)`).
+- **Typography**: Crisp white `#ffffff` headlines, muted slate `#94a3b8` labels, and emerald `#10b981` live signals.
 
-### 2.2 Revamped Louver Kinematics & Swing Motion Model
-- **Motorized Stepper Kinematics**:
-  - Replaced the previous erratic spring tracking with an authentic **unipolar stepper motor simulation**.
-  - **Auto Swing**: Sweeps across $40.1^\circ$ to $69.9^\circ$ with constant-velocity travel and smooth quintic smootherstep turnaround dwells at apex and nadir ($T = 4.2\text{ s}$).
-  - **Fixed Steps**: Transitions to Top ($41.2^\circ$), Middle ($53.8^\circ$), or Low ($67.6^\circ$) with a critically damped mechanical tracker (zero overshoot, no bouncy oscillations).
-  - **Power Off Docking**: When turned off, the flap glides smoothly to $0.00\text{ rad}$ and docks flush with the housing.
-- **4-Way Motorized Horizontal Vane Sweep**:
-  - Replaced the undulating snake wave with a **synchronized tie-rod linkage**: all 13 internal vertical vanes pivot in unison from $-24^\circ$ to $+24^\circ$, with subtle aerodynamic edge divergence.
-  - Smooth envelope damping prevents snapping when toggled on/off.
-- **Fluid Dynamics & Particle Coupling**:
-  - Airflow particles emerge directly behind the louver blade.
-  - Particle pitch dynamically couples to the instantaneous louver angle $\theta_{\text{louver}}(t)$.
-  - Particle lateral yaw couples to the 4-way vane angle $\theta_{\text{vane}}(t)$.
-  - You visibly see the cold air plume sweeping across the room in rhythm with the 3D louvers!
-
-### 2.3 Interactive Louver UI & Live Angle Badge
-- **Live Degree Readout**:
-  - The Louver section header features a real-time badge (`• Auto sweep · 54°` or `Top · 41°` or `Standby · Parked`) dynamically synchronized every frame with the 3D blade.
-- **Bespoke SVG Segmented Pill Icons**:
-  - **Swing**: Flap outline with active CSS oscillating blade animation (`@keyframes louverOscillate`).
-  - **Top**: Coanda ceiling draft profile.
-  - **Middle**: Horizontal room air throw profile.
-  - **Low**: Floor cooling cascade profile.
-  - **4-Way**: Dual lateral sweep arrows with active pulsing animation (`@keyframes lateralPulse`).
-
-### 2.4 Ergonomics & Responsive Breakpoints
-- **Desktop ($\ge 1100\text{px}$)**:
-  - 3D stage on the left, fixed scrollable 400px control panel on the right.
-- **Tablet ($700\text{--}1099\text{px}$)**:
-  - Responsive vertical stack with bounded 3D viewport height and centered controls.
-- **Mobile ($< 700\text{px}$)**:
-  - Floating bottom command dock (`[ - ]  Cooling 24°C  [ + ]  [ Power ]`) with safe-area insets.
-  - Cleaned navigation header with auto-collapsed badges for zero clutter.
+### 2.2 Ceramic Light Mode ("Daylight Studio")
+- **Base Canvas**: Architectural gallery alabaster (`#f7f9fc`) with ambient light wash.
+- **Surface Elevation**: Pure white ceramic panels (`#ffffff`) with micro-borders (`rgba(15, 23, 42, 0.07)`) and soft diffusion drop shadows (`0 6px 20px -6px rgba(15, 23, 42, 0.07)`).
+- **Accents**: Blue Star Signature Azure (`#0066cc`).
+- **Typography**: Deep onyx `#090e17` text and slate `#475569` labels meeting WCAG AAA contrast ($> 18:1$).
 
 ---
 
-## 3. How to Preview & Test
+## 3. Revamped 3D Digital Twin & Louver Kinematics
 
-### Option A: Local Browser (Zero Setup)
-Simply open the redesign file directly in your browser:
+### 3.1 3D Indoor Unit & Studio Lighting
+1. **Seamless Infinity Studio Floor**: Replaced the previous circular cutoff plate with a soft-shadow receiver (`THREE.ShadowMaterial`), allowing the AC unit contact shadow to blend seamlessly into the background gradient.
+2. **Hidden LED 7-Segment Display**: An offscreen canvas dynamically projects the current target temperature (`24°`) or technician mode (`C1`) directly through the white matte plastic of the front panel. When turned off, the digits disappear completely.
+3. **Top Induction Slats**: 7 micro-slats representing the top intake grille.
+4. **Discharge Cavity & Rotor**: Recessed dark air channel containing a rotating cross-flow blower wheel.
+
+### 3.2 Revamped Stepper Louver Kinematics
+- **Physical Unipolar Stepper Simulation**:
+  - Auto-swing sweeps across $33.2^\circ$ to $74.5^\circ$ ($0.58\text{ to } 1.30\text{ rad}$) with constant angular velocity and smooth quintic smootherstep turnaround dwell at apex and nadir ($T = 5.2\text{ s}$).
+  - Critically damped tracking ensures zero bounce or overshoot when switching positions.
+  - Powering off smoothly glides the blade to $16.0^\circ$ flush dock.
+- **Synchronized 2D Vector Cross-Section (Airflow & Louver Director)**:
+  - Inside the control console, an animated architectural vector diagram displays the indoor unit cross-section.
+  - The SVG motorized blade rotates in real-time synchronized with the 3D blade degrees.
+  - Real-time digital angle badge: e.g. `56° · Harmonic Sweep`.
+  - 5 tactile quick buttons: `Auto (Harmonic)`, `Top (Coanda)`, `Mid (Direct)`, `Floor (Downward)`, `4-Way (Horizontal)`.
+- **Dynamic Aerodynamic Flow Particles**:
+  - 700 radial glowing particles emit continuously from the discharge vent.
+  - Trajectory curves dynamically matching instantaneous louver pitch and horizontal vane yaw.
+
+---
+
+## 4. UI Components & Control Deck
+
+1. **Hero Climate Thermostat Dial**:
+   - Circular gauge with 24 subtle tick marks.
+   - Dynamic progress arc reflecting setpoint ($16^\circ\text{C}$ to $30^\circ\text{C}$).
+   - Power capsule button with animated breathing ring.
+   - Large $68\text{px}$ temperature readout with ambient delta badge (`↓ 3.0° Cooling to Target`).
+   - Tactile `–` and `+` stepper circles.
+2. **Segmented Mode & Velocity Switches**:
+   - Liquid segmented controls with smooth sliding indicators.
+   - Modes: `Cool`, `Dry`, `Fan`, `Auto`.
+   - Fan Speeds: `Quiet`, `Low`, `Med`, `High`, `Turbo`, `Auto`.
+   - Convertible Inverter Drive: `100%`, `80%`, `60%`, `40%`.
+3. **Intelligent Features**:
+   - `Turbo Cool (110% Boost)`, `Eco Mode`, `Comfort Sleep`, `Indoor LED Display`, `C1 Full Load Mode`.
+4. **Bento Telemetry**:
+   - Compressor Frequency ($Hz$), Evaporator Coil ($^\circ\text{C}$), Total Run Time ($h$), Filter Condition (`Clean` or `Check Filter`).
+5. **Security PIN Screen**:
+   - 4-digit PIN lock overlay (`1234` default demo) with keypad, dot indicators, and error shake animation.
+6. **Web Audio Feedback**:
+   - Real-time synthesized clicks, chimes, and beeps (no external audio assets).
+
+---
+
+## 5. Visual Verification Screenshots
+
+Automated Playwright captures recorded and verified:
+- **Desktop Dark**: `screenshots/redesign_desktop_dark.png` & `screenshots/redesign_desktop_dark_scrolled.png`
+- **Desktop Light**: `screenshots/redesign_desktop_light.png` & `screenshots/redesign_desktop_light_scrolled.png`
+- **Mobile Dark (390×844)**: `screenshots/redesign_mobile_dark.png`
+- **Mobile Light (390×844)**: `screenshots/redesign_mobile_light.png`
+
+---
+
+## 6. How to Preview & Test
+
+### Option 1: Browser (Direct Link)
 ```powershell
 start web-dashboard/redesign.html
 # or
 start redesign.html
 ```
 
-### Option B: Local HTTP Server
-```powershell
-npx serve web-dashboard
-# Open http://localhost:3000/redesign.html
-```
-
-### Option C: Vercel Preview
-When pushed, Vercel automatically deploys the branch:
-- Production URL: `https://<your-project>.vercel.app/` (serves `index.html`)
-- Redesign Preview URL: `https://<your-project>.vercel.app/redesign` (serves `redesign.html`)
+### Option 2: Local HTTP Server (Already Running on Port 3000)
+Open in your browser:
+**`http://localhost:3000/redesign.html`**
 
 ---
 
-## 4. How to Merge (When You Approve)
+## 7. How to Merge to Production (When You Approve)
 
-When you are satisfied with the redesign and want to promote it to the default dashboard:
+When you are satisfied with the redesign and want to replace `index.html`:
 
 ```powershell
-# 1. Overwrite production files with the redesign
-cp web-dashboard/redesign.html web-dashboard/index.html
-cp redesign.html dashboard.html
-
-# 2. Commit and push on redesign branch
-git add web-dashboard/index.html dashboard.html
-git commit -m "feat(dashboard): promote minimalist brand-grade redesign to production"
-git push origin redesign
-
-# 3. Merge into main
 git checkout main
-git merge redesign
+Copy-Item web-dashboard/redesign.html web-dashboard/index.html -Force
+Copy-Item redesign.html dashboard.html -Force
+git commit -am "feat: promote luxury minimalist redesign to production dashboard"
 git push origin main
 ```
