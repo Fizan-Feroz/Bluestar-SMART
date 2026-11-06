@@ -4040,10 +4040,13 @@ html.modal-open body {
         sendCommand({ light: state.light === 1 ? 0 : 1 });
       } else if (featKey === 'c1') {
         if (state.c1Mode === 1) {
-          sendCommand({ c1Mode: 0, turbo: 0 });
+          playAudio('click');
+          showToast("C1 Full Load Mode cancelled", "info");
+          sendCommand({ c1Mode: 0 });
         } else {
-          if (!perms.isPowerOn) return;
-          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
+          playAudio('beep');
+          showToast("Starting C1 Sequence: Setting 17°C High Fan, waiting, then pulsing HC...", "info");
+          sendCommand({ c1Mode: 1 });
         }
       }
     }

@@ -80,6 +80,21 @@ bool displayLight = true;
 bool buzzerMute = false;
 bool filterAlert = false;
 bool c1ModeActive = false;
+enum C1SequenceStep {
+  C1_SEQ_IDLE = 0,
+  C1_SEQ_WAIT_SETTLE,
+  C1_SEQ_HC_PULSE,
+  C1_SEQ_DONE
+};
+C1SequenceStep c1SeqStep = C1_SEQ_IDLE;
+uint32_t c1SeqTimer = 0;
+int c1PulseCount = 0;
+const int C1_TOTAL_PULSES = 12; // Alternating 3 and 0 for 6 complete HC cycles
+
+void startC1Sequence();
+void cancelC1Sequence();
+void processC1Sequence();
+
 float roomTemp = 0.0;
 float acRunHours = 0.0;
 float compRunHours = 0.0;
@@ -463,6 +478,90 @@ void processTxQueue() {
   }
 }
 
+// ==================== C1 FULL LOAD SEQUENCE STATE MACHINE ====================
+void startC1Sequence() {
+  dbgPrintln("\n[C1] ==================================================");
+  dbgPrintln("[C1] Starting C1 Full Load Sequence");
+  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan...");
+  dbgPrintln("[C1] ==================================================");
+
+  c1ModeActive = true;
+  acPower = true;
+  acMode = 2; // Cool
+  targetTemp = 17.0f;
+  acFan = 4; // High
+  turboCool = false;
+
+  // Clear any existing pending commands
+  txQueue.clear();
+
+  // Step 1: Set 17C and High Fan
+  sendBlueStarRecord("01", "1");   // Power ON
+  sendBlueStarRecord("03", "2");   // Mode = Cool
+  sendBlueStarRecord("02", "0AA"); // Setpoint = 17C
+  sendBlueStarRecord("04", "4");   // Fan = High
+
+  c1SeqStep = C1_SEQ_WAIT_SETTLE;
+  c1SeqTimer = millis();
+  c1PulseCount = 0;
+  publishState(true);
+}
+
+void cancelC1Sequence() {
+  if (c1SeqStep != C1_SEQ_IDLE) {
+    dbgPrintln("[C1] Sequence cancelled.");
+    c1SeqStep = C1_SEQ_IDLE;
+  }
+  c1ModeActive = false;
+  turboCool = false;
+  sendBlueStarRecord("07", "0");
+  publishState(true);
+}
+
+void processC1Sequence() {
+  if (c1SeqStep == C1_SEQ_IDLE || c1SeqStep == C1_SEQ_DONE) return;
+
+  uint32_t now = millis();
+
+  if (c1SeqStep == C1_SEQ_WAIT_SETTLE) {
+    // Step 2: WAIT
+    // Ensure all 4 setting frames have been transmitted over UART first
+    if (!txQueue.empty()) {
+      c1SeqTimer = now;
+      return;
+    }
+    // Now wait a full 3 seconds for AC MCU to process and settle in Cool 17C High Fan
+    if (now - c1SeqTimer >= 3000) {
+      dbgPrintln("\n[C1] Step 2: Settings settled at 17C High Fan!");
+      dbgPrintln("[C1] Step 3: Starting HC cycle (Pulsing Turbo 6x within 10s)...");
+      c1SeqStep = C1_SEQ_HC_PULSE;
+      c1PulseCount = 0;
+      c1SeqTimer = now;
+    }
+  }
+  else if (c1SeqStep == C1_SEQ_HC_PULSE) {
+    // Step 3: HC cycle - pulse every 500ms
+    if (now - c1SeqTimer >= 500 && txQueue.empty()) {
+      c1SeqTimer = now;
+      c1PulseCount++;
+      // Odd pulse -> 3 (Turbo ON / "HC"), Even pulse -> 0 (Turbo OFF)
+      bool turboOn = (c1PulseCount % 2 != 0);
+      dbgPrintf("[C1] HC Pulse %d/%d -> Turbo Key 07 = %s\n",
+                c1PulseCount, C1_TOTAL_PULSES, turboOn ? "3 (HC)" : "0");
+      sendBlueStarRecord("07", turboOn ? "3" : "0");
+
+      if (c1PulseCount >= C1_TOTAL_PULSES) {
+        // Final pulse: ensure Turbo locked ON
+        sendBlueStarRecord("07", "3");
+        turboCool = true;
+        c1SeqStep = C1_SEQ_DONE;
+        dbgPrintln("[C1] HC pulse cycle complete! C1 Full Load Mode active (Indoor Display: C1)");
+        publishState(true);
+      }
+    }
+  }
+}
+
 // ==================== 5. MQTT CALLBACK (INCOMING COMMANDS FROM VERCEL) ====================
 void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   char jsonBuf[512];
@@ -477,14 +576,26 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   DeserializationError err = deserializeJson(doc, jsonBuf);
   if (err) return;
 
-  // Power OFF handling: if turning off, clear any pending TX queue and send power=0 immediately
+  // Power OFF handling: if turning off, clear any pending TX queue and cancel C1
   if (doc.containsKey("power") && doc["power"] == 0) {
+    cancelC1Sequence();
     acPower = false;
-    c1ModeActive = false;
     txQueue.clear();
     sendBlueStarRecord("01", "0");
     publishState(true);
     return;
+  }
+
+  // C1 Mode command takes top priority
+  if (doc.containsKey("c1Mode")) {
+    int c1 = doc["c1Mode"];
+    if (c1 == 1) {
+      startC1Sequence();
+      return;
+    } else {
+      cancelC1Sequence();
+      return;
+    }
   }
 
   // Power ON
@@ -570,31 +681,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     sendBlueStarRecord("07", turboCool ? "3" : "0");
   }
 
-  // C1 Mode (Full Load Test Mode: Cool 17°C, High Fan, 6x Turbo pulses)
-  if (doc.containsKey("c1Mode")) {
-    int c1 = doc["c1Mode"];
-    if (c1 == 1) {
-      c1ModeActive = true;
-      acPower = true;
-      sendBlueStarRecord("01", "1");
-      acMode = 2;
-      sendBlueStarRecord("03", "2");
-      targetTemp = 17.0f;
-      sendBlueStarRecord("02", "0AA");
-      acFan = 4;
-      sendBlueStarRecord("04", "4");
-      for (int i = 0; i < 6; i++) {
-        sendBlueStarRecord("07", "3");
-        sendBlueStarRecord("07", "0");
-      }
-      turboCool = true;
-      sendBlueStarRecord("07", "3");
-    } else {
-      c1ModeActive = false;
-      turboCool = false;
-      sendBlueStarRecord("07", "0");
-    }
-  }
+
 
   // Sleep
   if (doc.containsKey("sleep")) {
@@ -668,22 +755,8 @@ void processTelnet() {
       telnetClient.println("\n[CMD] Sending Heartbeat...");
       queueTuyaFrame(CMD_HEARTBEAT);
     } else if (c == 'c' || c == 'C') {
-      telnetClient.println("\n[CMD] Triggering C1 Full Load Mode (Cool 17C, High Fan, 6x Turbo)...");
-      c1ModeActive = true;
-      acPower = true;
-      sendBlueStarRecord("01", "1");
-      sendBlueStarRecord("03", "2");
-      targetTemp = 17.0f;
-      sendBlueStarRecord("02", "0AA");
-      acFan = 4;
-      sendBlueStarRecord("04", "4");
-      for (int i = 0; i < 6; i++) {
-        sendBlueStarRecord("07", "3");
-        sendBlueStarRecord("07", "0");
-      }
-      turboCool = true;
-      sendBlueStarRecord("07", "3");
-      publishState(true);
+      telnetClient.println("\n[CMD] Triggering C1 Mode: Setting 17C & High Fan first, waiting 3s, then starting HC cycle...");
+      startC1Sequence();
     } else if (c == 'q' || c == 'Q') {
       telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 62)...");
       sendBlueStarRecord("24", "0");
@@ -744,6 +817,7 @@ void loop() {
 
   processIncomingSerial();
   processTxQueue();
+  processC1Sequence();
   processTelnet();
 
   // Rate-limited status publisher

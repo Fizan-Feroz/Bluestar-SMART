@@ -94,6 +94,21 @@ int acFan = 7;  // 7 = Auto
 int acVane = 6; // 6 = Off, 0 = Swing
 bool displayLight = true;
 bool c1Mode = false;
+enum C1SequenceStep {
+  C1_SEQ_IDLE = 0,
+  C1_SEQ_WAIT_SETTLE,
+  C1_SEQ_HC_PULSE,
+  C1_SEQ_DONE
+};
+C1SequenceStep c1SeqStep = C1_SEQ_IDLE;
+uint32_t c1SeqTimer = 0;
+int c1PulseCount = 0;
+const int C1_TOTAL_PULSES = 12; // 6 full HC cycles
+
+void startC1Sequence();
+void cancelC1Sequence();
+void processC1Sequence();
+
 float roomTemp = 0.0;
 long compressorHz = 0;
 float coilTemp = 0.0;
@@ -512,24 +527,8 @@ void processTelnet() {
     if (line.length() == 0) continue;
     char c = line[0];
     if (line.equalsIgnoreCase("c1")) {
-      telnetClient.println("\n[CMD] Triggering C1 Full Load Mode (Cool 17C, High Fan, 6x Turbo)...");
-      c1Mode = true;
-      acPower = true;
-      sendBlueStarRecord("01", "1");
-      sendBlueStarRecord("03", "2");
-      sendBlueStarRecord("02", "0AA");
-      sendBlueStarRecord("04", "4");
-      for (int i = 0; i < 6; i++) {
-        sendBlueStarRecord("07", "3");
-        sendBlueStarRecord("07", "0");
-      }
-      sendBlueStarRecord("07", "3");
-      Blynk.virtualWrite(V12, 1);
-      Blynk.virtualWrite(V0, 1);
-      Blynk.virtualWrite(V1, 17);
-      Blynk.virtualWrite(V2, 1);
-      Blynk.virtualWrite(V3, 4);
-      Blynk.virtualWrite(V10, 1);
+      telnetClient.println("\n[CMD] Triggering C1 Mode: Setting 17C & High Fan first, waiting 3s, then starting HC cycle...");
+      startC1Sequence();
     } else if (line.startsWith("c") || line.startsWith("C")) {
       String step = (line.length() > 1) ? line.substring(1) : "1";
       telnetClient.printf("\n[CMD] Sending Key 55 (Convertible Mode) = %s\n", step.c_str());
@@ -695,33 +694,94 @@ BLYNK_WRITE(V11) {
   sendBlueStarRecord("11", sleep ? "1" : "0");
 }
 
+// ==================== C1 FULL LOAD SEQUENCE STATE MACHINE ====================
+void startC1Sequence() {
+  dbgPrintln("\n[C1] ==================================================");
+  dbgPrintln("[C1] Starting C1 Full Load Sequence");
+  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan...");
+  dbgPrintln("[C1] ==================================================");
+
+  c1Mode = true;
+  acPower = true;
+  acMode = 2; // Cool
+  targetTemp = 17.0f;
+  acFan = 4; // High
+
+  txQueue.clear();
+
+  // Step 1: Set 17C and High Fan
+  sendBlueStarRecord("01", "1");   // Power ON
+  sendBlueStarRecord("03", "2");   // Mode = Cool
+  sendBlueStarRecord("02", "0AA"); // Setpoint = 17C
+  sendBlueStarRecord("04", "4");   // Fan = High
+
+  c1SeqStep = C1_SEQ_WAIT_SETTLE;
+  c1SeqTimer = millis();
+  c1PulseCount = 0;
+
+  Blynk.virtualWrite(V12, 1);
+  Blynk.virtualWrite(V0, 1);
+  Blynk.virtualWrite(V1, 17);
+  Blynk.virtualWrite(V2, 1); // Cool
+  Blynk.virtualWrite(V3, 4); // High
+}
+
+void cancelC1Sequence() {
+  if (c1SeqStep != C1_SEQ_IDLE) {
+    dbgPrintln("[C1] Sequence cancelled.");
+    c1SeqStep = C1_SEQ_IDLE;
+  }
+  c1Mode = false;
+  sendBlueStarRecord("07", "0");
+  Blynk.virtualWrite(V12, 0);
+  Blynk.virtualWrite(V10, 0);
+}
+
+void processC1Sequence() {
+  if (c1SeqStep == C1_SEQ_IDLE || c1SeqStep == C1_SEQ_DONE) return;
+
+  uint32_t now = millis();
+
+  if (c1SeqStep == C1_SEQ_WAIT_SETTLE) {
+    if (!txQueue.empty()) {
+      c1SeqTimer = now;
+      return;
+    }
+    if (now - c1SeqTimer >= 3000) {
+      dbgPrintln("\n[C1] Step 2: Settings settled at 17C High Fan!");
+      dbgPrintln("[C1] Step 3: Starting HC cycle (Pulsing Turbo 6x within 10s)...");
+      c1SeqStep = C1_SEQ_HC_PULSE;
+      c1PulseCount = 0;
+      c1SeqTimer = now;
+    }
+  }
+  else if (c1SeqStep == C1_SEQ_HC_PULSE) {
+    if (now - c1SeqTimer >= 500 && txQueue.empty()) {
+      c1SeqTimer = now;
+      c1PulseCount++;
+      bool turboOn = (c1PulseCount % 2 != 0);
+      dbgPrintf("[C1] HC Pulse %d/%d -> Turbo Key 07 = %s\n",
+                c1PulseCount, C1_TOTAL_PULSES, turboOn ? "3 (HC)" : "0");
+      sendBlueStarRecord("07", turboOn ? "3" : "0");
+
+      if (c1PulseCount >= C1_TOTAL_PULSES) {
+        sendBlueStarRecord("07", "3");
+        c1SeqStep = C1_SEQ_DONE;
+        dbgPrintln("[C1] HC pulse cycle complete! C1 Full Load Mode active (Indoor Display: C1)");
+        Blynk.virtualWrite(V10, 1);
+      }
+    }
+  }
+}
+
 // V12: C1 Mode (Full Load Test Mode: Cool 17°C, High Fan, 6x Turbo pulses)
 BLYNK_WRITE(V12) {
   bool active = (param.asInt() == 1);
   dbgPrintf("[Blynk] C1 Full Load Mode: %d\n", active ? 1 : 0);
   if (active) {
-    c1Mode = true;
-    acPower = true;
-    sendBlueStarRecord("01", "1");
-    sendBlueStarRecord("03", "2"); // Cool
-    sendBlueStarRecord("02", "0AA"); // 17C
-    sendBlueStarRecord("04", "4"); // High Fan
-    for (int i = 0; i < 6; i++) {
-      sendBlueStarRecord("07", "3");
-      sendBlueStarRecord("07", "0");
-    }
-    sendBlueStarRecord("07", "3");
-    Blynk.virtualWrite(V12, 1);
-    Blynk.virtualWrite(V0, 1);
-    Blynk.virtualWrite(V1, 17);
-    Blynk.virtualWrite(V2, 1); // Cool
-    Blynk.virtualWrite(V3, 4); // High
-    Blynk.virtualWrite(V10, 1); // Turbo
+    startC1Sequence();
   } else {
-    c1Mode = false;
-    sendBlueStarRecord("07", "0");
-    Blynk.virtualWrite(V12, 0);
-    Blynk.virtualWrite(V10, 0);
+    cancelC1Sequence();
   }
 }
 
@@ -820,5 +880,6 @@ void loop() {
   timer.run();
   processIncomingSerial();
   processTxQueue();
+  processC1Sequence();
   processTelnet();
 }
