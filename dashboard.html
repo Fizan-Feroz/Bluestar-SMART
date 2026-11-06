@@ -2,1287 +2,2878 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Blue Star Smart Climate — 3D Digital Twin</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230b74b8'/%3E%3Cpath d='M16 5l2.9 8.4 8.8.3-7 5.5 2.4 8.5L16 22.7l-7.1 5 2.4-8.5-7-5.5 8.8-.3z' fill='white'/%3E%3C/svg%3E">
+  <meta name="description" content="Live 3D digital twin and climate controls for the Blue Star IC318QNU inverter split AC.">
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Blue Star">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="theme-color" content="#060913">
+  <meta name="theme-color" content="#05080f">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 
   <!-- Typography -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  <!-- Core Libraries: Three.js & MQTT.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-
   <style>
-    :root {
-      --bg: #060913;
-      --surface-glass: rgba(14, 21, 37, 0.78);
-      --surface-glass-card: rgba(18, 27, 48, 0.75);
-      --surface-glass-btn: rgba(255, 255, 255, 0.06);
-      --border-glass: rgba(255, 255, 255, 0.09);
-      --border-active: rgba(56, 189, 248, 0.55);
-
-      --cool-primary: #0284c7;
-      --cool-glow: #38bdf8;
-      --cool-cyan: #00f0ff;
-      --emerald: #10b981;
-      --amber: #f59e0b;
-      --rose: #f43f5e;
-
-      --text-main: #f8fafc;
-      --text-muted: #94a3b8;
-      --text-dim: #64748b;
-
-      --radius-xl: 22px;
-      --radius-lg: 16px;
-      --radius-md: 12px;
-      --radius-sm: 8px;
-    }
-
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Plus Jakarta Sans', -apple-system, sans-serif;
-      -webkit-tap-highlight-color: transparent;
-      user-select: none;
-    }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text-main);
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    /* Ambient Background Light */
-    .bg-glow {
-      position: fixed;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      background:
-        radial-gradient(ellipse 70% 50% at 30% 20%, rgba(2, 132, 199, 0.16) 0%, transparent 70%),
-        radial-gradient(ellipse 60% 40% at 85% 75%, rgba(56, 189, 248, 0.09) 0%, transparent 60%);
-    }
-
-    /* Top Navigation Bar */
-    .top-nav {
-      position: relative;
-      z-index: 30;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 18px;
-      background: var(--surface-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border-bottom: 1px solid var(--border-glass);
-      flex-shrink: 0;
-    }
-
-    .brand-section {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .brand-badge {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 900;
-      font-size: 11px;
-      letter-spacing: 1.5px;
-      color: #fff;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      padding: 4px 9px;
-      border-radius: 6px;
-      box-shadow: 0 0 12px rgba(2, 132, 199, 0.4);
-    }
-
-    .brand-title-wrap {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .brand-title {
-      font-family: 'Outfit', sans-serif;
-      font-weight: 700;
-      font-size: 15px;
-      color: #fff;
-      line-height: 1.1;
-    }
-
-    .brand-subtitle {
-      font-size: 10px;
-      color: var(--text-muted);
-      font-weight: 500;
-    }
-
-    .nav-actions {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .connection-pill {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      font-weight: 600;
-      padding: 5px 10px;
-      border-radius: 20px;
-      background: rgba(244, 63, 94, 0.12);
-      color: var(--rose);
-      border: 1px solid rgba(244, 63, 94, 0.25);
-      transition: all 0.3s ease;
-      white-space: nowrap;
-    }
-
-    .connection-pill.connected {
-      background: rgba(16, 185, 129, 0.12);
-      color: var(--emerald);
-      border-color: rgba(16, 185, 129, 0.3);
-    }
-
-    .connection-pill.connecting {
-      background: rgba(245, 158, 11, 0.14);
-      color: var(--amber);
-      border-color: rgba(245, 158, 11, 0.35);
-    }
-
-    .pulse-dot {
-      width: 6px;
-      height: 6px;
-      border-radius: 50%;
-      background: currentColor;
-    }
-
-    .connection-pill.connected .pulse-dot {
-      box-shadow: 0 0 8px currentColor;
-      animation: pulseAnim 2s infinite;
-    }
-
-    @keyframes pulseAnim {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(1.2); }
-    }
-
-    .nav-btn {
-      width: 34px;
-      height: 34px;
-      border-radius: var(--radius-sm);
-      background: var(--surface-glass-btn);
-      border: 1px solid var(--border-glass);
-      color: var(--text-muted);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      flex-shrink: 0;
-    }
-
-    .nav-btn:hover {
-      background: rgba(255, 255, 255, 0.12);
-      color: #fff;
-    }
-
-    .nav-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: currentColor;
-    }
-
-    /* Main Responsive Viewport Grid */
-    .app-main {
-      position: relative;
-      z-index: 10;
-      flex: 1;
-      display: grid;
-      grid-template-columns: 1fr;
-      grid-template-rows: 42vh 1fr;
-      overflow: hidden;
-      height: calc(100vh - 55px);
-    }
-
-    @media (min-width: 960px) {
-      .app-main {
-        grid-template-columns: 1fr 410px;
-        grid-template-rows: 1fr;
-      }
-    }
-
-    /* 3D Showcase Arena */
-    .viewport-3d-arena {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #canvas3d-container {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-      outline: none;
-      cursor: grab;
-    }
-
-    #canvas3d-container:active {
-      cursor: grabbing;
-    }
-
-    /* 3D Overlays */
-    .arena-top-bar {
-      position: relative;
-      z-index: 15;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 10px 14px;
-      pointer-events: none;
-    }
-
-    .camera-toolbar {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 4px 6px;
-      background: var(--surface-glass);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--border-glass);
-      border-radius: 20px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-      pointer-events: auto;
-    }
-
-    .cam-btn {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-      padding: 5px 9px;
-      border-radius: 14px;
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .cam-btn:hover { color: #fff; }
-
-    .cam-btn.active {
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.4), rgba(56, 189, 248, 0.25));
-      border-color: rgba(56, 189, 248, 0.5);
-      color: var(--cool-glow);
-    }
-
-    .hint-chip {
-      font-size: 10px;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: rgba(255, 255, 255, 0.45);
-      background: rgba(0, 0, 0, 0.35);
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      pointer-events: none;
-    }
-
-    @media (max-width: 600px) {
-      .hint-chip { display: none; }
-    }
-
-    /* Bottom 3D Telemetry Strip */
-    .arena-bottom-telemetry {
-      position: absolute;
-      bottom: 10px;
-      left: 12px;
-      right: 12px;
-      z-index: 15;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 6px;
-      pointer-events: auto;
-    }
-
-    .tel-pill {
-      background: var(--surface-glass);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 6px 8px;
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-      min-width: 0;
-    }
-
-    .tel-lbl {
-      font-size: 8.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.4px;
-      color: var(--text-dim);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .tel-val {
-      font-family: 'Outfit', sans-serif;
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      line-height: 1;
-      white-space: nowrap;
-    }
-
-    .tel-val.glow-cyan { color: var(--cool-cyan); }
-    .tel-val.glow-emerald { color: var(--emerald); }
-
-    /* Right/Bottom Control Deck Sidebar */
-    .control-deck-panel {
-      position: relative;
-      z-index: 20;
-      background: var(--surface-glass);
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      border-top: 1px solid var(--border-glass);
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    /* PREVENT FLEX COLLAPSING ON CARDS */
-    .control-deck-panel > * {
-      flex-shrink: 0;
-    }
-
-    @media (min-width: 960px) {
-      .control-deck-panel {
-        border-top: none;
-        border-left: 1px solid var(--border-glass);
-        padding: 18px;
-        box-shadow: -10px 0 35px rgba(0, 0, 0, 0.4);
-      }
-    }
-
-    /* Primary Hero Dial Card */
-    .hero-thermostat {
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-lg);
-      padding: 14px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-      min-height: 250px;
-      width: 100%;
-    }
-
-    .hero-top-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      width: 100%;
-      margin-bottom: 2px;
-    }
-
-    .power-btn {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 6px 14px;
-      border-radius: 24px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: var(--text-muted);
-      font-size: 11px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: all 0.25s ease;
-    }
-
-    .power-btn .power-icon {
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      border: 2px solid currentColor;
-      position: relative;
-    }
-
-    .power-btn .power-icon::after {
-      content: '';
-      position: absolute;
-      top: -3px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 2px;
-      height: 5px;
-      background: currentColor;
-    }
-
-    .power-btn.on {
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border-color: #38bdf8;
-      color: #fff;
-      box-shadow: 0 0 18px rgba(56, 189, 248, 0.45);
-    }
-
-    .ambient-pill {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-    }
-
-    .ambient-lbl {
-      font-size: 9px;
-      font-weight: 600;
-      color: var(--text-dim);
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-    }
-
-    .ambient-val {
-      font-family: 'Outfit', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: var(--cool-glow);
-      line-height: 1.1;
-    }
-
-    /* Dial & Center Info */
-    .dial-stage {
-      position: relative;
-      width: 150px;
-      height: 150px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      margin: 4px 0 6px;
-      flex-shrink: 0;
-    }
-
-    .dial-svg {
-      position: absolute;
-      width: 100%;
-      height: 100%;
-      transform: rotate(-90deg);
-      pointer-events: none;
-    }
-
-    .dial-track {
-      stroke: rgba(255, 255, 255, 0.06);
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-    }
-
-    .dial-progress {
-      stroke: var(--cool-glow);
-      fill: none;
-      stroke-width: 8;
-      stroke-linecap: round;
-      stroke-dasharray: 410;
-      stroke-dashoffset: 205;
-      transition: stroke-dashoffset 0.4s ease, stroke 0.4s ease;
-    }
-
-    .dial-center-info {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      z-index: 2;
-    }
-
-    .temp-readout {
-      font-family: 'Outfit', sans-serif;
-      font-size: 48px;
-      font-weight: 800;
-      line-height: 0.95;
-      letter-spacing: -2px;
-      color: #fff;
-      display: flex;
-      align-items: flex-start;
-    }
-
-    .temp-deg {
-      font-size: 20px;
-      font-weight: 600;
-      color: var(--cool-glow);
-      margin-left: 2px;
-      margin-top: 3px;
-    }
-
-    .climate-delta-badge {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      margin-top: 3px;
-      padding: 2px 7px;
-      border-radius: 12px;
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-    }
-
-    .stepper-row {
-      display: flex;
-      align-items: center;
-      gap: 24px;
-    }
-
-    .step-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 50%;
-      border: 1px solid var(--border-glass);
-      background: var(--surface-glass-btn);
-      color: #fff;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .step-btn:hover {
-      background: rgba(56, 189, 248, 0.2);
-      border-color: rgba(56, 189, 248, 0.45);
-      transform: scale(1.05);
-    }
-
-    .step-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: currentColor;
-    }
-
-    /* Section Headers */
-    .section-title-wrap {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 5px;
-    }
-
-    .section-title {
-      font-size: 9.5px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.6px;
-      color: var(--text-dim);
-    }
-
-    .section-badge {
-      font-size: 9.5px;
-      font-weight: 600;
-      color: var(--cool-glow);
-    }
-
-    /* Segmented Controls (Grid of Buttons) */
-    .seg-group {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 5px;
-      background: rgba(0, 0, 0, 0.28);
-      padding: 4px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-glass);
-    }
-
-    .seg-group.cols-6 { grid-template-columns: repeat(6, 1fr); }
-    .seg-group.cols-5 { grid-template-columns: repeat(5, 1fr); }
-
-    .seg-btn {
-      padding: 8px 2px;
-      border-radius: var(--radius-sm);
-      border: 1px solid transparent;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 10.5px;
-      font-weight: 600;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 3px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      white-space: nowrap;
-    }
-
-    .seg-btn svg {
-      width: 14px;
-      height: 14px;
-      fill: currentColor;
-    }
-
-    .seg-btn:hover {
-      color: #fff;
-      background: rgba(255, 255, 255, 0.05);
-    }
-
-    .seg-btn.active {
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.35) 0%, rgba(56, 189, 248, 0.2) 100%);
-      color: #fff;
-      border-color: rgba(56, 189, 248, 0.45);
-      box-shadow: 0 0 10px rgba(56, 189, 248, 0.25);
-    }
-
-    /* Smart Features 2x2 Grid */
-    .feature-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 6px;
-    }
-
-    .feature-card {
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      border-radius: var(--radius-sm);
-      padding: 9px 10px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-
-    .feature-card:hover {
-      background: rgba(255, 255, 255, 0.07);
-    }
-
-    .feature-card.on {
-      border-color: rgba(56, 189, 248, 0.5);
-      background: linear-gradient(135deg, rgba(2, 132, 199, 0.25) 0%, rgba(14, 21, 37, 0.8) 100%);
-    }
-
-    .feature-info {
-      display: flex;
-      align-items: center;
-      gap: 7px;
-    }
-
-    .feature-icon-box {
-      width: 24px;
-      height: 24px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.05);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-muted);
-    }
-
-    .feature-card.on .feature-icon-box {
-      background: rgba(56, 189, 248, 0.2);
-      color: var(--cool-glow);
-    }
-
-    .feature-icon-box svg {
-      width: 13px;
-      height: 13px;
-      fill: currentColor;
-    }
-
-    .feature-name {
-      font-size: 11px;
-      font-weight: 600;
-      color: #fff;
-    }
-
-    .toggle-pill {
-      width: 28px;
-      height: 15px;
-      border-radius: 15px;
-      background: rgba(255, 255, 255, 0.1);
-      position: relative;
-      transition: background 0.25s ease;
-    }
-
-    .toggle-pill::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 11px;
-      height: 11px;
-      border-radius: 50%;
-      background: #fff;
-      transition: transform 0.25s ease;
-    }
-
-    .feature-card.on .toggle-pill {
-      background: var(--cool-glow);
-    }
-
-    .feature-card.on .toggle-pill::after {
-      transform: translateX(13px);
-    }
-
-    /* Modal Styling */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(16px);
-      -webkit-backdrop-filter: blur(16px);
-      z-index: 100;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 16px;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-
-    .modal-backdrop.open {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    .modal-sheet {
-      background: #0f172a;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      border-radius: var(--radius-lg);
-      padding: 20px;
-      max-width: 400px;
-      width: 100%;
-      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
-      display: flex;
-      flex-direction: column;
-      gap: 14px;
-    }
-
-    .modal-title {
-      font-family: 'Outfit', sans-serif;
-      font-size: 16px;
-      font-weight: 700;
-      color: #fff;
-    }
-
-    .form-group {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
-    }
-
-    .form-label {
-      font-size: 10px;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .form-input {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-glass);
-      border-radius: 6px;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 12px;
-      outline: none;
-    }
-
-    .btn-row {
-      display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .btn-secondary {
-      padding: 8px 14px;
-      border-radius: 6px;
-      background: rgba(255, 255, 255, 0.08);
-      border: 1px solid var(--border-glass);
-      color: var(--text-muted);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    .btn-primary {
-      padding: 8px 16px;
-      border-radius: 6px;
-      background: linear-gradient(135deg, #0284c7 0%, #0369a1 100%);
-      border: none;
-      color: #fff;
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-    }
-
-    /* Device PIN Lock Screen Overlay */
-    .lock-overlay {
-      position: fixed;
-      inset: 0;
-      background: radial-gradient(circle at 50% 30%, rgba(14, 21, 37, 0.95) 0%, rgba(6, 9, 19, 0.98) 85%);
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 24px;
-      z-index: 1000;
-      backdrop-filter: blur(28px);
-      -webkit-backdrop-filter: blur(28px);
-      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1), transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      pointer-events: auto;
-    }
-    .lock-overlay.unlocked {
-      opacity: 0;
-      pointer-events: none;
-      transform: scale(1.05);
-    }
-    .lock-box {
-      max-width: 320px;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 16px;
-    }
-    .lock-shield {
-      width: 60px;
-      height: 60px;
-      border-radius: 50%;
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--cool-glow);
-      box-shadow: 0 0 25px rgba(56, 189, 248, 0.3);
-    }
-    .lock-shield svg { width: 30px; height: 30px; fill: currentColor; }
-    .lock-heading {
-      font-family: 'Outfit', sans-serif;
-      font-size: 20px;
-      font-weight: 700;
-      color: #fff;
-      text-align: center;
-      letter-spacing: -0.3px;
-    }
-    .lock-desc {
-      font-size: 12px;
-      color: var(--text-muted);
-      text-align: center;
-      margin-top: -8px;
-    }
-    .pin-display {
-      display: flex;
-      gap: 16px;
-      margin: 8px 0;
-    }
-    .pin-dot {
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      border: 2px solid var(--border-active);
-      background: transparent;
-      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-    }
-    .pin-dot.filled {
-      background: var(--cool-glow);
-      box-shadow: 0 0 12px var(--cool-glow);
-      transform: scale(1.15);
-    }
-    .pin-dot.error {
-      background: var(--rose);
-      border-color: var(--rose);
-      box-shadow: 0 0 12px var(--rose);
-    }
-    .pin-keypad {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-      width: 100%;
-    }
-    .pad-key {
-      aspect-ratio: 1;
-      border-radius: 50%;
-      background: var(--surface-glass-card);
-      border: 1px solid var(--border-glass);
-      color: #fff;
-      font-family: 'Outfit', sans-serif;
-      font-size: 22px;
-      font-weight: 600;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all 0.15s ease;
-      touch-action: manipulation;
-    }
-    .pad-key:active {
-      transform: scale(0.92);
-      background: rgba(56, 189, 248, 0.2);
-      border-color: var(--cool-glow);
-    }
-    .pad-key.util {
-      font-size: 13px;
-      font-weight: 500;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-    }
-    .pad-key.util:active {
-      color: #fff;
-    }
-    .remember-toggle {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: var(--text-muted);
-      cursor: pointer;
-      margin-top: 4px;
-    }
-    .remember-toggle input {
-      accent-color: var(--cool-primary);
-      width: 15px;
-      height: 15px;
-      cursor: pointer;
-    }
-    .shake {
-      animation: shake 0.35s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
-    }
-    @keyframes shake {
-      10%, 90% { transform: translate3d(-2px, 0, 0); }
-      20%, 80% { transform: translate3d(4px, 0, 0); }
-      30%, 50%, 70% { transform: translate3d(-6px, 0, 0); }
-      40%, 60% { transform: translate3d(6px, 0, 0); }
-    }
+:root {
+  color-scheme: dark;
+
+  --bg: #05080f;
+  --bg-deep: #03060c;
+  --bg-soft: #08111d;
+  --surface: rgba(12, 20, 34, 0.82);
+  --surface-card: rgba(17, 28, 46, 0.72);
+  --surface-raised: rgba(255, 255, 255, 0.045);
+  --surface-hover: rgba(255, 255, 255, 0.075);
+
+  --line: rgba(255, 255, 255, 0.08);
+  --line-strong: rgba(255, 255, 255, 0.14);
+  --line-accent: rgba(56, 189, 248, 0.36);
+
+  --text: #f4f8fc;
+  --text-soft: #c8d5e4;
+  --muted: #94a6bb;
+  --dim: #7a8da2;
+  --faint: #6b7e93;
+
+  --accent: #38bdf8;
+  --accent-strong: #0ea5e9;
+  --accent-deep: #0369a1;
+  --cyan: #7de9ff;
+  --mint: #34d399;
+  --amber: #fbbf24;
+  --rose: #fb7185;
+
+  --font-display: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+
+  --radius-2xl: 26px;
+  --radius-xl: 20px;
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 9px;
+
+  --nav-height: 68px;
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --shadow-card: 0 20px 60px rgba(0, 0, 0, 0.38);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  background: var(--bg);
+}
+
+body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  width: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  -webkit-tap-highlight-color: transparent;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  border: 0;
+  background: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+button,
+[onclick] {
+  touch-action: manipulation;
+}
+
+::selection {
+  background: rgba(56, 189, 248, 0.28);
+  color: #fff;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* ------------------------------------------------------------------
+   Ambient background
+   ------------------------------------------------------------------ */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  background:
+    radial-gradient(120% 80% at 18% -10%, rgba(8, 62, 102, 0.38) 0%, transparent 55%),
+    radial-gradient(90% 65% at 92% 110%, rgba(3, 105, 161, 0.2) 0%, transparent 60%),
+    linear-gradient(180deg, #05080f 0%, #04070d 100%);
+}
+
+.ambient-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(4px);
+  opacity: 0.9;
+}
+
+.orb-a {
+  width: 58vw;
+  height: 58vw;
+  max-width: 820px;
+  max-height: 820px;
+  left: -18vw;
+  top: -24vw;
+  background: radial-gradient(circle, rgba(14, 116, 165, 0.16) 0%, transparent 68%);
+}
+
+.orb-b {
+  width: 44vw;
+  height: 44vw;
+  max-width: 620px;
+  max-height: 620px;
+  right: -12vw;
+  bottom: -16vw;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.09) 0%, transparent 70%);
+}
+
+.ambient-grid {
+  position: absolute;
+  inset: 0;
+  opacity: 0.28;
+  background-image:
+    linear-gradient(rgba(148, 166, 187, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 166, 187, 0.045) 1px, transparent 1px);
+  background-size: 72px 72px;
+  mask-image: radial-gradient(ellipse 70% 65% at 45% 30%, #000 0%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 65% at 45% 30%, #000 0%, transparent 78%);
+}
+
+/* ------------------------------------------------------------------
+   Top navigation
+   ------------------------------------------------------------------ */
+.top-nav {
+  position: relative;
+  z-index: 40;
+  flex: 0 0 auto;
+  height: var(--nav-height);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding:
+    env(safe-area-inset-top, 0px)
+    calc(20px + var(--safe-right))
+    0
+    calc(22px + var(--safe-left));
+  background: linear-gradient(180deg, rgba(9, 16, 28, 0.92) 0%, rgba(8, 14, 24, 0.78) 100%);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(22px) saturate(130%);
+  -webkit-backdrop-filter: blur(22px) saturate(130%);
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.brand-mark {
+  position: relative;
+  flex: 0 0 auto;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background:
+    radial-gradient(90% 90% at 30% 12%, rgba(125, 233, 255, 0.55) 0%, transparent 45%),
+    linear-gradient(145deg, #0b74b8 0%, #07538b 48%, #05345c 100%);
+  border: 1px solid rgba(148, 220, 255, 0.34);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    0 8px 22px rgba(3, 105, 161, 0.3);
+}
+
+.brand-mark::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.brand-mark svg {
+  position: relative;
+  z-index: 1;
+  width: 19px;
+  height: 19px;
+  fill: currentColor;
+  filter: drop-shadow(0 0 8px rgba(125, 233, 255, 0.5));
+}
+
+.brand-title-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  gap: 1px;
+}
+
+.brand-eyebrow {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #6fc9ec;
+  line-height: 1.2;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.015em;
+  color: var(--text);
+  line-height: 1.16;
+  white-space: nowrap;
+}
+
+.brand-subtitle {
+  font-size: 10.5px;
+  font-weight: 500;
+  color: var(--dim);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 0 0 auto;
+}
+
+.device-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  color: var(--dim);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.device-chip-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.8);
+}
+
+.connection-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 32px;
+  min-width: 92px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(251, 113, 133, 0.26);
+  background: rgba(251, 113, 133, 0.1);
+  color: var(--rose);
+  font-size: 10.5px;
+  font-weight: 650;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.connection-pill:hover {
+  transform: translateY(-1px);
+  background: rgba(251, 113, 133, 0.15);
+}
+
+.connection-pill.connected {
+  background: rgba(52, 211, 153, 0.1);
+  border-color: rgba(52, 211, 153, 0.3);
+  color: var(--mint);
+}
+
+.connection-pill.connecting {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.32);
+  color: var(--amber);
+}
+
+.pulse-dot {
+  flex: 0 0 auto;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.connection-pill.connected .pulse-dot {
+  box-shadow: 0 0 9px currentColor;
+  animation: pulseAnim 2.4s ease-in-out infinite;
+}
+
+@keyframes pulseAnim {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.78); }
+}
+
+.icon-btn {
+  width: 36px;
+  height: 36px;
+  flex: 0 0 auto;
+  border-radius: 11px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.icon-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--line-strong);
+  color: #fff;
+  transform: translateY(-1px);
+}
+
+.icon-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+#soundBtn[aria-pressed="true"] {
+  color: var(--cyan);
+}
+
+html.modal-open,
+html.modal-open body {
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------
+   App shell
+   ------------------------------------------------------------------ */
+.app-main {
+  position: relative;
+  z-index: 10;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) clamp(392px, 30vw, 432px);
+  overflow: hidden;
+}
+
+/* ------------------------------------------------------------------
+   3D stage
+   ------------------------------------------------------------------ */
+.viewport-3d-arena {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  isolation: isolate;
+  background: transparent;
+}
+
+.stage-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(105% 82% at 50% 11%, rgba(18, 68, 101, 0.3) 0%, transparent 55%),
+    radial-gradient(58% 48% at 52% 58%, rgba(12, 60, 94, 0.22) 0%, transparent 72%),
+    linear-gradient(180deg, rgba(4, 9, 16, 0) 0%, rgba(3, 7, 13, 0.55) 100%);
+}
+
+.stage-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 72% 72% at 50% 46%, transparent 42%, rgba(3, 6, 12, 0.5) 100%);
+}
+
+.viewport-3d-arena::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 88% 72% at 50% 43%, transparent 38%, rgba(3, 7, 13, 0.5) 100%),
+    linear-gradient(180deg, transparent 64%, rgba(3, 7, 13, 0.5) 100%);
+}
+
+#canvas3d-container {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  width: 100%;
+  height: 100%;
+  outline: none;
+  cursor: grab;
+  touch-action: none;
+}
+
+#canvas3d-container:active {
+  cursor: grabbing;
+}
+
+#canvas3d-container canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.arena-top-bar {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  pointer-events: none;
+}
+
+.camera-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 4px;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: rgba(8, 15, 26, 0.72);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+  pointer-events: auto;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.camera-toolbar::-webkit-scrollbar {
+  display: none;
+}
+
+.cam-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 11px;
+  border-radius: 10px;
+  border: 1px solid transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    color 180ms ease,
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.cam-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.cam-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.055);
+}
+
+.cam-btn.active {
+  color: #eaf9ff;
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.18) 0%, rgba(14, 165, 233, 0.08) 100%);
+  border-color: rgba(56, 189, 248, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09);
+}
+
+.cam-btn.active svg {
+  stroke: var(--cyan);
+}
+
+.hint-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(3, 8, 15, 0.5);
+  color: rgba(200, 213, 228, 0.52);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+.hint-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 6px rgba(56, 189, 248, 0.8);
+}
+
+.hint-sep {
+  color: var(--faint);
+}
+
+/* Bottom telemetry dock */
+.arena-bottom-telemetry {
+  position: absolute;
+  z-index: 6;
+  left: 20px;
+  right: 20px;
+  bottom: 18px;
+  display: flex;
+  justify-content: flex-start;
+  pointer-events: none;
+}
+
+.telemetry-dock {
+  width: min(100%, 620px);
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 5px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: rgba(7, 13, 23, 0.72);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(20px) saturate(130%);
+  -webkit-backdrop-filter: blur(20px) saturate(130%);
+  pointer-events: auto;
+}
+
+.tel-pill {
+  position: relative;
+  min-width: 0;
+  padding: 9px 14px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.tel-pill + .tel-pill::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  bottom: 10px;
+  width: 1px;
+  background: var(--line);
+}
+
+.tel-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--dim);
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tel-lbl svg {
+  width: 11px;
+  height: 11px;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  opacity: 0.72;
+}
+
+.tel-short {
+  display: none;
+}
+
+.tel-val {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tel-val.glow-cyan { color: var(--cyan); }
+.tel-val.glow-emerald { color: var(--mint); }
+
+/* Model loading state */
+.model-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: rgba(4, 8, 15, 0.2);
+  opacity: 1;
+  visibility: visible;
+  transition: opacity 420ms ease, visibility 420ms ease;
+  pointer-events: none;
+}
+
+.model-loader.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loader-ring {
+  width: 15px;
+  height: 15px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(56, 189, 248, 0.18);
+  border-top-color: var(--accent);
+  animation: spin 0.85s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ------------------------------------------------------------------
+   Control deck
+   ------------------------------------------------------------------ */
+.control-deck-panel {
+  position: relative;
+  z-index: 20;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 20px calc(16px + var(--safe-bottom));
+  border-left: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(10, 17, 29, 0.88) 0%, rgba(7, 12, 21, 0.94) 100%);
+  box-shadow: -22px 0 60px rgba(0, 0, 0, 0.22);
+  backdrop-filter: blur(26px) saturate(120%);
+  -webkit-backdrop-filter: blur(26px) saturate(120%);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 166, 187, 0.22) transparent;
+}
+
+.control-deck-panel::-webkit-scrollbar {
+  width: 5px;
+}
+
+.control-deck-panel::-webkit-scrollbar-thumb {
+  background: rgba(148, 166, 187, 0.22);
+  border-radius: 999px;
+}
+
+.control-deck-panel > * {
+  flex-shrink: 0;
+}
+
+.hero-thermostat {
+  position: relative;
+  width: 100%;
+  padding: 13px 14px 12px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  background:
+    radial-gradient(125% 110% at 50% 0%, rgba(40, 102, 138, 0.22) 0%, transparent 52%),
+    linear-gradient(160deg, rgba(20, 33, 53, 0.88) 0%, rgba(11, 19, 32, 0.9) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 18px 44px rgba(0, 0, 0, 0.22);
+  transition: opacity 300ms ease, border-color 300ms ease;
+}
+
+.hero-thermostat::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(70% 48% at 50% 28%, rgba(56, 189, 248, 0.07) 0%, transparent 100%);
+}
+
+.hero-top-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.power-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  padding: 0 13px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-size: 10.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 200ms ease,
+    border-color 200ms ease,
+    color 200ms ease,
+    box-shadow 200ms ease;
+}
+
+.power-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.075);
+}
+
+.power-icon {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  border: 1.6px solid currentColor;
+}
+
+.power-icon::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -3.5px;
+  width: 1.6px;
+  height: 5px;
+  border-radius: 2px;
+  background: currentColor;
+  transform: translateX(-50%);
+}
+
+.power-btn.on {
+  color: #ecfaff;
+  border-color: rgba(56, 189, 248, 0.42);
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.12) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.13),
+    0 0 22px rgba(14, 165, 233, 0.12);
+}
+
+.power-btn.on .power-icon {
+  color: var(--cyan);
+  filter: drop-shadow(0 0 5px rgba(125, 233, 255, 0.6));
+}
+
+.ambient-pill {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  padding-top: 2px;
+}
+
+.ambient-lbl {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.ambient-val {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-soft);
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+}
+
+.dial-stage {
+  position: relative;
+  width: 168px;
+  height: 168px;
+  margin: 2px auto 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dial-halo {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(56, 189, 248, 0.095) 0%, rgba(56, 189, 248, 0.02) 48%, transparent 70%);
+  filter: blur(2px);
+}
+
+.dial-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+  pointer-events: none;
+  overflow: visible;
+}
+
+.dial-track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.055);
+  stroke-width: 8;
+  stroke-linecap: round;
+}
+
+.dial-ticks {
+  fill: none;
+  stroke: rgba(148, 166, 187, 0.15);
+  stroke-width: 2;
+  stroke-dasharray: 1 12.25;
+}
+
+.dial-progress {
+  fill: none;
+  stroke: url(#dialGradient);
+  stroke-width: 8;
+  stroke-linecap: round;
+  stroke-dasharray: 452.39;
+  stroke-dashoffset: 452.39;
+  filter: drop-shadow(0 0 5px rgba(56, 189, 248, 0.32));
+  transition: stroke-dashoffset 500ms var(--ease-out);
+}
+
+.dial-center-info {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.dial-label {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--dim);
+}
+
+.temp-readout {
+  display: flex;
+  align-items: flex-start;
+  font-family: var(--font-display);
+  font-size: 51px;
+  font-weight: 650;
+  letter-spacing: -0.055em;
+  line-height: 0.98;
+  color: #fff;
+  font-variant-numeric: tabular-nums;
+}
+
+.temp-deg {
+  margin: 6px 0 0 3px;
+  font-size: 20px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--cyan);
+}
+
+.climate-delta-badge {
+  max-width: 150px;
+  margin-top: 2px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.stepper-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+}
+
+.step-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.045);
+  color: var(--text-soft);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    transform 180ms ease;
+}
+
+.step-btn:hover {
+  color: #fff;
+  border-color: var(--line-accent);
+  background: rgba(56, 189, 248, 0.1);
+}
+
+.step-btn:active {
+  transform: scale(0.94);
+}
+
+.step-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.temp-range {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--faint);
+  font-size: 8.5px;
+  font-weight: 650;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.temp-range-line {
+  width: 46px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(148, 166, 187, 0.24), transparent);
+}
+
+/* Sections */
+.deck-section {
+  position: relative;
+  width: 100%;
+}
+
+.deck-section + .deck-section,
+.deck-footer {
+  border-top: 1px solid var(--line);
+  padding-top: 11px;
+}
+
+.section-title-wrap {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.section-title {
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.section-badge {
+  color: var(--accent);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Segmented controls */
+.seg-group {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 3px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(2, 6, 12, 0.32);
+}
+
+.seg-group.cols-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.seg-group.cols-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+
+.seg-btn {
+  min-width: 0;
+  min-height: 34px;
+  padding: 7px 3px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.005em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background 170ms ease,
+    border-color 170ms ease,
+    color 170ms ease,
+    box-shadow 170ms ease;
+}
+
+.seg-btn svg {
+  width: 14px;
+  height: 14px;
+  fill: currentColor;
+  opacity: 0.86;
+}
+
+.seg-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.seg-btn.active {
+  color: #eefaff;
+  border-color: rgba(56, 189, 248, 0.3);
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.17) 0%, rgba(14, 165, 233, 0.055) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.seg-btn.active svg {
+  color: var(--cyan);
+  opacity: 1;
+}
+
+.seg-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Smart feature tiles */
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.feature-card {
+  width: 100%;
+  min-height: 44px;
+  padding: 7px 9px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.025);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--text);
+  cursor: pointer;
+  transition:
+    background 180ms ease,
+    border-color 180ms ease;
+}
+
+.feature-card:hover {
+  background: rgba(255, 255, 255, 0.055);
+  border-color: var(--line-strong);
+}
+
+.feature-card.on {
+  border-color: rgba(56, 189, 248, 0.28);
+  background:
+    linear-gradient(180deg, rgba(56, 189, 248, 0.09) 0%, rgba(14, 165, 233, 0.025) 100%);
+}
+
+.feature-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.feature-icon-box {
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.045);
+  transition: color 180ms ease, background 180ms ease;
+}
+
+.feature-card.on .feature-icon-box {
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.12);
+}
+
+.feature-icon-box svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.feature-name {
+  min-width: 0;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--text-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.feature-card.on .feature-name {
+  color: var(--text);
+}
+
+.toggle-pill {
+  position: relative;
+  flex: 0 0 auto;
+  width: 30px;
+  height: 17px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.09);
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  transition: background 200ms ease, border-color 200ms ease;
+}
+
+.toggle-pill::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #dbe7f3;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  transition: transform 200ms var(--ease-out), background 200ms ease;
+}
+
+.feature-card.on .toggle-pill {
+  background: rgba(56, 189, 248, 0.55);
+  border-color: rgba(56, 189, 248, 0.5);
+}
+
+.feature-card.on .toggle-pill::after {
+  transform: translateX(12px);
+  background: #f4fcff;
+}
+
+/* Footer */
+.deck-footer {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding-bottom: 0;
+  color: var(--dim);
+  font-size: 9px;
+  font-weight: 550;
+  letter-spacing: 0.015em;
+  white-space: nowrap;
+}
+
+.deck-footer-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--mint);
+  box-shadow: 0 0 7px rgba(52, 211, 153, 0.65);
+}
+
+.deck-footer-sep {
+  color: #2d3a4a;
+}
+
+#syncLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ------------------------------------------------------------------
+   Modal
+   ------------------------------------------------------------------ */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(2, 5, 10, 0.66);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 240ms ease, visibility 240ms ease;
+}
+
+.modal-backdrop.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.modal-sheet {
+  position: relative;
+  width: 100%;
+  max-width: 420px;
+  max-height: calc(100dvh - 36px);
+  overflow-y: auto;
+  padding: 24px;
+  border-radius: var(--radius-xl);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  background:
+    radial-gradient(100% 80% at 50% 0%, rgba(26, 61, 89, 0.26) 0%, transparent 55%),
+    linear-gradient(180deg, #0d1828 0%, #09111d 100%);
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.58);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  transform: translateY(8px) scale(0.985);
+  transition: transform 260ms var(--ease-out);
+}
+
+.modal-backdrop.open .modal-sheet {
+  transform: translateY(0) scale(1);
+}
+
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding-right: 26px;
+}
+
+.modal-icon {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.18);
+}
+
+.modal-icon svg {
+  width: 17px;
+  height: 17px;
+  fill: currentColor;
+}
+
+.modal-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.modal-title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+
+.modal-subtitle {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.55;
+}
+
+.modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  color: var(--dim);
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: color 160ms ease, background 160ms ease;
+}
+
+.modal-close:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.modal-close svg {
+  width: 13px;
+  height: 13px;
+  fill: currentColor;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.form-label {
+  color: var(--muted);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.form-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 13px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--text);
+  font-size: 12px;
+  outline: none;
+  user-select: text;
+  -webkit-user-select: text;
+  transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.form-input::placeholder {
+  color: var(--faint);
+}
+
+.form-input:hover {
+  border-color: var(--line-strong);
+}
+
+.form-input:focus {
+  border-color: rgba(56, 189, 248, 0.5);
+  background: rgba(56, 189, 248, 0.045);
+  box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.09);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 108px;
+  gap: 10px;
+}
+
+.btn-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 3px;
+}
+
+.btn-secondary,
+.btn-primary {
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 170ms ease,
+    border-color 170ms ease,
+    color 170ms ease,
+    transform 170ms ease;
+}
+
+.btn-secondary {
+  color: var(--muted);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.btn-secondary:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.btn-primary {
+  color: #fff;
+  border: 1px solid rgba(56, 189, 248, 0.4);
+  background: linear-gradient(180deg, #0d8fca 0%, #036fa8 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    0 8px 22px rgba(3, 105, 161, 0.26);
+}
+
+.btn-primary:hover {
+  background: linear-gradient(180deg, #0f9edc 0%, #0a7cb8 100%);
+}
+
+.btn-secondary:active,
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.modal-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 7px;
+  padding: 9px 11px;
+  border-radius: 9px;
+  border: 1px solid rgba(56, 189, 248, 0.1);
+  background: rgba(56, 189, 248, 0.045);
+  color: var(--dim);
+  font-size: 9.5px;
+  line-height: 1.55;
+}
+
+.modal-note svg {
+  flex: 0 0 auto;
+  width: 12px;
+  height: 12px;
+  margin-top: 1px;
+  fill: var(--accent);
+  opacity: 0.75;
+}
+
+/* ------------------------------------------------------------------
+   Lock screen
+   ------------------------------------------------------------------ */
+.lock-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background:
+    radial-gradient(80% 60% at 50% 12%, rgba(8, 56, 85, 0.32) 0%, transparent 62%),
+    radial-gradient(60% 50% at 80% 100%, rgba(3, 105, 161, 0.12) 0%, transparent 70%),
+    rgba(3, 7, 13, 0.9);
+  backdrop-filter: blur(26px) saturate(120%);
+  -webkit-backdrop-filter: blur(26px) saturate(120%);
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transition: opacity 420ms var(--ease-out), visibility 420ms var(--ease-out);
+}
+
+.lock-overlay.unlocked {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.lock-box {
+  position: relative;
+  width: 100%;
+  max-width: 360px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 26px 26px 22px;
+  border-radius: var(--radius-2xl);
+  border: 1px solid rgba(255, 255, 255, 0.095);
+  background:
+    radial-gradient(110% 80% at 50% 0%, rgba(25, 72, 105, 0.28) 0%, transparent 55%),
+    linear-gradient(180deg, rgba(13, 23, 38, 0.94) 0%, rgba(7, 13, 23, 0.96) 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.055),
+    0 36px 90px rgba(0, 0, 0, 0.65);
+}
+
+.lock-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  color: #6fc9ec;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.lock-brand .brand-mark {
+  width: 25px;
+  height: 25px;
+  border-radius: 8px;
+  box-shadow: 0 5px 14px rgba(3, 105, 161, 0.28);
+}
+
+.lock-brand .brand-mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.lock-shield {
+  width: 52px;
+  height: 52px;
+  margin-top: 2px;
+  border-radius: 16px;
+  display: grid;
+  place-items: center;
+  color: var(--cyan);
+  background: rgba(56, 189, 248, 0.09);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.09),
+    0 0 30px rgba(56, 189, 248, 0.1);
+}
+
+.lock-shield svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.lock-heading {
+  margin-top: -2px;
+  font-family: var(--font-display);
+  font-size: 21px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-align: center;
+  color: var(--text);
+}
+
+.lock-desc {
+  max-width: 250px;
+  margin-top: -7px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.lock-desc.error {
+  color: var(--rose);
+}
+
+.pin-display {
+  display: flex;
+  gap: 13px;
+  margin: 3px 0 1px;
+}
+
+.pin-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1.5px solid rgba(148, 191, 216, 0.48);
+  background: transparent;
+  transition: all 190ms var(--ease-out);
+}
+
+.pin-dot.filled {
+  border-color: var(--cyan);
+  background: var(--cyan);
+  box-shadow: 0 0 11px rgba(125, 233, 255, 0.55);
+  transform: scale(1.12);
+}
+
+.pin-dot.error {
+  border-color: var(--rose);
+  background: var(--rose);
+  box-shadow: 0 0 11px rgba(251, 113, 133, 0.5);
+}
+
+.pin-keypad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  width: 100%;
+  margin-top: 2px;
+}
+
+.pad-key {
+  width: 100%;
+  height: 56px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.038);
+  border: 1px solid var(--line);
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    transform 140ms ease;
+}
+
+.pad-key:hover {
+  background: rgba(255, 255, 255, 0.075);
+  border-color: var(--line-strong);
+}
+
+.pad-key:active {
+  transform: scale(0.96);
+  background: rgba(56, 189, 248, 0.13);
+  border-color: rgba(56, 189, 248, 0.38);
+}
+
+.pad-key.util {
+  color: var(--muted);
+  background: transparent;
+  border-color: transparent;
+  font-family: var(--font-body);
+  font-size: 10px;
+  font-weight: 650;
+}
+
+.pad-key.util:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.remember-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 1px;
+  color: var(--dim);
+  font-size: 10.5px;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+}
+
+.remember-toggle input {
+  width: 14px;
+  height: 14px;
+  margin: 0;
+  accent-color: var(--accent-strong);
+  cursor: pointer;
+}
+
+.pin-hint {
+  display: none;
+  margin-top: -7px;
+  color: var(--dim);
+  font-size: 9.5px;
+  letter-spacing: 0.01em;
+}
+
+.pin-hint.visible {
+  display: block;
+}
+
+.shake {
+  animation: shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(3px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+/* ------------------------------------------------------------------
+   Entrance + reduced motion
+   ------------------------------------------------------------------ */
+@keyframes deckIn {
+  from { opacity: 0; transform: translateY(9px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+body.unlocked .control-deck-panel {
+  animation: deckIn 560ms var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Responsive: tablet and mobile
+   ------------------------------------------------------------------ */
+@media (max-width: 1100px) {
+  .device-chip { display: none; }
+}
+
+@media (max-width: 1099px) {
+  body {
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+
+  .app-main {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  .viewport-3d-arena {
+    flex: 0 0 auto;
+    height: 420px;
+    height: clamp(350px, 49svh, 470px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .control-deck-panel {
+    flex: 0 0 auto;
+    overflow: visible;
+    min-height: 0;
+    border-left: 0;
+    border-top: 0;
+    width: 100%;
+    max-width: 780px;
+    margin: 0 auto;
+    padding: 22px 22px calc(34px + var(--safe-bottom));
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+    background: transparent;
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+
+  .hero-thermostat {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 100%;
+    max-width: 600px;
+    min-height: 0;
+    padding: 18px;
+  }
+
+  .deck-section {
+    padding: 15px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+    background: rgba(255, 255, 255, 0.018);
+  }
+
+  .deck-section + .deck-section {
+    padding-top: 15px;
+    border-top: 1px solid var(--line);
+  }
+
+  .deck-section-features {
+    grid-column: 1 / -1;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .deck-footer {
+    grid-column: 1 / -1;
+    justify-content: center;
+    border-top: 1px solid var(--line);
+    padding-top: 16px;
+    margin-top: 2px;
+  }
+
+  .camera-toolbar {
+    max-width: calc(100% - 12px);
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --nav-height: 62px;
+  }
+
+  .top-nav {
+    position: sticky;
+    top: 0;
+    padding:
+      env(safe-area-inset-top, 0px)
+      calc(12px + var(--safe-right))
+      0
+      calc(12px + var(--safe-left));
+    gap: 8px;
+  }
+
+  .brand-section {
+    gap: 9px;
+  }
+
+  .brand-mark {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+  }
+
+  .brand-mark svg {
+    width: 17px;
+    height: 17px;
+  }
+
+  .brand-eyebrow {
+    display: none;
+  }
+
+  .brand-title {
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .brand-subtitle {
+    font-size: 9px;
+    max-width: 132px;
+  }
+
+  .nav-actions {
+    gap: 6px;
+  }
+
+  .connection-pill {
+    min-width: 0;
+    height: 30px;
+    padding: 0 10px;
+    gap: 6px;
+    font-size: 9.5px;
+  }
+
+  .icon-btn {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+  }
+
+  .icon-btn svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .viewport-3d-arena {
+    height: 380px;
+    height: clamp(330px, 46svh, 420px);
+  }
+
+  .arena-top-bar {
+    padding: 12px 12px;
+  }
+
+  .camera-toolbar {
+    padding: 3px;
+    border-radius: 12px;
+    max-width: 100%;
+  }
+
+  .cam-btn {
+    height: 36px;
+    padding: 0 9px;
+    gap: 5px;
+    font-size: 10px;
+  }
+
+  .cam-btn svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .hint-chip {
+    display: none;
+  }
+
+  .arena-bottom-telemetry {
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+  }
+
+  .telemetry-dock {
+    padding: 4px;
+    border-radius: 13px;
+  }
+
+  .tel-pill {
+    padding: 7px 8px 8px;
+    gap: 4px;
+  }
+
+  .tel-pill + .tel-pill::before {
+    top: 8px;
+    bottom: 8px;
+  }
+
+  .tel-lbl {
+    font-size: 7.5px;
+    letter-spacing: 0.07em;
+  }
+
+  .tel-lbl svg {
+    display: none;
+  }
+
+  .tel-val {
+    font-size: 13px;
+  }
+
+  .control-deck-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    max-width: 620px;
+    padding: 16px 14px calc(30px + var(--safe-bottom));
+  }
+
+  .hero-thermostat {
+    padding: 14px;
+    border-radius: var(--radius-lg);
+  }
+
+  .deck-section,
+  .deck-section + .deck-section {
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-lg);
+  }
+
+  .deck-section-features {
+    grid-column: auto;
+  }
+
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .feature-card {
+    min-height: 50px;
+  }
+
+  .dial-stage {
+    width: 176px;
+    height: 176px;
+  }
+
+  .temp-readout {
+    font-size: 52px;
+  }
+
+  .stepper-row {
+    gap: 14px;
+  }
+
+  .step-btn {
+    width: 44px;
+    height: 44px;
+  }
+
+  .seg-btn {
+    min-height: 40px;
+    font-size: 9.5px;
+  }
+
+  .seg-group.cols-6 .seg-btn {
+    font-size: 9px;
+    padding-left: 1px;
+    padding-right: 1px;
+  }
+
+  .modal-backdrop {
+    align-items: flex-end;
+    padding: 10px;
+  }
+
+  .modal-sheet {
+    max-width: 520px;
+    max-height: calc(100dvh - 20px);
+    padding: 20px 18px calc(18px + var(--safe-bottom));
+    border-radius: 22px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr 92px;
+  }
+
+  .lock-overlay {
+    align-items: center;
+    padding: 14px;
+  }
+
+  .lock-box {
+    max-width: 358px;
+    padding: 22px 20px 18px;
+    gap: 12px;
+  }
+
+  .lock-heading {
+    font-size: 19px;
+  }
+
+  .pin-keypad {
+    gap: 8px;
+  }
+
+  .pad-key {
+    height: 54px;
+    font-size: 18px;
+  }
+}
+
+@media (max-width: 340px) {
+  .brand-title {
+    font-size: 14px;
+  }
+
+  .nav-actions {
+    gap: 5px;
+  }
+
+  #soundBtn {
+    display: none;
+  }
+}
+
+@media (max-width: 380px) {
+  .brand-subtitle {
+    display: none;
+  }
+
+  .connection-pill {
+    padding: 0 8px;
+  }
+
+  .cam-btn span {
+    font-size: 9px;
+  }
+
+  .seg-btn {
+    font-size: 9px;
+  }
+
+  .tel-val {
+    font-size: 12px;
+  }
+
+  .tel-full {
+    display: none;
+  }
+
+  .tel-short {
+    display: inline;
+  }
+}
+
+@media (max-height: 880px) and (min-width: 1100px) {
+  .control-deck-panel {
+    gap: 8px;
+    padding: 12px 20px calc(12px + var(--safe-bottom));
+  }
+
+  .hero-thermostat {
+    padding: 10px 13px 9px;
+  }
+
+  .dial-stage {
+    width: 150px;
+    height: 150px;
+    margin: 0 auto 1px;
+  }
+
+  .dial-halo {
+    width: 126px;
+    height: 126px;
+  }
+
+  .dial-label {
+    font-size: 8px;
+  }
+
+  .temp-readout {
+    font-size: 45px;
+  }
+
+  .temp-deg {
+    margin-top: 4px;
+    font-size: 17px;
+  }
+
+  .climate-delta-badge {
+    margin-top: 0;
+    padding: 3px 8px;
+    font-size: 8.5px;
+  }
+
+  .step-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .temp-range {
+    font-size: 8px;
+  }
+
+  .deck-section + .deck-section,
+  .deck-footer {
+    padding-top: 8px;
+  }
+
+  .section-title-wrap {
+    margin-bottom: 4px;
+  }
+
+  .section-title,
+  .section-badge {
+    font-size: 9px;
+  }
+
+  .seg-btn {
+    min-height: 31px;
+    gap: 3px;
+    font-size: 9.5px;
+  }
+
+  .feature-card {
+    min-height: 40px;
+    padding: 6px 8px;
+  }
+
+  .feature-name {
+    font-size: 10px;
+  }
+
+  .toggle-pill {
+    width: 28px;
+    height: 16px;
+  }
+
+  .toggle-pill::after {
+    width: 10px;
+    height: 10px;
+  }
+
+  .feature-card.on .toggle-pill::after {
+    transform: translateX(11px);
+  }
+
+  .deck-footer {
+    padding-top: 8px;
+    font-size: 8.5px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Mobile app dock + install action
+   ------------------------------------------------------------------ */
+.mobile-dock {
+  display: none;
+}
+
+.btn-install {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid rgba(56, 189, 248, 0.26);
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--cyan);
+  font-size: 11.5px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background 170ms ease, border-color 170ms ease;
+}
+
+.btn-install[hidden] {
+  display: none;
+}
+
+.btn-install:hover {
+  background: rgba(56, 189, 248, 0.14);
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+.btn-install svg {
+  width: 15px;
+  height: 15px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+@media (max-width: 640px) {
+  .control-deck-panel {
+    padding-bottom: calc(106px + var(--safe-bottom));
+  }
+
+  .mobile-dock {
+    position: fixed;
+    z-index: 60;
+    left: 12px;
+    right: 12px;
+    bottom: calc(10px + var(--safe-bottom));
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 64px;
+    padding: 8px 10px;
+    border-radius: 21px;
+    border: 1px solid rgba(255, 255, 255, 0.13);
+    background: rgba(7, 14, 24, 0.93);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.07),
+      0 18px 55px rgba(0, 0, 0, 0.58);
+    backdrop-filter: blur(24px) saturate(130%);
+    -webkit-backdrop-filter: blur(24px) saturate(130%);
+  }
+
+  .dock-step {
+    flex: 0 0 auto;
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-soft);
+    cursor: pointer;
+    transition: background 160ms ease, border-color 160ms ease, transform 160ms ease;
+  }
+
+  .dock-step svg {
+    width: 16px;
+    height: 16px;
+    fill: currentColor;
+  }
+
+  .dock-step:active {
+    transform: scale(0.94);
+    background: rgba(56, 189, 248, 0.14);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+
+  .dock-step:disabled {
+    opacity: 0.32;
+    pointer-events: none;
+  }
+
+  .dock-readout {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    text-align: center;
+  }
+
+  .dock-mode {
+    color: var(--dim);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dock-temp {
+    font-family: var(--font-display);
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .dock-power {
+    flex: 0 0 auto;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.045);
+    color: var(--muted);
+    cursor: pointer;
+    transition:
+      background 200ms ease,
+      border-color 200ms ease,
+      color 200ms ease,
+      box-shadow 200ms ease,
+      transform 160ms ease;
+  }
+
+  .dock-power:active {
+    transform: scale(0.95);
+  }
+
+  .dock-power .power-icon {
+    width: 14px;
+    height: 14px;
+    border-width: 1.8px;
+  }
+
+  .dock-power .power-icon::after {
+    width: 1.8px;
+    height: 6px;
+    top: -4px;
+  }
+
+  .dock-power.on {
+    color: #ecfaff;
+    border-color: rgba(56, 189, 248, 0.42);
+    background: linear-gradient(180deg, rgba(56, 189, 248, 0.25) 0%, rgba(14, 165, 233, 0.12) 100%);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.13),
+      0 0 24px rgba(14, 165, 233, 0.16);
+  }
+
+  .dock-power.on .power-icon {
+    color: var(--cyan);
+    filter: drop-shadow(0 0 5px rgba(125, 233, 255, 0.6));
+  }
+}
+
   </style>
 </head>
 <body>
 
-  <div class="bg-glow"></div>
+  <div class="ambient-bg" aria-hidden="true">
+    <span class="ambient-orb orb-a"></span>
+    <span class="ambient-orb orb-b"></span>
+    <span class="ambient-grid"></span>
+  </div>
 
   <!-- Top Navigation Bar -->
   <header class="top-nav">
     <div class="brand-section">
-      <div class="brand-badge">BLUE STAR</div>
+      <div class="brand-mark" aria-hidden="true">
+        <svg viewBox="0 0 24 24"><path d="M12 2.4l2.42 6.96 7.34.28-5.82 4.55 2.02 7.04L12 17.1l-5.96 4.13 2.02-7.04L2.24 9.64l7.34-.28z"/></svg>
+      </div>
       <div class="brand-title-wrap">
-        <div class="brand-title">IC318QNU Smart Inverter</div>
-        <div class="brand-subtitle">Megmeet MD50BS · 1.5 Ton</div>
+        <div class="brand-eyebrow">Blue Star</div>
+        <div class="brand-title">Smart Climate</div>
+        <div class="brand-subtitle">IC318QNU · 1.5 Ton Inverter</div>
       </div>
     </div>
 
     <div class="nav-actions">
-      <div class="connection-pill" id="connPill" onclick="openConfigModal()" style="cursor: pointer;" title="MQTT Connection Settings">
-        <div class="pulse-dot"></div>
-        <span id="connStatusText">Offline</span>
+      <div class="device-chip" title="Megmeet MD50BS display board">
+        <span class="device-chip-dot" aria-hidden="true"></span>
+        <span>MD50BS</span>
       </div>
 
-      <button class="nav-btn" id="lockNavBtn" title="Lock Console" onclick="lockConsole()" style="display: none;">
+      <button class="connection-pill" id="connPill" type="button" onclick="openConfigModal()" title="MQTT connection settings" aria-label="Connection status. Open MQTT settings." aria-haspopup="dialog">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span id="connStatusText" aria-live="polite">Connecting</span>
+      </button>
+
+      <button class="icon-btn" id="lockNavBtn" type="button" title="Lock console" aria-label="Lock console" onclick="lockConsole()" style="display: none;">
         <svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>
       </button>
 
-      <button class="nav-btn" id="soundBtn" title="Toggle Synthesized Sound" onclick="toggleSound()">
+      <button class="icon-btn" id="soundBtn" type="button" title="Toggle interface sound" aria-label="Toggle interface sound" aria-pressed="true" onclick="toggleSound()">
         <svg viewBox="0 0 24 24" id="soundIcon"><path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6.5H2v11h4.5l5 4.5V2z"/></svg>
       </button>
 
-      <button class="nav-btn" title="MQTT Settings" onclick="openConfigModal()">
+      <button class="icon-btn" type="button" title="MQTT settings" aria-label="Open MQTT settings" aria-haspopup="dialog" onclick="openConfigModal()">
         <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
       </button>
     </div>
   </header>
 
-  <!-- Main Responsive Grid: 3D Showcase on Left/Top, Controls on Right/Bottom -->
+  <!-- Main Responsive Grid: 3D stage + control deck -->
   <main class="app-main">
 
     <!-- 3D Digital Twin Arena -->
-    <div class="viewport-3d-arena">
-      <div id="canvas3d-container"></div>
+    <section class="viewport-3d-arena" aria-label="Interactive 3D digital twin of the air conditioner">
+      <div class="stage-backdrop" aria-hidden="true"></div>
+      <div id="canvas3d-container" role="img" aria-label="Blue Star IC318QNU indoor unit. Drag to orbit, scroll to zoom."></div>
 
-      <!-- Top Toolbar (Camera presets & hint) -->
       <div class="arena-top-bar">
-        <div class="camera-toolbar">
-          <button class="cam-btn active" id="camBtnHero" onclick="setCameraView('hero')">🎬 Hero</button>
-          <button class="cam-btn" id="camBtnAirflow" onclick="setCameraView('airflow')">💨 Air</button>
-          <button class="cam-btn" id="camBtnXray" onclick="setCameraView('xray')">🔬 X-Ray</button>
-          <button class="cam-btn" id="camBtnDisplay" onclick="setCameraView('display')">🎯 LED</button>
+        <div class="camera-toolbar" role="group" aria-label="Camera views">
+          <button class="cam-btn active" id="camBtnHero" type="button" aria-pressed="true" onclick="setCameraView('hero')" title="Hero view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><path d="M8.5 9.5h7v5h-7z"/></svg>
+            <span>Hero</span>
+          </button>
+          <button class="cam-btn" id="camBtnAirflow" type="button" aria-pressed="false" onclick="setCameraView('airflow')" title="Airflow view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8h10.5A2.5 2.5 0 1 0 11 5.5"/><path d="M3 12h14.5A2.5 2.5 0 1 1 15 14.5"/><path d="M3 16h7.5A2 2 0 1 1 8.5 18"/></svg>
+            <span>Airflow</span>
+          </button>
+          <button class="cam-btn" id="camBtnXray" type="button" aria-pressed="false" onclick="setCameraView('xray')" title="X-Ray view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7.5 4.2v9.6L12 21l-7.5-4.2V7.2z"/><path d="M12 3v18M4.5 7.2L12 11.4l7.5-4.2M4.5 16.8L12 12.6l7.5 4.2"/></svg>
+            <span>X-Ray</span>
+          </button>
+          <button class="cam-btn" id="camBtnDisplay" type="button" aria-pressed="false" onclick="setCameraView('display')" title="Display view">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="2.6"/><circle cx="12" cy="12" r="7.2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+            <span>Display</span>
+          </button>
         </div>
 
-        <div class="hint-chip">Drag 360° · Scroll to Zoom</div>
+        <div class="hint-chip" aria-hidden="true">
+          <span class="hint-dot"></span>
+          <span>Drag to orbit</span>
+          <span class="hint-sep">/</span>
+          <span>Scroll to zoom</span>
+        </div>
       </div>
 
-      <!-- Bottom Floating Telemetry Strip -->
+      <!-- Floating telemetry dock -->
       <div class="arena-bottom-telemetry">
-        <div class="tel-pill">
-          <span class="tel-lbl">Compressor</span>
-          <span class="tel-val glow-cyan" id="compHzVal">48 Hz</span>
-        </div>
-        <div class="tel-pill">
-          <span class="tel-lbl">Coil Temp</span>
-          <span class="tel-val" id="coilTempVal">7.8°C</span>
-        </div>
-        <div class="tel-pill">
-          <span class="tel-lbl">Run Hours</span>
-          <span class="tel-val" id="compHoursVal">1,248 h</span>
-        </div>
-        <div class="tel-pill">
-          <span class="tel-lbl">Filter</span>
-          <span class="tel-val glow-emerald" id="filterConditionVal">Clean</span>
+        <div class="telemetry-dock" role="group" aria-label="Live AC telemetry">
+          <div class="tel-pill">
+            <span class="tel-lbl">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12h4l2.2-6 3.6 12 2.2-6H21"/></svg>
+              <span class="tel-full">Compressor</span><span class="tel-short" aria-hidden="true">Comp.</span>
+            </span>
+            <span class="tel-val glow-cyan" id="compHzVal">48 Hz</span>
+          </div>
+          <div class="tel-pill">
+            <span class="tel-lbl">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10 4h4v7.2a4 4 0 1 1-4 0z"/></svg>
+              Coil temp
+            </span>
+            <span class="tel-val" id="coilTempVal">7.8°C</span>
+          </div>
+          <div class="tel-pill">
+            <span class="tel-lbl">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 7v5l3.5 2"/></svg>
+              Run hours
+            </span>
+            <span class="tel-val" id="compHoursVal">1,248 h</span>
+          </div>
+          <div class="tel-pill">
+            <span class="tel-lbl">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h10"/></svg>
+              Filter
+            </span>
+            <span class="tel-val glow-emerald" id="filterConditionVal">Clean</span>
+          </div>
         </div>
       </div>
-    </div>
+
+      <div class="model-loader" id="modelLoader" role="status" aria-live="polite">
+        <span class="loader-ring" aria-hidden="true"></span>
+        <span>Building digital twin…</span>
+      </div>
+    </section>
 
     <!-- Scrollable Glass Control Deck Panel -->
-    <div class="control-deck-panel">
+    <aside class="control-deck-panel" aria-label="Climate controls">
 
       <!-- Hero Thermostat -->
-      <div class="hero-thermostat" id="heroCard">
+      <section class="hero-thermostat" id="heroCard" aria-label="Thermostat">
         <div class="hero-top-row">
-          <button class="power-btn on" id="mainPowerBtn" onclick="togglePower()">
-            <div class="power-icon"></div>
-            <span id="powerBtnText">System On</span>
+          <button class="power-btn on" id="mainPowerBtn" type="button" aria-pressed="true" onclick="togglePower()">
+            <span class="power-icon" aria-hidden="true"></span>
+            <span id="powerBtnText">System on</span>
           </button>
 
           <div class="ambient-pill">
-            <span class="ambient-lbl">Ambient Room</span>
+            <span class="ambient-lbl">Room</span>
             <span class="ambient-val" id="ambientReadout">27.0°C</span>
           </div>
         </div>
 
-        <!-- Radial Arc Dial -->
         <div class="dial-stage">
-          <svg class="dial-svg" viewBox="0 0 160 160">
-            <circle class="dial-track" cx="80" cy="80" r="64" />
-            <circle class="dial-progress" id="dialBar" cx="80" cy="80" r="64" />
+          <div class="dial-halo" aria-hidden="true"></div>
+          <svg class="dial-svg" viewBox="0 0 180 180" aria-hidden="true">
+            <defs>
+              <linearGradient id="dialGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#8beeff"/>
+                <stop offset="55%" stop-color="#38bdf8"/>
+                <stop offset="100%" stop-color="#0b8ac5"/>
+              </linearGradient>
+            </defs>
+            <circle class="dial-ticks" cx="90" cy="90" r="82"/>
+            <circle class="dial-track" cx="90" cy="90" r="72"/>
+            <circle class="dial-progress" id="dialBar" cx="90" cy="90" r="72"/>
           </svg>
 
           <div class="dial-center-info">
+            <span class="dial-label">Set temperature</span>
             <div class="temp-readout">
               <span id="targetTempNum">24</span>
               <span class="temp-deg">°C</span>
             </div>
-            <div class="climate-delta-badge" id="climateDeltaBadge">Comfort Balanced</div>
+            <div class="climate-delta-badge" id="climateDeltaBadge">Cooling to target</div>
           </div>
         </div>
 
         <div class="stepper-row">
-          <button class="step-btn" title="Decrease Temperature" onclick="adjustTemp(-1)">
-            <svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14v2z"/></svg>
+          <button class="step-btn" type="button" title="Decrease temperature" aria-label="Decrease temperature" onclick="adjustTemp(-1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13H5v-2h14v2z"/></svg>
           </button>
-          <button class="step-btn" title="Increase Temperature" onclick="adjustTemp(+1)">
-            <svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+          <span class="temp-range" aria-hidden="true"><span>16°</span><span class="temp-range-line"></span><span>30°</span></span>
+          <button class="step-btn" type="button" title="Increase temperature" aria-label="Increase temperature" onclick="adjustTemp(+1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           </button>
         </div>
-      </div>
+      </section>
 
       <!-- Mode Selector -->
-      <div>
+      <section class="deck-section">
         <div class="section-title-wrap">
-          <span class="section-title">Operating Mode</span>
+          <span class="section-title">Operating mode</span>
           <span class="section-badge" id="modeBadge">Cooling</span>
         </div>
-        <div class="seg-group">
-          <button class="seg-btn active" id="modeBtn1" onclick="setMode(1)">
-            <svg viewBox="0 0 24 24"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
+        <div class="seg-group" role="group" aria-label="Operating mode">
+          <button class="seg-btn active" id="modeBtn1" type="button" aria-pressed="true" onclick="setMode(1)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.35 10.04C18.67 6.59 15.64 4 12 4 9.11 4 6.6 5.64 5.35 8.04 2.34 8.36 0 10.91 0 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96zM17 13l-5 5-5-5h3V9h4v4h3z"/></svg>
             <span>Cool</span>
           </button>
-          <button class="seg-btn" id="modeBtn2" onclick="setMode(2)">
-            <svg viewBox="0 0 24 24"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+          <button class="seg-btn" id="modeBtn2" type="button" aria-pressed="false" onclick="setMode(2)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
             <span>Dry</span>
           </button>
-          <button class="seg-btn" id="modeBtn3" onclick="setMode(3)">
-            <svg viewBox="0 0 24 24"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z"/></svg>
+          <button class="seg-btn" id="modeBtn3" type="button" aria-pressed="false" onclick="setMode(3)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4c-4.41 0-8 3.59-8 8s3.59 8 8 8 8-3.59 8-8-3.59-8-8-8zm0 2c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6 2.69-6 6-6z"/></svg>
             <span>Fan</span>
           </button>
-          <button class="seg-btn" id="modeBtn4" onclick="setMode(4)">
-            <svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A6 6 0 0 1 6.07 12H5v-2h1.07A6 6 0 0 1 11 6.07V5h2v1.07A6 6 0 0 1 17.93 11H19v2h-1.07A6 6 0 0 1 13 16.93z"/></svg>
+          <button class="seg-btn" id="modeBtn4" type="button" aria-pressed="false" onclick="setMode(4)">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V18h-2v-1.07A6 6 0 0 1 6.07 12H5v-2h1.07A6 6 0 0 1 11 6.07V5h2v1.07A6 6 0 0 1 17.93 11H19v2h-1.07A6 6 0 0 1 13 16.93z"/></svg>
             <span>Auto</span>
           </button>
         </div>
-      </div>
+      </section>
 
       <!-- Fan Speed Stages -->
-      <div>
+      <section class="deck-section">
         <div class="section-title-wrap">
-          <span class="section-title">Blower Fan Speed</span>
-          <span class="section-badge" id="fanBadge">High (Stage 4)</span>
+          <span class="section-title">Blower speed</span>
+          <span class="section-badge" id="fanBadge">High / Stage 4</span>
         </div>
-        <div class="seg-group cols-6">
-          <button class="seg-btn" id="fanBtn1" onclick="setFan(1)"><span>Quiet</span></button>
-          <button class="seg-btn" id="fanBtn2" onclick="setFan(2)"><span>Low</span></button>
-          <button class="seg-btn" id="fanBtn3" onclick="setFan(3)"><span>Med</span></button>
-          <button class="seg-btn active" id="fanBtn4" onclick="setFan(4)"><span>High</span></button>
-          <button class="seg-btn" id="fanBtn5" onclick="setFan(5)"><span>Turbo</span></button>
-          <button class="seg-btn" id="fanBtn6" onclick="setFan(6)"><span>Auto</span></button>
+        <div class="seg-group cols-6" role="group" aria-label="Blower fan speed">
+          <button class="seg-btn" id="fanBtn1" type="button" aria-pressed="false" onclick="setFan(1)"><span>Quiet</span></button>
+          <button class="seg-btn" id="fanBtn2" type="button" aria-pressed="false" onclick="setFan(2)"><span>Low</span></button>
+          <button class="seg-btn" id="fanBtn3" type="button" aria-pressed="false" onclick="setFan(3)"><span>Med</span></button>
+          <button class="seg-btn active" id="fanBtn4" type="button" aria-pressed="true" onclick="setFan(4)"><span>High</span></button>
+          <button class="seg-btn" id="fanBtn5" type="button" aria-pressed="false" onclick="setFan(5)"><span>Turbo</span></button>
+          <button class="seg-btn" id="fanBtn6" type="button" aria-pressed="false" onclick="setFan(6)"><span>Auto</span></button>
         </div>
-      </div>
+      </section>
 
       <!-- Motorized Louver & 4-Way Swing -->
-      <div>
+      <section class="deck-section">
         <div class="section-title-wrap">
-          <span class="section-title">Louver & Direction</span>
-          <span class="section-badge" id="vaneBadge">Auto Swing (↕)</span>
+          <span class="section-title">Louver &amp; direction</span>
+          <span class="section-badge" id="vaneBadge">Auto swing</span>
         </div>
-        <div class="seg-group cols-5">
-          <button class="seg-btn active" id="vaneBtn0" onclick="setVane(0)"><span>↕ Swing</span></button>
-          <button class="seg-btn" id="vaneBtn1" onclick="setVane(1)"><span>Top (1)</span></button>
-          <button class="seg-btn" id="vaneBtn3" onclick="setVane(3)"><span>Mid (3)</span></button>
-          <button class="seg-btn" id="vaneBtn5" onclick="setVane(5)"><span>Low (5)</span></button>
-          <button class="seg-btn" id="hSwingBtn" onclick="toggleHSwing()"><span>↔ 4-Way</span></button>
+        <div class="seg-group cols-5" role="group" aria-label="Louver direction">
+          <button class="seg-btn active" id="vaneBtn0" type="button" aria-pressed="true" onclick="setVane(0)"><span>Swing</span></button>
+          <button class="seg-btn" id="vaneBtn1" type="button" aria-pressed="false" onclick="setVane(1)"><span>Top 1</span></button>
+          <button class="seg-btn" id="vaneBtn3" type="button" aria-pressed="false" onclick="setVane(3)"><span>Mid 3</span></button>
+          <button class="seg-btn" id="vaneBtn5" type="button" aria-pressed="false" onclick="setVane(5)"><span>Low 5</span></button>
+          <button class="seg-btn" id="hSwingBtn" type="button" aria-pressed="false" onclick="toggleHSwing()"><span>4-Way</span></button>
         </div>
-      </div>
+      </section>
 
       <!-- 5-in-1 Convertible Inverter Capacity -->
-      <div>
+      <section class="deck-section">
         <div class="section-title-wrap">
-          <span class="section-title">5-in-1 Convertible</span>
-          <span class="section-badge" id="convBadge">100% (Full Ton)</span>
+          <span class="section-title">5-in-1 convertible</span>
+          <span class="section-badge" id="convBadge">100% / Full ton</span>
         </div>
-        <div class="seg-group">
-          <button class="seg-btn active" id="convBtn1" onclick="setConvertible(1)"><span>100%</span></button>
-          <button class="seg-btn" id="convBtn2" onclick="setConvertible(2)"><span>80%</span></button>
-          <button class="seg-btn" id="convBtn3" onclick="setConvertible(3)"><span>60%</span></button>
-          <button class="seg-btn" id="convBtn4" onclick="setConvertible(4)"><span>40%</span></button>
+        <div class="seg-group" role="group" aria-label="Cooling capacity">
+          <button class="seg-btn active" id="convBtn1" type="button" aria-pressed="true" onclick="setConvertible(1)"><span>100%</span></button>
+          <button class="seg-btn" id="convBtn2" type="button" aria-pressed="false" onclick="setConvertible(2)"><span>80%</span></button>
+          <button class="seg-btn" id="convBtn3" type="button" aria-pressed="false" onclick="setConvertible(3)"><span>60%</span></button>
+          <button class="seg-btn" id="convBtn4" type="button" aria-pressed="false" onclick="setConvertible(4)"><span>40%</span></button>
         </div>
-      </div>
+      </section>
 
       <!-- Smart Features Grid -->
-      <div>
+      <section class="deck-section deck-section-features">
         <div class="section-title-wrap">
-          <span class="section-title">Smart Features</span>
+          <span class="section-title">Smart features</span>
+          <span class="section-badge">Tap to toggle</span>
         </div>
         <div class="feature-grid">
-          <div class="feature-card" id="cardTurbo" onclick="toggleFeature('turbo')">
-            <div class="feature-info">
-              <div class="feature-icon-box">
-                <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
-              </div>
-              <div class="feature-name">Turbo Cool</div>
-            </div>
-            <div class="toggle-pill"></div>
-          </div>
+          <button class="feature-card" id="cardTurbo" type="button" role="switch" aria-checked="false" onclick="toggleFeature('turbo')">
+            <span class="feature-info">
+              <span class="feature-icon-box">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
+              </span>
+              <span class="feature-name">Turbo</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
 
-          <div class="feature-card" id="cardEco" onclick="toggleFeature('eco')">
-            <div class="feature-info">
-              <div class="feature-icon-box">
-                <svg viewBox="0 0 24 24"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>
-              </div>
-              <div class="feature-name">Eco Mode</div>
-            </div>
-            <div class="toggle-pill"></div>
-          </div>
+          <button class="feature-card" id="cardEco" type="button" role="switch" aria-checked="false" onclick="toggleFeature('eco')">
+            <span class="feature-info">
+              <span class="feature-icon-box">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M17 8C8 10 5.9 16.17 3.82 21.34L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20C19 20 22 3 22 3c-1 2-8 2.25-13 3.25S2 11.5 2 13.5s1.75 3.75 1.75 3.75C7 8 17 8 17 8z"/></svg>
+              </span>
+              <span class="feature-name">Eco</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
 
-          <div class="feature-card" id="cardSleep" onclick="toggleFeature('sleep')">
-            <div class="feature-info">
-              <div class="feature-icon-box">
-                <svg viewBox="0 0 24 24"><path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.35-4.48A9.98 9.98 0 0 1 12.3 2z"/></svg>
-              </div>
-              <div class="feature-name">Comfort Sleep</div>
-            </div>
-            <div class="toggle-pill"></div>
-          </div>
+          <button class="feature-card" id="cardSleep" type="button" role="switch" aria-checked="false" onclick="toggleFeature('sleep')">
+            <span class="feature-info">
+              <span class="feature-icon-box">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.3 2a10 10 0 0 0-.19 20 10 10 0 0 0 8.35-4.48A9.98 9.98 0 0 1 12.3 2z"/></svg>
+              </span>
+              <span class="feature-name">Sleep</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
 
-          <div class="feature-card on" id="cardLight" onclick="toggleFeature('light')">
-            <div class="feature-info">
-              <div class="feature-icon-box">
-                <svg viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
-              </div>
-              <div class="feature-name">Display LED</div>
-            </div>
-            <div class="toggle-pill"></div>
-          </div>
+          <button class="feature-card on" id="cardLight" type="button" role="switch" aria-checked="true" onclick="toggleFeature('light')">
+            <span class="feature-info">
+              <span class="feature-icon-box">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></svg>
+              </span>
+              <span class="feature-name">Display</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
+        </div>
+      </section>
+
+      <div class="deck-footer">
+        <span class="deck-footer-dot" aria-hidden="true"></span>
+        <span>Megmeet MD50BS</span>
+        <span class="deck-footer-sep" aria-hidden="true">·</span>
+        <span id="syncLabel">Waiting for bridge</span>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- Mobile app quick-control dock -->
+  <nav class="mobile-dock" aria-label="Quick climate controls">
+    <button class="dock-step" id="dockMinus" type="button" aria-label="Decrease temperature" onclick="adjustTemp(-1)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13H5v-2h14v2z"/></svg>
+    </button>
+    <div class="dock-readout" aria-live="polite">
+      <span class="dock-mode" id="dockMode">Cooling</span>
+      <span class="dock-temp" id="dockTemp">24°C</span>
+    </div>
+    <button class="dock-step" id="dockPlus" type="button" aria-label="Increase temperature" onclick="adjustTemp(+1)">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
+    </button>
+    <button class="dock-power on" id="dockPower" type="button" aria-label="Turn system off" aria-pressed="true" onclick="togglePower()">
+      <span class="power-icon" aria-hidden="true"></span>
+    </button>
+  </nav>
+
+  <!-- MQTT Configuration Modal -->
+  <div class="modal-backdrop" id="cfgModal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle" onclick="if (event.target === this) closeConfigModal()">
+    <div class="modal-sheet">
+      <button class="modal-close" type="button" aria-label="Close settings" onclick="closeConfigModal()">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18.3 5.71L12 12l6.3 6.29-1.41 1.42L10.59 13.4 5.3 18.7 3.89 17.29 9.17 12 3.89 6.71 5.3 5.3l5.29 5.29 6.3-6.3z"/></svg>
+      </button>
+
+      <div class="modal-head">
+        <div class="modal-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+        </div>
+        <div class="modal-heading">
+          <div class="modal-title" id="cfgTitle">MQTT bridge</div>
+          <div class="modal-subtitle">Connect directly to the ESP32 bridge over secure WebSockets.</div>
         </div>
       </div>
 
-    </div>
-  </main>
-
-  <!-- MQTT Configuration Modal -->
-  <div class="modal-backdrop" id="cfgModal">
-    <div class="modal-sheet">
-      <div class="modal-title">MQTT & Hardware Bridge Settings</div>
-      <p style="font-size: 11px; color: var(--text-muted);">
-        Connects directly to your ESP32 Adafruit IO or HiveMQ broker over secure WebSockets (WSS).
-      </p>
-
-      <div class="form-group">
-        <label class="form-label">Broker WebSocket Host</label>
-        <input type="text" class="form-input" id="cfgHost" value="io.adafruit.com">
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="form-label" for="cfgHost">Broker host</label>
+          <input type="text" class="form-input" id="cfgHost" value="io.adafruit.com" spellcheck="false" autocomplete="off">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="cfgPort">WSS port</label>
+          <input type="number" class="form-input" id="cfgPort" value="443" inputmode="numeric">
+        </div>
       </div>
 
       <div class="form-group">
-        <label class="form-label">WSS Port</label>
-        <input type="number" class="form-input" id="cfgPort" value="443">
+        <label class="form-label" for="cfgUser">AIO username</label>
+        <input type="text" class="form-input" id="cfgUser" value="fizan_feroz" spellcheck="false" autocomplete="username">
       </div>
 
       <div class="form-group">
-        <label class="form-label">AIO Username</label>
-        <input type="text" class="form-input" id="cfgUser" value="fizan_feroz">
+        <label class="form-label" for="cfgPass">Active key</label>
+        <input type="password" class="form-input" id="cfgPass" placeholder="Enter Adafruit IO key" autocomplete="current-password">
       </div>
 
-      <div class="form-group">
-        <label class="form-label">AIO Active Key</label>
-        <input type="password" class="form-input" id="cfgPass" placeholder="Enter Adafruit IO Key">
+      <div class="modal-note">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm0 18a8 8 0 1 1 0-16 8 8 0 0 1 0 16z"/></svg>
+        <span>Credentials stay in this browser. The bridge publishes AC state to the <strong>bluestar-ac-status</strong> feed.</span>
       </div>
+
+      <button class="btn-install" id="installAppBtn" type="button" onclick="installPwa()" hidden>
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v10m0 0l4-4m-4 4L8 9M5 15v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3"/></svg>
+        <span>Install app</span>
+      </button>
 
       <div class="btn-row">
-        <button class="btn-secondary" onclick="closeConfigModal()">Cancel</button>
-        <button class="btn-primary" onclick="saveConfigModal()">Save & Connect</button>
+        <button class="btn-secondary" type="button" onclick="closeConfigModal()">Cancel</button>
+        <button class="btn-primary" type="button" onclick="saveConfigModal()">Save &amp; connect</button>
       </div>
     </div>
   </div>
 
   <!-- Device PIN Lock Overlay -->
-  <div class="lock-overlay" id="lockScreen">
+  <div class="lock-overlay" id="lockScreen" role="dialog" aria-modal="true" aria-labelledby="lockHeading">
     <div class="lock-box" id="lockBox">
-      <div class="lock-shield">
+      <div class="lock-brand">
+        <div class="brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M12 2.4l2.42 6.96 7.34.28-5.82 4.55 2.02 7.04L12 17.1l-5.96 4.13 2.02-7.04L2.24 9.64l7.34-.28z"/></svg>
+        </div>
+        <span>Blue Star</span>
+      </div>
+
+      <div class="lock-shield" aria-hidden="true">
         <svg viewBox="0 0 24 24"><path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5zm-3 5a3 3 0 0 1 6 0v3H9V7zm3 7a1.5 1.5 0 0 1 1.5 1.5v2a1.5 1.5 0 0 1-3 0v-2A1.5 1.5 0 0 1 12 14z"/></svg>
       </div>
-      <div class="lock-heading">Blue Star AC Locked</div>
-      <div class="lock-desc" id="lockStatusMsg">Enter device PIN to access climate controls</div>
-      
-      <div class="pin-display" id="pinDisplay">
+      <div class="lock-heading" id="lockHeading">Unlock climate controls</div>
+      <div class="lock-desc" id="lockStatusMsg" aria-live="polite">Enter the 4-digit device PIN to continue.</div>
+
+      <div class="pin-display" id="pinDisplay" aria-hidden="true">
         <div class="pin-dot" id="dot0"></div>
         <div class="pin-dot" id="dot1"></div>
         <div class="pin-dot" id="dot2"></div>
         <div class="pin-dot" id="dot3"></div>
       </div>
 
-      <div class="pin-keypad">
-        <button class="pad-key" onclick="pressPin('1')">1</button>
-        <button class="pad-key" onclick="pressPin('2')">2</button>
-        <button class="pad-key" onclick="pressPin('3')">3</button>
-        <button class="pad-key" onclick="pressPin('4')">4</button>
-        <button class="pad-key" onclick="pressPin('5')">5</button>
-        <button class="pad-key" onclick="pressPin('6')">6</button>
-        <button class="pad-key" onclick="pressPin('7')">7</button>
-        <button class="pad-key" onclick="pressPin('8')">8</button>
-        <button class="pad-key" onclick="pressPin('9')">9</button>
-        <button class="pad-key util" onclick="clearPin()">Clear</button>
-        <button class="pad-key" onclick="pressPin('0')">0</button>
-        <button class="pad-key util" onclick="backspacePin()">⌫</button>
+      <div class="pin-keypad" aria-label="Numeric PIN keypad">
+        <button class="pad-key" type="button" aria-label="1" onclick="pressPin('1')">1</button>
+        <button class="pad-key" type="button" aria-label="2" onclick="pressPin('2')">2</button>
+        <button class="pad-key" type="button" aria-label="3" onclick="pressPin('3')">3</button>
+        <button class="pad-key" type="button" aria-label="4" onclick="pressPin('4')">4</button>
+        <button class="pad-key" type="button" aria-label="5" onclick="pressPin('5')">5</button>
+        <button class="pad-key" type="button" aria-label="6" onclick="pressPin('6')">6</button>
+        <button class="pad-key" type="button" aria-label="7" onclick="pressPin('7')">7</button>
+        <button class="pad-key" type="button" aria-label="8" onclick="pressPin('8')">8</button>
+        <button class="pad-key" type="button" aria-label="9" onclick="pressPin('9')">9</button>
+        <button class="pad-key util" type="button" onclick="clearPin()">Clear</button>
+        <button class="pad-key" type="button" aria-label="0" onclick="pressPin('0')">0</button>
+        <button class="pad-key util" type="button" aria-label="Backspace" onclick="backspacePin()">⌫</button>
       </div>
+
+      <div class="pin-hint" id="pinHint">Default demo PIN: 1234</div>
 
       <label class="remember-toggle">
         <input type="checkbox" id="chkRemember" checked>
@@ -1290,6 +2881,16 @@
       </label>
     </div>
   </div>
+
+  <noscript>
+    <div style="position:fixed;inset:0;z-index:2000;display:grid;place-items:center;background:#05080f;color:#f4f8fc;font-family:sans-serif;padding:24px;text-align:center;">
+      JavaScript is required to run the 3D climate dashboard.
+    </div>
+  </noscript>
+
+  <!-- Load the 3D and MQTT engines after the shell paints. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
   <script>
     // =========================================================================
@@ -1403,6 +3004,8 @@
           localStorage.removeItem("bluestar_device_pin");
         }
         document.getElementById("lockScreen").classList.add("unlocked");
+        document.getElementById("lockScreen").setAttribute("aria-hidden", "true");
+        document.body.classList.add("unlocked");
         const lockBtn = document.getElementById("lockNavBtn");
         if (lockBtn) lockBtn.style.display = "flex";
         pinBuffer = "";
@@ -1424,8 +3027,8 @@
           pinBuffer = "";
           updatePinDots();
           if (statusMsg) {
-            statusMsg.innerText = "Enter device PIN to access climate controls";
-            statusMsg.style.color = "var(--text-muted)";
+            statusMsg.innerText = "Enter the 4-digit device PIN to continue.";
+            statusMsg.style.color = "var(--muted)";
           }
         }, 750);
       }
@@ -1439,16 +3042,28 @@
       pinBuffer = "";
       updatePinDots();
       document.getElementById("lockScreen").classList.remove("unlocked");
+      document.getElementById("lockScreen").setAttribute("aria-hidden", "false");
+      document.body.classList.remove("unlocked");
       const lockBtn = document.getElementById("lockNavBtn");
       if (lockBtn) lockBtn.style.display = "none";
     }
 
+    function updatePinHint() {
+      const hint = document.getElementById("pinHint");
+      if (!hint) return;
+      const expectedHash = state.pinHash || devicePinHash;
+      hint.classList.toggle("visible", expectedHash === 2088290703);
+    }
+
     function checkInitialLock() {
+      updatePinHint();
       if (activePin) {
         const expectedHash = state.pinHash || devicePinHash;
         if (hashPin(activePin) === expectedHash) {
           isUnlocked = true;
           document.getElementById("lockScreen").classList.add("unlocked");
+          document.getElementById("lockScreen").setAttribute("aria-hidden", "true");
+          document.body.classList.add("unlocked");
           const lockBtn = document.getElementById("lockNavBtn");
           if (lockBtn) lockBtn.style.display = "flex";
           return;
@@ -1456,6 +3071,8 @@
       }
       isUnlocked = false;
       document.getElementById("lockScreen").classList.remove("unlocked");
+      document.getElementById("lockScreen").setAttribute("aria-hidden", "false");
+      document.body.classList.remove("unlocked");
       const lockBtn = document.getElementById("lockNavBtn");
       if (lockBtn) lockBtn.style.display = "none";
     }
@@ -1521,22 +3138,37 @@
     mqttConfig.password = mqttConfig.password || DEFAULT_KEY;
 
     // =========================================================================
-    // 2. THREE.JS 3D SCENE & PROCEDURAL BLUE STAR SPLIT AC
+    // 2. THREE.JS 3D SCENE — HIGH-FIDELITY BLUE STAR DIGITAL TWIN
     // =========================================================================
-    let scene, camera, renderer;
-    let acGroup, louverPivot, louverMesh, blowerDrum, displayCanvas, displayTexture, displayMesh;
-    let coilGroup, airflowParticles, particlePositions, particleVelocities, particleLifespans, particleCount = 1500;
+    let scene, camera, renderer, clock = null;
+    let acGroup, facadeGroup, casingMesh, casingMat, panelMat;
+    let louverPivot, louverMesh, blowerDrum, displayMesh, displayCanvas, displayTexture;
+    let brandCanvas, brandTexture, logoMesh, ledMaterial, ledGlow;
+    let chamberMesh, xrayOutline;
+    let coilGroup, coilMat, airflowParticles, particlePositions, particleVelocities, particleLifespans;
     let raycaster, mouse;
+    let ventVanes = [];
+    let stageFloor;
+    let loaderDismissed = false;
+    let particleCount = 360;
 
-    // Interactive Camera Orbit Controller (Spherical Coordinates + Damping)
+    const AC_W = 2.24;
+    const AC_H = 0.755;
+    const AC_D = 0.525;
+    const VENT_W = 1.98;
+    const VENT_H = 0.115;
+    const VENT_Y = -0.275;
+    const FRONT_Z = AC_D / 2;
+    const REDUCED_MOTION = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+
     const cameraOrbit = {
-      target: { x: 0, y: -0.02, z: 0 },
-      radius: 3.2,
-      targetRadius: 3.2,
-      theta: 0.18,        // horizontal rotation
-      targetTheta: 0.18,
-      phi: 1.42,          // vertical elevation (0 = top, PI = bottom)
-      targetPhi: 1.42,
+      target: new THREE.Vector3(0, 0, 0),
+      radius: 3.8,
+      targetRadius: 3.8,
+      theta: 0.24,
+      targetTheta: 0.24,
+      phi: 1.4,
+      targetPhi: 1.4,
       isDragging: false,
       lastX: 0,
       lastY: 0
@@ -1544,144 +3176,875 @@
 
     const container = document.getElementById("canvas3d-container");
 
+    // ------------------------------------------------------------------
+    // Geometry helpers
+    // ------------------------------------------------------------------
+    function roundedRectShape(width, height, radius) {
+      const w = width / 2;
+      const h = height / 2;
+      const r = Math.min(radius, w, h);
+      const shape = new THREE.Shape();
+      shape.moveTo(-w + r, -h);
+      shape.lineTo(w - r, -h);
+      shape.quadraticCurveTo(w, -h, w, -h + r);
+      shape.lineTo(w, h - r);
+      shape.quadraticCurveTo(w, h, w - r, h);
+      shape.lineTo(-w + r, h);
+      shape.quadraticCurveTo(-w, h, -w, h - r);
+      shape.lineTo(-w, -h + r);
+      shape.quadraticCurveTo(-w, -h, -w + r, -h);
+      return shape;
+    }
+
+    function roundedRectPath(width, height, radius) {
+      const w = width / 2;
+      const h = height / 2;
+      const r = Math.min(radius, w, h);
+      const path = new THREE.Path();
+      path.moveTo(-w + r, -h);
+      path.lineTo(w - r, -h);
+      path.quadraticCurveTo(w, -h, w, -h + r);
+      path.lineTo(w, h - r);
+      path.quadraticCurveTo(w, h, w - r, h);
+      path.lineTo(-w + r, h);
+      path.quadraticCurveTo(-w, h, -w, h - r);
+      path.lineTo(-w, -h + r);
+      path.quadraticCurveTo(-w, -h, -w + r, -h);
+      return path;
+    }
+
+    function extrudedPanel(shape, depth, bevel, curveSegments) {
+      const geometry = new THREE.ExtrudeGeometry(shape, {
+        depth: depth,
+        bevelEnabled: true,
+        bevelThickness: bevel,
+        bevelSize: bevel,
+        bevelSegments: 5,
+        curveSegments: curveSegments || 28
+      });
+      geometry.translate(0, 0, -depth / 2);
+      return geometry;
+    }
+
+    function radialTexture(size, stops) {
+      const canvas = document.createElement("canvas");
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext("2d");
+      const gradient = ctx.createRadialGradient(size / 2, size / 2, 0, size / 2, size / 2, size / 2);
+      stops.forEach(([offset, color]) => gradient.addColorStop(offset, color));
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, size, size);
+      const texture = new THREE.CanvasTexture(canvas);
+      texture.needsUpdate = true;
+      return texture;
+    }
+
+    function makeBrandCanvas() {
+      brandCanvas = document.createElement("canvas");
+      brandCanvas.width = 512;
+      brandCanvas.height = 128;
+      brandTexture = new THREE.CanvasTexture(brandCanvas);
+      if (renderer) brandTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      drawBrandTexture();
+    }
+
+    function drawBrandTexture() {
+      if (!brandCanvas) return;
+      const ctx = brandCanvas.getContext("2d");
+      ctx.clearRect(0, 0, brandCanvas.width, brandCanvas.height);
+
+      // The real Q-series unit carries a compact blue badge in the upper-left.
+      const badgeGradient = ctx.createLinearGradient(0, 0, 0, brandCanvas.height);
+      badgeGradient.addColorStop(0, "#1479c9");
+      badgeGradient.addColorStop(1, "#07538f");
+      ctx.fillStyle = badgeGradient;
+      roundedCanvasRect(ctx, 4, 12, 504, 104, 16);
+      ctx.fill();
+
+      const cx = 67;
+      const cy = 64;
+      const outer = 34;
+      const inner = 14.5;
+      ctx.beginPath();
+      for (let i = 0; i < 10; i++) {
+        const radius = i % 2 === 0 ? outer : inner;
+        const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+        const x = cx + Math.cos(angle) * radius;
+        const y = cy + Math.sin(angle) * radius;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.closePath();
+      ctx.fillStyle = "#ffffff";
+      ctx.fill();
+
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "left";
+      ctx.textBaseline = "middle";
+      ctx.font = "700 52px Outfit, sans-serif";
+      ctx.fillText("BLUE STAR", 122, 66);
+
+      brandTexture.needsUpdate = true;
+    }
+
+    function roundedCanvasRect(ctx, x, y, width, height, radius) {
+      ctx.beginPath();
+      ctx.moveTo(x + radius, y);
+      ctx.lineTo(x + width - radius, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+      ctx.lineTo(x + width, y + height - radius);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+      ctx.lineTo(x + radius, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+      ctx.lineTo(x, y + radius);
+      ctx.quadraticCurveTo(x, y, x + radius, y);
+      ctx.closePath();
+    }
+
+    function createStudioEnvironment() {
+      if (!THREE.PMREMGenerator) return null;
+      const envScene = new THREE.Scene();
+      envScene.background = new THREE.Color(0x0a1a26);
+
+      const panelGeometry = new THREE.PlaneGeometry(9, 9);
+      const addPanel = (color, intensity, position, rotation) => {
+        const material = new THREE.MeshBasicMaterial({
+          color: color,
+          side: THREE.DoubleSide
+        });
+        material.color.multiplyScalar(intensity);
+        const mesh = new THREE.Mesh(panelGeometry, material);
+        mesh.position.set(position[0], position[1], position[2]);
+        mesh.rotation.set(rotation[0], rotation[1], rotation[2]);
+        envScene.add(mesh);
+      };
+
+      addPanel(0xffffff, 2.2, [0, 6.0, 0.5], [Math.PI / 2, 0, 0]);
+      addPanel(0xbdefff, 1.1, [-5.0, 1.2, 2.0], [0, Math.PI / 2, 0]);
+      addPanel(0x2a9fce, 0.8, [5.0, 0.5, -1.5], [0, -Math.PI / 2, 0]);
+      addPanel(0xffffff, 0.65, [0, 0.5, 5.0], [0, 0, 0]);
+
+      const generator = new THREE.PMREMGenerator(renderer);
+      const renderTarget = generator.fromScene(envScene, 0.035);
+      generator.dispose();
+      panelGeometry.dispose();
+      return renderTarget.texture;
+    }
+
+    // ------------------------------------------------------------------
+    // Scene setup
+    // ------------------------------------------------------------------
     function init3D() {
-      if (typeof THREE === 'undefined') {
-        console.error("Three.js not loaded");
+      if (typeof THREE === "undefined") {
+        const loader = document.getElementById("modelLoader");
+        if (loader) loader.innerHTML = "<span>3D library unavailable — controls remain active.</span>";
         return;
       }
 
-      clock = new THREE.Clock();
-      cameraOrbit.target = new THREE.Vector3(0, -0.02, 0);
+      try {
+        clock = new THREE.Clock();
+        scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x05080f, 0.07);
 
-      scene = new THREE.Scene();
+        camera = new THREE.PerspectiveCamera(34, 1, 0.1, 40);
 
-      // Camera
-      camera = new THREE.PerspectiveCamera(38, container.clientWidth / container.clientHeight, 0.1, 50);
-      updateCameraFromOrbit();
+        renderer = new THREE.WebGLRenderer({
+          antialias: true,
+          alpha: true,
+          powerPreference: "high-performance"
+        });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+        renderer.setSize(container.clientWidth, container.clientHeight);
+        renderer.setClearColor(0x000000, 0);
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        renderer.outputEncoding = THREE.sRGBEncoding;
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 0.9;
+        container.appendChild(renderer.domElement);
 
-      // WebGL Renderer
-      renderer = new THREE.WebGLRenderer({
-        antialias: true,
-        alpha: true,
-        preserveDrawingBuffer: true,
-        powerPreference: "high-performance"
-      });
-      renderer.setSize(container.clientWidth, container.clientHeight);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      renderer.shadowMap.enabled = true;
-      renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      renderer.toneMappingExposure = 1.15;
-      container.appendChild(renderer.domElement);
+        scene.environment = createStudioEnvironment();
 
-      // Studio Lighting
-      const ambient = new THREE.AmbientLight(0xffffff, 0.9);
-      scene.add(ambient);
+        setupLighting();
+        buildBlueStarAC();
+        buildParticles();
+        setupOrbitListeners();
 
-      const keyLight = new THREE.DirectionalLight(0xf0f9ff, 1.4);
-      keyLight.position.set(3.5, 4.0, 3.0);
-      keyLight.castShadow = true;
-      scene.add(keyLight);
+        updateResponsiveCamera();
+        cameraOrbit.radius = cameraOrbit.targetRadius;
+        updateCameraFromOrbit();
 
-      const blueFill = new THREE.DirectionalLight(0x38bdf8, 0.8);
-      blueFill.position.set(-3.5, -0.8, 2.5);
-      scene.add(blueFill);
+        window.addEventListener("resize", onWindowResize, { passive: true });
+        if (window.ResizeObserver) {
+          const resizeObserver = new ResizeObserver(() => updateResponsiveCamera());
+          resizeObserver.observe(container);
+        }
 
-      const topLight = new THREE.DirectionalLight(0xffffff, 0.65);
-      topLight.position.set(0, 3.5, 0.5);
-      scene.add(topLight);
+        if (document.fonts && document.fonts.ready) {
+          document.fonts.ready.then(() => {
+            drawBrandTexture();
+            updateDisplayTexture();
+          });
+        }
 
-      // Build Extruded Aerodynamic Blue Star AC
-      buildBlueStarAC();
-
-      // Build Particles
-      buildParticles();
-
-      // Setup Input Listeners for 360 Orbit & Zoom
-      setupOrbitListeners();
-
-      // Responsive sizing
-      updateResponsiveCamera();
-      window.addEventListener('resize', onWindowResize);
-
-      // Start loop
-      animate();
+        animate();
+      } catch (error) {
+        console.error("3D scene failed:", error);
+        const loader = document.getElementById("modelLoader");
+        if (loader) loader.innerHTML = "<span>3D view unavailable on this device.</span>";
+      }
     }
 
+    function setupLighting() {
+      scene.add(new THREE.AmbientLight(0xa9c8df, 0.18));
+      scene.add(new THREE.HemisphereLight(0xe8f9ff, 0x07111b, 0.4));
+
+      const keyLight = new THREE.DirectionalLight(0xffffff, 0.95);
+      keyLight.position.set(3.4, 4.4, 3.6);
+      keyLight.castShadow = true;
+      keyLight.shadow.mapSize.set(2048, 2048);
+      keyLight.shadow.camera.near = 0.5;
+      keyLight.shadow.camera.far = 14;
+      keyLight.shadow.camera.left = -3.2;
+      keyLight.shadow.camera.right = 3.2;
+      keyLight.shadow.camera.top = 3.2;
+      keyLight.shadow.camera.bottom = -3.2;
+      keyLight.shadow.bias = -0.0007;
+      keyLight.shadow.radius = 4;
+      scene.add(keyLight);
+
+      const fillLight = new THREE.DirectionalLight(0x5dc9f5, 0.3);
+      fillLight.position.set(-4.0, 1.0, 3.0);
+      scene.add(fillLight);
+
+      const rimLight = new THREE.DirectionalLight(0x7de9ff, 0.55);
+      rimLight.position.set(-1.8, 1.6, -3.8);
+      scene.add(rimLight);
+
+      const topLight = new THREE.DirectionalLight(0xffffff, 0.24);
+      topLight.position.set(0.2, 4.5, 0.4);
+      scene.add(topLight);
+
+      const floorGlow = new THREE.PointLight(0x0ea5e9, 0.1, 4.5, 2);
+      floorGlow.position.set(0, -0.28, 0.9);
+      scene.add(floorGlow);
+    }
+
+    function buildStage() {
+      const floorMaterial = new THREE.MeshStandardMaterial({
+        color: 0x040910,
+        roughness: 0.7,
+        metalness: 0.1,
+        envMapIntensity: 0.14
+      });
+      stageFloor = new THREE.Mesh(new THREE.CircleGeometry(3.7, 96), floorMaterial);
+      stageFloor.rotation.x = -Math.PI / 2;
+      stageFloor.position.y = -0.56;
+      stageFloor.receiveShadow = true;
+      scene.add(stageFloor);
+
+      const ringMaterial = new THREE.MeshBasicMaterial({
+        color: 0x2e8db4,
+        transparent: true,
+        opacity: 0.2,
+        side: THREE.DoubleSide,
+        depthWrite: false
+      });
+      const ring = new THREE.Mesh(new THREE.RingGeometry(1.42, 1.445, 128), ringMaterial);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.y = -0.552;
+      scene.add(ring);
+
+      const outerRing = new THREE.Mesh(
+        new THREE.RingGeometry(2.04, 2.052, 128),
+        new THREE.MeshBasicMaterial({
+          color: 0x2e8db4,
+          transparent: true,
+          opacity: 0.085,
+          side: THREE.DoubleSide,
+          depthWrite: false
+        })
+      );
+      outerRing.rotation.x = -Math.PI / 2;
+      outerRing.position.y = -0.552;
+      scene.add(outerRing);
+
+      const shadowTexture = radialTexture(256, [
+        [0, "rgba(0, 0, 0, 0.72)"],
+        [0.42, "rgba(0, 0, 0, 0.34)"],
+        [1, "rgba(0, 0, 0, 0)"]
+      ]);
+      const contactShadow = new THREE.Mesh(
+        new THREE.PlaneGeometry(3.05, 1.45),
+        new THREE.MeshBasicMaterial({
+          map: shadowTexture,
+          transparent: true,
+          opacity: 0.55,
+          depthWrite: false
+        })
+      );
+      contactShadow.rotation.x = -Math.PI / 2;
+      contactShadow.position.set(0, -0.551, 0.06);
+      scene.add(contactShadow);
+
+      const haloTexture = radialTexture(256, [
+        [0, "rgba(56, 189, 248, 0.52)"],
+        [0.3, "rgba(14, 165, 233, 0.2)"],
+        [0.7, "rgba(3, 105, 161, 0.05)"],
+        [1, "rgba(0, 0, 0, 0)"]
+      ]);
+      const halo = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: haloTexture,
+        color: 0x4cc9f0,
+        transparent: true,
+        opacity: 0.16,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      }));
+      halo.position.set(0, 0.16, -1.7);
+      halo.scale.set(5.2, 3.1, 1);
+      scene.add(halo);
+    }
+
+    // ------------------------------------------------------------------
+    // The digital twin
+    // ------------------------------------------------------------------
+    function buildBlueStarAC() {
+      buildStage();
+
+      acGroup = new THREE.Group();
+      acGroup.position.set(0, 0.02, 0);
+      scene.add(acGroup);
+
+      facadeGroup = new THREE.Group();
+      acGroup.add(facadeGroup);
+
+      casingMat = new THREE.MeshPhysicalMaterial({
+        color: 0xeef3f8,
+        metalness: 0.015,
+        roughness: 0.28,
+        clearcoat: 0.38,
+        clearcoatRoughness: 0.26,
+        envMapIntensity: 0.45
+      });
+
+      panelMat = new THREE.MeshPhysicalMaterial({
+        color: 0xf7fafc,
+        metalness: 0.01,
+        roughness: 0.22,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.2,
+        envMapIntensity: 0.5
+      });
+
+      const louverMat = new THREE.MeshPhysicalMaterial({
+        color: 0xf3f7fb,
+        metalness: 0.02,
+        roughness: 0.24,
+        clearcoat: 0.45,
+        clearcoatRoughness: 0.2,
+        envMapIntensity: 0.48
+      });
+
+      // --- Casing with a real air-outlet cutout -----------------------
+      const bodyShape = roundedRectShape(AC_W - 0.03, AC_H - 0.03, 0.125);
+      bodyShape.holes.push(offsetPath(roundedRectPath(VENT_W, VENT_H, 0.035), 0, VENT_Y));
+
+      const bodyGeometry = extrudedPanel(bodyShape, AC_D - 0.04, 0.02, 32);
+      casingMesh = new THREE.Mesh(bodyGeometry, casingMat);
+      casingMesh.castShadow = true;
+      casingMesh.receiveShadow = true;
+      acGroup.add(casingMesh);
+
+      xrayOutline = createBodyOutline();
+      acGroup.add(xrayOutline);
+
+      // --- Removable front shell with seam -----------------------------
+      const panelShape = roundedRectShape(AC_W - 0.07, AC_H - 0.07, 0.112);
+      panelShape.holes.push(offsetPath(roundedRectPath(VENT_W, VENT_H, 0.035), 0, VENT_Y));
+      const panelGeometry = extrudedPanel(panelShape, 0.012, 0.005, 32);
+      const frontPanel = new THREE.Mesh(panelGeometry, panelMat);
+      frontPanel.position.z = FRONT_Z - 0.002;
+      frontPanel.castShadow = true;
+      frontPanel.receiveShadow = true;
+      facadeGroup.add(frontPanel);
+
+      // Subtle chrome seam running along the front edge
+      const seamMat = new THREE.MeshStandardMaterial({
+        color: 0x6f8799,
+        metalness: 0.9,
+        roughness: 0.3
+      });
+      const seam = new THREE.Mesh(new THREE.BoxGeometry(AC_W - 0.1, 0.0035, 0.002), seamMat);
+      seam.position.set(0, -0.334, FRONT_Z + 0.006);
+      facadeGroup.add(seam);
+
+      // --- Recessed dark chamber behind the outlet ---------------------
+      const chamberMat = new THREE.MeshStandardMaterial({
+        color: 0x070c14,
+        roughness: 0.84,
+        metalness: 0.24
+      });
+      const chamber = new THREE.Mesh(
+        new THREE.BoxGeometry(VENT_W + 0.07, VENT_H + 0.06, 0.235),
+        chamberMat
+      );
+      chamber.position.set(0, VENT_Y, 0.012);
+      chamberMesh = chamber;
+      acGroup.add(chamber);
+
+      // --- Cross-flow blower drum --------------------------------------
+      const drumCanvas = document.createElement("canvas");
+      drumCanvas.width = 512;
+      drumCanvas.height = 64;
+      const drumCtx = drumCanvas.getContext("2d");
+      drumCtx.fillStyle = "#121a24";
+      drumCtx.fillRect(0, 0, 512, 64);
+      for (let i = 0; i < 30; i++) {
+        drumCtx.fillStyle = i % 2 === 0 ? "#2a3748" : "#1b2532";
+        drumCtx.fillRect(i * 17.2, 0, 5.4, 64);
+      }
+      const drumTexture = new THREE.CanvasTexture(drumCanvas);
+      drumTexture.wrapS = THREE.RepeatWrapping;
+      drumTexture.repeat.set(5, 1);
+      drumTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+
+      blowerDrum = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.055, 0.055, VENT_W - 0.1, 48, 1, true),
+        new THREE.MeshStandardMaterial({
+          map: drumTexture,
+          color: 0x6b7f96,
+          metalness: 0.55,
+          roughness: 0.46,
+          side: THREE.DoubleSide
+        })
+      );
+      blowerDrum.rotation.z = Math.PI / 2;
+      blowerDrum.position.set(0, VENT_Y - 0.004, 0.07);
+      acGroup.add(blowerDrum);
+
+      // --- Vertical swing vanes ----------------------------------------
+      const vaneMat = new THREE.MeshStandardMaterial({
+        color: 0x3a4a5b,
+        metalness: 0.52,
+        roughness: 0.55
+      });
+      for (let i = 0; i < 13; i++) {
+        const vanePivot = new THREE.Group();
+        vanePivot.position.set(-0.84 + i * 0.14, VENT_Y - 0.004, 0.135);
+        const vane = new THREE.Mesh(
+          new THREE.BoxGeometry(0.004, VENT_H * 0.82, 0.082),
+          vaneMat
+        );
+        vanePivot.add(vane);
+        acGroup.add(vanePivot);
+        ventVanes.push(vanePivot);
+      }
+
+      // --- Motorized horizontal louver ---------------------------------
+      louverPivot = new THREE.Group();
+      louverPivot.position.set(0, VENT_Y - VENT_H / 2 + 0.003, FRONT_Z + 0.006);
+
+      const bladeShape = roundedRectShape(VENT_W + 0.015, VENT_H + 0.012, 0.022);
+      const bladeGeometry = extrudedPanel(bladeShape, 0.014, 0.004, 28);
+      bladeGeometry.translate(0, (VENT_H + 0.012) / 2, 0);
+      louverMesh = new THREE.Mesh(bladeGeometry, louverMat);
+      louverMesh.castShadow = true;
+      louverPivot.add(louverMesh);
+      facadeGroup.add(louverPivot);
+
+      // Louver seam detail
+      const bladeLine = new THREE.Mesh(
+        new THREE.BoxGeometry(VENT_W - 0.02, 0.0028, 0.002),
+        new THREE.MeshStandardMaterial({ color: 0x9aabba, metalness: 0.55, roughness: 0.5 })
+      );
+      bladeLine.position.set(0, 0.032, 0.009);
+      louverPivot.add(bladeLine);
+
+      // --- Top intake grille -------------------------------------------
+      const grilleShape = roundedRectShape(1.6, 0.245, 0.06);
+      const grilleGeometry = extrudedPanel(grilleShape, 0.008, 0.003, 24);
+      grilleGeometry.rotateX(-Math.PI / 2);
+      const grille = new THREE.Mesh(
+        grilleGeometry,
+        new THREE.MeshStandardMaterial({ color: 0x101923, roughness: 0.72, metalness: 0.3 })
+      );
+      grille.position.set(0, AC_H / 2 - 0.026, -0.028);
+      facadeGroup.add(grille);
+
+      const slatMat = new THREE.MeshStandardMaterial({
+        color: 0x53677a,
+        metalness: 0.45,
+        roughness: 0.5
+      });
+      for (let i = 0; i < 29; i++) {
+        const slat = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.0025, 0.205), slatMat);
+        slat.position.set(-0.72 + i * 0.0515, AC_H / 2 - 0.014, -0.03);
+        facadeGroup.add(slat);
+      }
+
+      // --- Hidden LED window (as on the real Q-series panel) -------------
+      displayCanvas = document.createElement("canvas");
+      displayCanvas.width = 512;
+      displayCanvas.height = 192;
+      displayTexture = new THREE.CanvasTexture(displayCanvas);
+      displayTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      displayMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.285, 0.107),
+        new THREE.MeshBasicMaterial({
+          map: displayTexture,
+          transparent: true,
+          opacity: 1,
+          depthWrite: false,
+          toneMapped: false
+        })
+      );
+      displayMesh.position.set(0.47, 0.035, FRONT_Z + 0.013);
+      facadeGroup.add(displayMesh);
+      updateDisplayTexture();
+
+      // --- Brand badge + INVERTER wordmark --------------------------------
+      makeBrandCanvas();
+      logoMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.28, 0.07),
+        new THREE.MeshBasicMaterial({
+          map: brandTexture,
+          transparent: true,
+          depthWrite: false,
+          opacity: 1,
+          toneMapped: false
+        })
+      );
+      logoMesh.position.set(-0.85, 0.17, FRONT_Z + 0.0125);
+      facadeGroup.add(logoMesh);
+
+      const inverterCanvas = document.createElement("canvas");
+      inverterCanvas.width = 512;
+      inverterCanvas.height = 100;
+      const inverterCtx = inverterCanvas.getContext("2d");
+      inverterCtx.clearRect(0, 0, 512, 100);
+      inverterCtx.textBaseline = "middle";
+      inverterCtx.font = "600 46px 'Plus Jakarta Sans', sans-serif";
+      inverterCtx.fillStyle = "rgba(74, 95, 107, 0.9)";
+      const inverterWidth = inverterCtx.measureText("INVERTER").width;
+      inverterCtx.fillText("INVERTER", 256 - inverterWidth / 2, 54);
+      inverterCtx.fillStyle = "rgba(62, 154, 91, 0.95)";
+      inverterCtx.fillRect(256 + 16, 26, 5, 32);
+      const inverterTexture = new THREE.CanvasTexture(inverterCanvas);
+      inverterTexture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+      const inverterMesh = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.26, 0.051),
+        new THREE.MeshBasicMaterial({
+          map: inverterTexture,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false
+        })
+      );
+      inverterMesh.position.set(0.85, 0.17, FRONT_Z + 0.0125);
+      facadeGroup.add(inverterMesh);
+
+      // --- Signature bronze accent above the outlet ----------------------
+      const bronzeStripShape = roundedRectShape(AC_W - 0.30, 0.019, 0.0095);
+      const bronzeStripGeometry = extrudedPanel(bronzeStripShape, 0.007, 0.002, 24);
+      const bronzeStrip = new THREE.Mesh(
+        bronzeStripGeometry,
+        new THREE.MeshStandardMaterial({
+          color: 0xb87c53,
+          metalness: 0.88,
+          roughness: 0.24,
+          envMapIntensity: 0.7
+        })
+      );
+      bronzeStrip.position.set(0, -0.193, FRONT_Z + 0.009);
+      facadeGroup.add(bronzeStrip);
+
+      // --- Status LED ----------------------------------------------------
+      ledMaterial = new THREE.MeshBasicMaterial({ color: 0x8beeff, transparent: true, opacity: 1 });
+      const led = new THREE.Mesh(new THREE.SphereGeometry(0.0055, 16, 16), ledMaterial);
+      led.position.set(0.65, 0.035, FRONT_Z + 0.013);
+      facadeGroup.add(led);
+
+      ledGlow = new THREE.Sprite(new THREE.SpriteMaterial({
+        map: radialTexture(128, [
+          [0, "rgba(139, 238, 255, 0.95)"],
+          [0.22, "rgba(56, 189, 248, 0.5)"],
+          [1, "rgba(56, 189, 248, 0)"]
+        ]),
+        color: 0x6fe9ff,
+        transparent: true,
+        opacity: 0.22,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        depthTest: false
+      }));
+      ledGlow.scale.set(0.034, 0.034, 1);
+      ledGlow.renderOrder = 4;
+      ledGlow.position.copy(led.position);
+      facadeGroup.add(ledGlow);
+
+      // --- Internal evaporator (X-Ray view) ------------------------------
+      coilGroup = new THREE.Group();
+      coilGroup.visible = false;
+      acGroup.add(coilGroup);
+
+      coilMat = new THREE.MeshStandardMaterial({
+        color: 0x59c9ec,
+        emissive: 0x0b5673,
+        emissiveIntensity: 0.45,
+        metalness: 0.68,
+        roughness: 0.3,
+        transparent: true,
+        opacity: 0.72
+      });
+
+      for (let i = 0; i < 36; i++) {
+        const fin = new THREE.Mesh(new THREE.BoxGeometry(0.0045, 0.31, 0.19), coilMat);
+        fin.position.set(-0.86 + i * 0.049, 0.085, -0.02);
+        coilGroup.add(fin);
+      }
+
+      const copperMat = new THREE.MeshStandardMaterial({
+        color: 0xc98157,
+        metalness: 0.9,
+        roughness: 0.3
+      });
+      for (let i = 0; i < 5; i++) {
+        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(0.0115, 0.0115, 1.79, 14), copperMat);
+        pipe.rotation.z = Math.PI / 2;
+        pipe.position.set(0, -0.005 + i * 0.052, -0.1 + i * 0.012);
+        coilGroup.add(pipe);
+      }
+
+      const headerPipe = new THREE.Mesh(new THREE.CylinderGeometry(0.016, 0.016, 0.3, 14), copperMat);
+      headerPipe.position.set(-0.9, 0.09, -0.08);
+      coilGroup.add(headerPipe);
+
+      acGroup.traverse((object) => {
+        if (object.isMesh && object !== casingMesh) {
+          object.receiveShadow = true;
+        }
+      });
+    }
+
+    function createBodyOutline() {
+      const points = roundedRectShape(AC_W - 0.03, AC_H - 0.03, 0.125).getPoints(72);
+      const positions = [];
+      const zFront = FRONT_Z - 0.001;
+      const zBack = -FRONT_Z;
+
+      for (let i = 0; i < points.length; i++) {
+        const a = points[i];
+        const b = points[(i + 1) % points.length];
+        positions.push(a.x, a.y, zFront, b.x, b.y, zFront);
+        positions.push(a.x, a.y, zBack, b.x, b.y, zBack);
+      }
+
+      for (let i = 0; i < points.length; i += 6) {
+        const point = points[i];
+        positions.push(point.x, point.y, zFront, point.x, point.y, zBack);
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute("position", new THREE.Float32BufferAttribute(positions, 3));
+      const outline = new THREE.LineSegments(
+        geometry,
+        new THREE.LineBasicMaterial({
+          color: 0x7de9ff,
+          transparent: true,
+          opacity: 0.58,
+          depthWrite: false,
+          depthTest: false,
+          toneMapped: false
+        })
+      );
+      outline.renderOrder = 6;
+      outline.visible = false;
+      return outline;
+    }
+
+    function offsetPath(path, dx, dy) {
+      const points = path.getPoints(28);
+      const shifted = new THREE.Path();
+      points.forEach((point, index) => {
+        const x = point.x + dx;
+        const y = point.y + dy;
+        if (index === 0) shifted.moveTo(x, y);
+        else shifted.lineTo(x, y);
+      });
+      shifted.closePath();
+      return shifted;
+    }
+
+    // ------------------------------------------------------------------
+    // Display, airflow particles
+    // ------------------------------------------------------------------
+    function updateDisplayTexture() {
+      if (!displayCanvas || !displayTexture) return;
+      const ctx = displayCanvas.getContext("2d");
+      ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
+
+      if (state.power === 1 && state.light === 1) {
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        if (state.filterAlert === 1) {
+          ctx.shadowColor = "#fb7185";
+          ctx.shadowBlur = 24;
+          ctx.fillStyle = "#ffd8de";
+          ctx.font = "650 108px Outfit, sans-serif";
+          ctx.fillText("FC", 256, 96);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(255, 216, 222, 0.72)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FILTER", 256, 166);
+        } else {
+          const temperature = `${Math.round(state.targetTemp)}°`;
+          ctx.font = "620 142px Outfit, sans-serif";
+          ctx.shadowColor = "rgba(5, 55, 75, 0.52)";
+          ctx.shadowBlur = 7;
+          ctx.fillStyle = "#8cecff";
+          ctx.fillText(temperature, 256, 101);
+          ctx.shadowColor = "rgba(56, 189, 248, 0.42)";
+          ctx.shadowBlur = 25;
+          ctx.fillStyle = "rgba(150, 240, 255, 0.5)";
+          ctx.fillText(temperature, 256, 101);
+        }
+        ctx.restore();
+      }
+
+      displayTexture.needsUpdate = true;
+    }
+
+    function buildParticles() {
+      const geometry = new THREE.BufferGeometry();
+      particlePositions = new Float32Array(particleCount * 3);
+      particleVelocities = new Float32Array(particleCount * 3);
+      particleLifespans = new Float32Array(particleCount);
+
+      for (let i = 0; i < particleCount; i++) {
+        resetParticle(i, true);
+      }
+
+      geometry.setAttribute("position", new THREE.BufferAttribute(particlePositions, 3));
+
+      const particleTexture = radialTexture(64, [
+        [0, "rgba(255, 255, 255, 0.95)"],
+        [0.24, "rgba(125, 233, 255, 0.54)"],
+        [1, "rgba(56, 189, 248, 0)"]
+      ]);
+
+      airflowParticles = new THREE.Points(geometry, new THREE.PointsMaterial({
+        size: 0.033,
+        map: particleTexture,
+        transparent: true,
+        opacity: 0.22,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        sizeAttenuation: true
+      }));
+      scene.add(airflowParticles);
+    }
+
+    function resetParticle(index, immediateSpread) {
+      const offset = index * 3;
+      particlePositions[offset] = (Math.random() - 0.5) * (VENT_W - 0.14);
+      particlePositions[offset + 1] = VENT_Y + (Math.random() - 0.2) * 0.06;
+      particlePositions[offset + 2] = FRONT_Z + 0.05 + Math.random() * 0.04;
+
+      const speeds = [0, 0.15, 0.24, 0.36, 0.52, 0.8, 0.34];
+      const speed = speeds[state.fan] || 0.36;
+      const spread = 0.7 + Math.random() * 0.7;
+
+      particleVelocities[offset] = (Math.random() - 0.5) * speed * 0.36;
+      particleVelocities[offset + 1] = -speed * (0.55 + Math.random() * 0.8);
+      particleVelocities[offset + 2] = speed * spread;
+
+      particleLifespans[index] = immediateSpread ? Math.random() : 0;
+    }
+
+    // ------------------------------------------------------------------
+    // Orbit controls
+    // ------------------------------------------------------------------
     function setupOrbitListeners() {
-      const el = renderer.domElement;
+      const element = renderer.domElement;
+      let downX = 0;
+      let downY = 0;
 
-      // Pointer Down
-      el.addEventListener('pointerdown', (e) => {
+      element.addEventListener("pointerdown", (event) => {
         cameraOrbit.isDragging = true;
-        cameraOrbit.lastX = e.clientX;
-        cameraOrbit.lastY = e.clientY;
-        el.setPointerCapture(e.pointerId);
-
-        // Check 3D raycast touch
-        checkRaycastHit(e);
+        cameraOrbit.lastX = event.clientX;
+        cameraOrbit.lastY = event.clientY;
+        downX = event.clientX;
+        downY = event.clientY;
+        try { element.setPointerCapture(event.pointerId); } catch (_) {}
       });
 
-      // Pointer Move
-      el.addEventListener('pointermove', (e) => {
+      element.addEventListener("pointermove", (event) => {
         if (!cameraOrbit.isDragging) return;
-        const dx = e.clientX - cameraOrbit.lastX;
-        const dy = e.clientY - cameraOrbit.lastY;
-        cameraOrbit.lastX = e.clientX;
-        cameraOrbit.lastY = e.clientY;
+        const dx = event.clientX - cameraOrbit.lastX;
+        const dy = event.clientY - cameraOrbit.lastY;
+        cameraOrbit.lastX = event.clientX;
+        cameraOrbit.lastY = event.clientY;
 
-        cameraOrbit.targetTheta -= dx * 0.006;
-        cameraOrbit.targetPhi -= dy * 0.006;
-        // Clamp vertical angle to prevent flipping
-        cameraOrbit.targetPhi = Math.max(0.4, Math.min(Math.PI / 2 + 0.1, cameraOrbit.targetPhi));
+        cameraOrbit.targetTheta -= dx * 0.0055;
+        cameraOrbit.targetPhi -= dy * 0.0048;
+        cameraOrbit.targetPhi = Math.max(0.65, Math.min(1.62, cameraOrbit.targetPhi));
       });
 
-      // Pointer Up
-      el.addEventListener('pointerup', (e) => {
+      const endDrag = (event) => {
+        const moved = Math.hypot(event.clientX - downX, event.clientY - downY);
         cameraOrbit.isDragging = false;
-        try { el.releasePointerCapture(e.pointerId); } catch (_) {}
+        try { element.releasePointerCapture(event.pointerId); } catch (_) {}
+        if (moved < 5) checkRaycastHit(event);
+      };
+
+      element.addEventListener("pointerup", endDrag);
+      element.addEventListener("pointercancel", () => {
+        cameraOrbit.isDragging = false;
       });
 
-      // Mouse Wheel Zoom
-      el.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        cameraOrbit.targetRadius += e.deltaY * 0.0025;
-        cameraOrbit.targetRadius = Math.max(1.8, Math.min(5.5, cameraOrbit.targetRadius));
+      element.addEventListener("wheel", (event) => {
+        event.preventDefault();
+        cameraOrbit.targetRadius += event.deltaY * 0.0022;
+        cameraOrbit.targetRadius = Math.max(1.55, Math.min(6.2, cameraOrbit.targetRadius));
       }, { passive: false });
 
-      // Raycaster
+      element.addEventListener("dblclick", () => setCameraView("hero"));
+
       raycaster = new THREE.Raycaster();
       mouse = new THREE.Vector2();
     }
 
-    function checkRaycastHit(e) {
+    function checkRaycastHit(event) {
+      if (!renderer || !camera) return;
       const rect = renderer.domElement.getBoundingClientRect();
-      mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-
+      mouse.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      mouse.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
       raycaster.setFromCamera(mouse, camera);
-      if (!acGroup) return;
 
-      const hits = raycaster.intersectObjects(acGroup.children, true);
-      if (hits.length > 0) {
-        const hit = hits[0].object;
-        if (hit === louverMesh || hit.parent === louverPivot) {
-          playAudio('beep');
-          setVane(state.vane === 0 ? 3 : 0);
-        } else if (hit === displayMesh) {
-          toggleFeature('light');
-        } else {
-          tween.to(acGroup.position, { y: 0.08, duration: 0.12 });
-          playAudio('click');
-        }
+      const targets = [];
+      if (louverMesh) targets.push(louverMesh);
+      if (displayMesh) targets.push(displayMesh);
+
+      const hits = raycaster.intersectObjects(targets, false);
+      if (!hits.length) return;
+
+      if (hits[0].object === louverMesh) {
+        playAudio("beep");
+        setVane(state.vane === 0 ? 3 : 0);
+      } else if (hits[0].object === displayMesh) {
+        playAudio("click");
+        toggleFeature("light");
       }
     }
 
     function updateCameraFromOrbit() {
-      // Damped smooth interpolation
-      cameraOrbit.theta += (cameraOrbit.targetTheta - cameraOrbit.theta) * 0.08;
-      cameraOrbit.phi += (cameraOrbit.targetPhi - cameraOrbit.phi) * 0.08;
-      cameraOrbit.radius += (cameraOrbit.targetRadius - cameraOrbit.radius) * 0.08;
+      cameraOrbit.theta += (cameraOrbit.targetTheta - cameraOrbit.theta) * 0.1;
+      cameraOrbit.phi += (cameraOrbit.targetPhi - cameraOrbit.phi) * 0.1;
+      cameraOrbit.radius += (cameraOrbit.targetRadius - cameraOrbit.radius) * 0.09;
 
       const sinPhi = Math.sin(cameraOrbit.phi);
       const cosPhi = Math.cos(cameraOrbit.phi);
@@ -1692,421 +4055,223 @@
       camera.lookAt(cameraOrbit.target);
     }
 
+    function heroRadius() {
+      const aspect = Math.max(0.45, container.clientWidth / Math.max(1, container.clientHeight));
+      const verticalFov = THREE.MathUtils.degToRad(camera.fov);
+      const widthDistance = (AC_W * 0.5) / (Math.tan(verticalFov / 2) * aspect * 0.8);
+      const heightDistance = (AC_H * 0.5) / (Math.tan(verticalFov / 2) * 0.7);
+      return Math.max(2.35, Math.min(5.4, Math.max(widthDistance, heightDistance)));
+    }
+
     function updateResponsiveCamera() {
       const width = container.clientWidth;
       const height = container.clientHeight;
-      if (!width || !height) return;
+      if (!width || !height || !camera) return;
 
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
+      renderer.setSize(width, height, false);
 
-      const aspect = width / height;
-      if (state.currentCameraView === 'hero') {
-        const baseRadius = aspect < 1.0 ? 3.4 / aspect * 0.88 : (aspect < 1.5 ? 3.5 : 3.2);
-        cameraOrbit.targetRadius = baseRadius;
-        cameraOrbit.radius = baseRadius;
-      }
+      const base = heroRadius();
+      const multipliers = { hero: 1, airflow: 0.88, xray: 0.8, display: 0.48 };
+      cameraOrbit.targetRadius = base * (multipliers[state.currentCameraView] || 1);
     }
 
     function onWindowResize() {
       updateResponsiveCamera();
     }
 
-    // High-Precision Procedural Blue Star Split AC Unit (IC318QNU)
-    function buildBlueStarAC() {
-      acGroup = new THREE.Group();
-      acGroup.position.set(0, 0.05, 0);
-
-      const H = 0.56, D = 0.36;
-      const halfH = H / 2, halfD = D / 2;
-
-      // Clean aerodynamic curved cross-section
-      const profile = new THREE.Shape();
-      profile.moveTo(-halfD, -halfH);
-      profile.lineTo(-halfD, halfH);
-      profile.lineTo(halfD - 0.09, halfH);
-      profile.quadraticCurveTo(halfD, halfH - 0.04, halfD, 0.08);
-      profile.lineTo(halfD, -0.12);
-      profile.quadraticCurveTo(halfD, -halfH + 0.04, halfD - 0.08, -halfH);
-      profile.lineTo(-halfD, -halfH);
-
-      const extrudeSettings = {
-        steps: 1,
-        depth: 2.05,
-        bevelEnabled: true,
-        bevelThickness: 0.02,
-        bevelSize: 0.02,
-        bevelSegments: 4
-      };
-
-      const bodyGeo = new THREE.ExtrudeGeometry(profile, extrudeSettings);
-      bodyGeo.center();
-
-      const casingMat = new THREE.MeshPhysicalMaterial({
-        color: 0xf6f8fc,
-        roughness: 0.12,
-        metalness: 0.04,
-        clearcoat: 0.6,
-        clearcoatRoughness: 0.08
-      });
-
-      const bodyMesh = new THREE.Mesh(bodyGeo, casingMat);
-      bodyMesh.rotation.y = Math.PI / 2;
-      bodyMesh.castShadow = true;
-      bodyMesh.receiveShadow = true;
-      acGroup.add(bodyMesh);
-
-      // 1. Blue Star Metallic Accent Ribbon
-      const stripMat = new THREE.MeshStandardMaterial({
-        color: 0x0284c7,
-        metalness: 0.9,
-        roughness: 0.15,
-        emissive: 0x0369a1,
-        emissiveIntensity: 0.25
-      });
-      const stripGeo = new THREE.BoxGeometry(2.02, 0.016, 0.014);
-      const stripMesh = new THREE.Mesh(stripGeo, stripMat);
-      stripMesh.position.set(0, -0.10, 0.198);
-      acGroup.add(stripMesh);
-
-      // 2. Blue Star Brand Badge
-      const badgeCanvas = document.createElement('canvas');
-      badgeCanvas.width = 256;
-      badgeCanvas.height = 64;
-      const bCtx = badgeCanvas.getContext('2d');
-      bCtx.fillStyle = '#0284c7';
-      bCtx.fillRect(0, 0, 256, 64);
-      bCtx.fillStyle = '#ffffff';
-      bCtx.font = 'bold 26px Outfit, sans-serif';
-      bCtx.textAlign = 'center';
-      bCtx.textBaseline = 'middle';
-      bCtx.fillText('★ BLUE STAR', 128, 32);
-
-      const badgeTex = new THREE.CanvasTexture(badgeCanvas);
-      const badgeMat = new THREE.MeshBasicMaterial({ map: badgeTex });
-      const badgeGeo = new THREE.PlaneGeometry(0.32, 0.075);
-      const badgeMesh = new THREE.Mesh(badgeGeo, badgeMat);
-      badgeMesh.position.set(-0.58, -0.10, 0.206);
-      acGroup.add(badgeMesh);
-
-      // 3. Top Intake Slats
-      const slatMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.5 });
-      for (let i = 0; i < 7; i++) {
-        const slatGeo = new THREE.BoxGeometry(1.82, 0.006, 0.024);
-        const slat = new THREE.Mesh(slatGeo, slatMat);
-        slat.position.set(0, 0.295, -0.12 + (i * 0.04));
-        acGroup.add(slat);
-      }
-
-      // 4. Recessed Dark Air Outlet Cavity
-      const ventGeo = new THREE.BoxGeometry(1.86, 0.11, 0.22);
-      const ventMat = new THREE.MeshBasicMaterial({ color: 0x090d16 });
-      const vent = new THREE.Mesh(ventGeo, ventMat);
-      vent.position.set(0, -0.22, 0.08);
-      acGroup.add(vent);
-
-      // 5. Cross-flow Impeller Blower Drum
-      const drumGeo = new THREE.CylinderGeometry(0.038, 0.038, 1.82, 16);
-      const drumMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, wireframe: true });
-      blowerDrum = new THREE.Mesh(drumGeo, drumMat);
-      blowerDrum.rotation.z = Math.PI / 2;
-      blowerDrum.position.set(0, -0.22, 0.09);
-      acGroup.add(blowerDrum);
-
-      // 6. Motorized Louver Flap
-      louverPivot = new THREE.Group();
-      louverPivot.position.set(0, -0.17, 0.185);
-
-      const louverMat = new THREE.MeshPhysicalMaterial({
-        color: 0xf8fafc,
-        roughness: 0.16,
-        metalness: 0.05,
-        clearcoat: 0.5
-      });
-      const bladeGeo = new THREE.BoxGeometry(1.86, 0.10, 0.012);
-      bladeGeo.translate(0, -0.05, 0);
-      louverMesh = new THREE.Mesh(bladeGeo, louverMat);
-      louverMesh.castShadow = true;
-      louverPivot.add(louverMesh);
-      acGroup.add(louverPivot);
-
-      // 7. Concealed 7-Segment Digital LED Display
-      displayCanvas = document.createElement('canvas');
-      displayCanvas.width = 512;
-      displayCanvas.height = 256;
-      displayTexture = new THREE.CanvasTexture(displayCanvas);
-      updateDisplayTexture();
-
-      const displayMat = new THREE.MeshBasicMaterial({
-        map: displayTexture,
-        transparent: true,
-        opacity: 0.95,
-        blending: THREE.AdditiveBlending
-      });
-      const displayGeo = new THREE.PlaneGeometry(0.34, 0.17);
-      displayMesh = new THREE.Mesh(displayGeo, displayMat);
-      displayMesh.position.set(0.55, 0.02, 0.206);
-      acGroup.add(displayMesh);
-
-      // 8. Internal Evaporator Coils (X-Ray Telemetry Mode)
-      coilGroup = new THREE.Group();
-      coilGroup.visible = false;
-
-      const coilMat = new THREE.MeshStandardMaterial({
-        color: 0x00f0ff,
-        emissive: 0x0284c7,
-        emissiveIntensity: 0.8,
-        metalness: 0.85,
-        roughness: 0.2
-      });
-
-      for (let c = 0; c < 6; c++) {
-        const pipeGeo = new THREE.CylinderGeometry(0.018, 0.018, 1.80, 16);
-        const pipe = new THREE.Mesh(pipeGeo, coilMat);
-        pipe.rotation.z = Math.PI / 2;
-        pipe.position.set(0, 0.14 - (c * 0.045), -0.02 + (c * 0.035));
-        coilGroup.add(pipe);
-      }
-
-      const finsGeo = new THREE.BoxGeometry(1.80, 0.28, 0.20);
-      const finsMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, wireframe: true, transparent: true, opacity: 0.35 });
-      const fins = new THREE.Mesh(finsGeo, finsMat);
-      fins.position.set(0, 0.02, 0);
-      coilGroup.add(fins);
-      acGroup.add(coilGroup);
-
-      // References
-      acGroup.casingMat = casingMat;
-      acGroup.coilMat = coilMat;
-
-      scene.add(acGroup);
-    }
-
-    function updateDisplayTexture() {
-      const ctx = displayCanvas.getContext('2d');
-      ctx.clearRect(0, 0, displayCanvas.width, displayCanvas.height);
-
-      if (state.power === 1 && state.light === 1) {
-        ctx.fillStyle = '#00f0ff';
-        ctx.shadowColor = '#38bdf8';
-        ctx.shadowBlur = 18;
-        ctx.font = 'bold 100px Outfit, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-
-        if (state.filterAlert === 1) {
-          ctx.fillStyle = '#f43f5e';
-          ctx.shadowColor = '#f43f5e';
-          ctx.fillText('FC', 256, 120);
-        } else {
-          ctx.fillText(`${Math.round(state.targetTemp)}°`, 240, 115);
-        }
-
-        ctx.font = '600 24px Outfit, sans-serif';
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-        ctx.shadowBlur = 4;
-        const modeLabels = ['', 'COOL', 'DRY', 'FAN', 'AUTO'];
-        ctx.fillText(modeLabels[state.mode] || 'COOL', 256, 190);
-      }
-
-      if (displayTexture) displayTexture.needsUpdate = true;
-    }
-
-    // Dynamic Airflow Particles
-    function buildParticles() {
-      const geo = new THREE.BufferGeometry();
-      particlePositions = new Float32Array(particleCount * 3);
-      particleVelocities = new Float32Array(particleCount * 3);
-      particleLifespans = new Float32Array(particleCount);
-
-      for (let i = 0; i < particleCount; i++) {
-        resetParticle(i, true);
-      }
-
-      geo.setAttribute('position', new THREE.BufferAttribute(particlePositions, 3));
-
-      const pCan = document.createElement('canvas');
-      pCan.width = 64;
-      pCan.height = 64;
-      const pCtx = pCan.getContext('2d');
-      const grad = pCtx.createRadialGradient(32, 32, 0, 32, 32, 32);
-      grad.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-      grad.addColorStop(0.3, 'rgba(56, 189, 248, 0.6)');
-      grad.addColorStop(1, 'rgba(2, 132, 199, 0)');
-      pCtx.fillStyle = grad;
-      pCtx.fillRect(0, 0, 64, 64);
-
-      const pTex = new THREE.CanvasTexture(pCan);
-      const pMat = new THREE.PointsMaterial({
-        size: 0.12,
-        map: pTex,
-        transparent: true,
-        opacity: 0.75,
-        blending: THREE.AdditiveBlending,
-        depthWrite: false
-      });
-
-      airflowParticles = new THREE.Points(geo, pMat);
-      scene.add(airflowParticles);
-    }
-
-    function resetParticle(i, immediateSpread = false) {
-      const idx = i * 3;
-      const spreadX = (Math.random() - 0.5) * 1.5;
-      particlePositions[idx] = spreadX;
-      particlePositions[idx + 1] = -0.20 + (Math.random() * 0.03);
-      particlePositions[idx + 2] = 0.16;
-
-      const fanSpeeds = [0, 0.016, 0.026, 0.040, 0.058, 0.088, 0.042];
-      const speed = fanSpeeds[state.fan] || 0.04;
-
-      let louverPitch = 0.55;
-      if (louverPivot) louverPitch = louverPivot.rotation.x;
-
-      const forwardZ = Math.cos(louverPitch) * speed * (0.8 + Math.random() * 0.4);
-      const downwardY = -Math.sin(louverPitch) * speed * (0.8 + Math.random() * 0.4);
-
-      particleVelocities[idx] = (Math.random() - 0.5) * 0.005;
-      particleVelocities[idx + 1] = downwardY;
-      particleVelocities[idx + 2] = forwardZ;
-
-      particleLifespans[i] = immediateSpread ? Math.random() : 0.0;
-    }
-
-    let clock = null;
-
-    function animate() {
-      requestAnimationFrame(animate);
-
-      const delta = clock ? clock.getDelta() : 0.016;
-      const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
-
-      // 1. Louver Physical Articulation
-      if (louverPivot) {
-        if (state.power === 1) {
-          if (state.vane === 0) {
-            const swingMin = 0.25;
-            const swingMax = 1.05;
-            const swingAngle = swingMin + ((Math.sin(time * 2.2) + 1) * 0.5) * (swingMax - swingMin);
-            louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, swingAngle, 0.08);
-          } else {
-            const targetAngles = { 1: 0.25, 2: 0.42, 3: 0.60, 4: 0.82, 5: 1.05, 6: 0.60 };
-            const desired = targetAngles[state.vane] || 0.60;
-            louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, desired, 0.08);
-          }
-        } else {
-          louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, 0.0, 0.05);
-        }
-      }
-
-      // 2. Blower Impeller Drum Spin
-      if (blowerDrum && state.power === 1) {
-        const fanDrumSpeeds = [0, 8, 14, 22, 32, 48, 20];
-        blowerDrum.rotation.x += (fanDrumSpeeds[state.fan] || 20) * delta;
-      }
-
-      // 3. Airflow Particles
-      if (airflowParticles && particlePositions) {
-        const positions = airflowParticles.geometry.attributes.position.array;
-        const fanSpeeds = [0, 0.016, 0.026, 0.040, 0.058, 0.088, 0.042];
-        const currentFanSpeed = fanSpeeds[state.fan] || 0.04;
-
-        if (state.power === 1) {
-          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.75, 0.05);
-
-          if (state.mode === 2) airflowParticles.material.color.set(0x7dd3fc); // Dry
-          else if (state.mode === 3) airflowParticles.material.color.set(0xe2e8f0); // Fan
-          else if (state.eco === 1) airflowParticles.material.color.set(0x10b981); // Eco
-          else if (state.targetTemp <= 19) airflowParticles.material.color.set(0x00f0ff); // Ice Cyan
-          else if (state.targetTemp <= 24) airflowParticles.material.color.set(0x38bdf8); // Sky Cool
-          else airflowParticles.material.color.set(0x2dd4bf); // Mint
-
-          for (let i = 0; i < particleCount; i++) {
-            particleLifespans[i] += delta * (0.8 + currentFanSpeed * 10);
-            if (particleLifespans[i] > 1.0) resetParticle(i);
-
-            const idx = i * 3;
-            positions[idx] += particleVelocities[idx];
-            positions[idx + 1] += particleVelocities[idx + 1];
-            positions[idx + 2] += particleVelocities[idx + 2];
-            positions[idx] += Math.sin(time * 3 + i) * 0.0012;
-          }
-        } else {
-          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.0, 0.1);
-        }
-
-        airflowParticles.geometry.attributes.position.needsUpdate = true;
-      }
-
-      // 4. X-Ray Coil Pulsing
-      if (coilGroup && coilGroup.visible) {
-        if (state.coilTemp <= 9.0) {
-          acGroup.coilMat.color.set(0x00f0ff);
-          acGroup.coilMat.emissive.set(0x0284c7);
-        } else if (state.coilTemp <= 18.0) {
-          acGroup.coilMat.color.set(0x10b981);
-          acGroup.coilMat.emissive.set(0x047857);
-        } else {
-          acGroup.coilMat.color.set(0xf59e0b);
-          acGroup.coilMat.emissive.set(0xb45309);
-        }
-
-        const pulseFreq = Math.max(1, state.compHz / 15);
-        acGroup.coilMat.emissiveIntensity = 0.5 + Math.sin(time * pulseFreq) * 0.4;
-      }
-
-      // Update camera smooth orbit
-      updateCameraFromOrbit();
-
-      renderer.render(scene, camera);
-    }
-
+    // ------------------------------------------------------------------
+    // Camera presets + X-Ray
+    // ------------------------------------------------------------------
     function setCameraView(viewKey) {
       state.currentCameraView = viewKey;
+      playAudio("click");
 
-      document.querySelectorAll('.cam-btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById(`camBtn${viewKey.charAt(0).toUpperCase() + viewKey.slice(1)}`);
-      if (activeBtn) activeBtn.classList.add('active');
+      document.querySelectorAll(".cam-btn").forEach((button) => {
+        const isActive = button.id === "camBtn" + viewKey.charAt(0).toUpperCase() + viewKey.slice(1);
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", isActive ? "true" : "false");
+      });
 
-      playAudio('click');
-      const aspect = container.clientWidth / container.clientHeight;
+      const base = camera ? heroRadius() : 3.6;
 
-      if (viewKey === 'hero') {
+      if (viewKey === "hero") {
         setXrayMode(false);
-        const baseRadius = aspect < 1.0 ? 3.4 / aspect * 0.88 : (aspect < 1.5 ? 3.5 : 3.2);
-        tween.to(cameraOrbit, { targetTheta: 0.18, targetPhi: 1.42, targetRadius: baseRadius, duration: 1.0 });
-      } else if (viewKey === 'airflow') {
+        tween.to(cameraOrbit.target, { x: 0, y: -0.02, z: 0, duration: 0.7 });
+        tween.to(cameraOrbit, {
+          targetTheta: 0.24,
+          targetPhi: 1.4,
+          targetRadius: base,
+          duration: 0.95
+        });
+      } else if (viewKey === "airflow") {
         setXrayMode(false);
-        tween.to(cameraOrbit, { targetTheta: 0.95, targetPhi: 1.55, targetRadius: 2.7, duration: 1.0 });
-      } else if (viewKey === 'xray') {
+        tween.to(cameraOrbit.target, { x: 0, y: -0.09, z: 0, duration: 0.7 });
+        tween.to(cameraOrbit, {
+          targetTheta: 0.68,
+          targetPhi: 1.47,
+          targetRadius: base * 0.88,
+          duration: 0.95
+        });
+      } else if (viewKey === "xray") {
         setXrayMode(true);
-        tween.to(cameraOrbit, { targetTheta: 0.15, targetPhi: 1.35, targetRadius: 2.6, duration: 1.0 });
-      } else if (viewKey === 'display') {
+        tween.to(cameraOrbit.target, { x: 0, y: 0.01, z: 0, duration: 0.7 });
+        tween.to(cameraOrbit, {
+          targetTheta: 0.18,
+          targetPhi: 1.32,
+          targetRadius: base * 0.8,
+          duration: 0.95
+        });
+      } else if (viewKey === "display") {
         setXrayMode(false);
-        tween.to(cameraOrbit, { targetTheta: 0.35, targetPhi: 1.45, targetRadius: 1.7, duration: 1.0 });
+        tween.to(cameraOrbit.target, { x: 0.47, y: 0.035, z: 0, duration: 0.7 });
+        tween.to(cameraOrbit, {
+          targetTheta: 0.42,
+          targetPhi: 1.38,
+          targetRadius: Math.max(1.55, base * 0.48),
+          duration: 0.95
+        });
       }
     }
 
     function setXrayMode(enable) {
       state.isXray = enable;
-      if (!acGroup) return;
+      if (!acGroup || !casingMat || !facadeGroup || !coilGroup) return;
 
       if (enable) {
+        casingMat.transparent = true;
+        casingMat.depthWrite = false;
+        casingMat.needsUpdate = true;
+        facadeGroup.visible = false;
+        casingMesh.visible = true;
+        if (chamberMesh) chamberMesh.visible = false;
+        if (xrayOutline) xrayOutline.visible = true;
+        ventVanes.forEach((vane) => { vane.visible = false; });
         coilGroup.visible = true;
-        tween.to(acGroup.casingMat, { opacity: 0.2, duration: 0.6 });
-        acGroup.casingMat.transparent = true;
-        acGroup.casingMat.wireframe = true;
+        coilMat.opacity = 0.92;
+        tween.to(casingMat, { opacity: 0.12, duration: 0.45 });
       } else {
-        tween.to(acGroup.casingMat, {
-          opacity: 1.0,
-          duration: 0.6,
+        facadeGroup.visible = true;
+        casingMesh.visible = true;
+        if (chamberMesh) chamberMesh.visible = true;
+        if (xrayOutline) xrayOutline.visible = false;
+        ventVanes.forEach((vane) => { vane.visible = true; });
+        coilGroup.visible = false;
+        coilMat.opacity = 0.72;
+        casingMat.transparent = true;
+        casingMat.depthWrite = false;
+        casingMat.needsUpdate = true;
+        tween.to(casingMat, {
+          opacity: 1,
+          duration: 0.45,
           onComplete: () => {
-            acGroup.casingMat.transparent = false;
-            acGroup.casingMat.wireframe = false;
-            coilGroup.visible = false;
+            casingMat.transparent = false;
+            casingMat.depthWrite = true;
+            casingMat.opacity = 1;
+            casingMat.needsUpdate = true;
           }
         });
+      }
+    }
+
+    // ------------------------------------------------------------------
+    // Animation loop
+    // ------------------------------------------------------------------
+    const airflowColor = new THREE.Color();
+
+    function animate() {
+      requestAnimationFrame(animate);
+
+      const delta = clock ? Math.min(clock.getDelta(), 0.05) : 0.016;
+      const time = clock ? clock.getElapsedTime() : performance.now() * 0.001;
+
+      // Louver articulation
+      if (louverPivot) {
+        let targetAngle = 0;
+        if (state.power === 1) {
+          if (state.vane === 0) {
+            targetAngle = REDUCED_MOTION ? 1.1 : 0.92 + ((Math.sin(time * 1.75) + 1) * 0.5) * 0.3;
+          } else {
+            const fixedAngles = { 1: 0.72, 2: 0.88, 3: 1.02, 4: 1.12, 5: 1.24, 6: 1.02 };
+            targetAngle = fixedAngles[state.vane] || 0.66;
+          }
+        }
+        louverPivot.rotation.x = THREE.MathUtils.lerp(louverPivot.rotation.x, targetAngle, 0.1);
+      }
+
+      // Blower drum
+      if (blowerDrum && state.power === 1) {
+        const fanSpeeds = [0, 1.4, 2.5, 4.0, 6.0, 9.4, 3.8];
+        blowerDrum.rotateY((fanSpeeds[state.fan] || 4.0) * delta);
+      }
+
+      // Horizontal swing vanes
+      if (ventVanes.length) {
+        ventVanes.forEach((vane, index) => {
+          const target = state.power === 1 && state.hSwing === 1
+            ? Math.sin(time * 1.5 + index * 0.42) * 0.42
+            : 0;
+          vane.rotation.y = THREE.MathUtils.lerp(vane.rotation.y, target, 0.08);
+        });
+      }
+
+      // Airflow
+      if (airflowParticles && particlePositions) {
+        const positions = airflowParticles.geometry.attributes.position.array;
+        if (state.power === 1) {
+          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0.22, 0.06);
+
+          if (state.mode === 2) airflowColor.setHex(0x7dd3fc);
+          else if (state.mode === 3) airflowColor.setHex(0xdbe7f3);
+          else if (state.eco === 1) airflowColor.setHex(0x34d399);
+          else if (state.targetTemp <= 19) airflowColor.setHex(0x7de9ff);
+          else if (state.targetTemp <= 24) airflowColor.setHex(0x38bdf8);
+          else airflowColor.setHex(0x5eead4);
+          airflowParticles.material.color.lerp(airflowColor, 0.025);
+
+          const fanSpeeds = [0, 0.15, 0.24, 0.36, 0.52, 0.8, 0.34];
+          const fanSpeed = fanSpeeds[state.fan] || 0.36;
+
+          for (let i = 0; i < particleCount; i++) {
+            particleLifespans[i] += delta * (0.55 + fanSpeed * 0.55);
+            if (particleLifespans[i] > 1) resetParticle(i);
+
+            const offset = i * 3;
+            positions[offset] += particleVelocities[offset] * delta * 1.6;
+            positions[offset + 1] += particleVelocities[offset + 1] * delta;
+            positions[offset + 2] += particleVelocities[offset + 2] * delta;
+            positions[offset] += Math.sin(time * 2.6 + i * 0.9) * 0.0006;
+          }
+        } else {
+          airflowParticles.material.opacity = THREE.MathUtils.lerp(airflowParticles.material.opacity, 0, 0.1);
+        }
+
+        airflowParticles.geometry.attributes.position.needsUpdate = true;
+      }
+
+      // LED state
+      if (ledMaterial && ledGlow) {
+        const active = state.power === 1 && state.light === 1;
+        ledMaterial.color.setHex(active ? 0x8beeff : 0x22313e);
+        ledGlow.material.opacity = active ? 0.22 : 0.03;
+      }
+
+      // X-Ray coil pulse
+      if (coilGroup && coilGroup.visible && coilMat) {
+        const pulse = Math.max(1, state.compHz / 15);
+        coilMat.emissiveIntensity = 0.55 + Math.sin(time * pulse) * 0.25;
+      }
+
+      updateCameraFromOrbit();
+      renderer.render(scene, camera);
+
+      if (!loaderDismissed) {
+        loaderDismissed = true;
+        const loader = document.getElementById("modelLoader");
+        if (loader) {
+          requestAnimationFrame(() => loader.classList.add("hidden"));
+        }
       }
     }
 
@@ -2222,11 +4387,13 @@
       const btn = document.getElementById("soundBtn");
       const icon = document.getElementById("soundIcon");
       if (state.soundEnabled) {
-        btn.style.color = "var(--cool-glow)";
+        btn.style.color = "var(--cyan)";
+        btn.setAttribute("aria-pressed", "true");
         icon.innerHTML = '<path d="M14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77zm-2.5-1.23L6.5 6.5H2v11h4.5l5 4.5V2z"/>';
         playAudio('beep');
       } else {
-        btn.style.color = "var(--text-dim)";
+        btn.style.color = "var(--dim)";
+        btn.setAttribute("aria-pressed", "false");
         icon.innerHTML = '<path d="M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51C20.63 14.91 21 13.5 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3L3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06c1.38-.31 2.63-.95 3.69-1.81L19.73 21 21 19.73l-9-9L4.27 3zM12 4L9.91 6.09 12 8.18V4z"/>';
       }
       updateFanHumAudio();
@@ -2307,80 +4474,131 @@
 
       if (state.power === 1) {
         pBtn.classList.add("on");
-        pTxt.innerText = "System On";
-        hero.style.opacity = "1.0";
+        pBtn.setAttribute("aria-pressed", "true");
+        pTxt.textContent = "System on";
+        hero.style.opacity = "1";
 
-        if (state.roomTemp > 0) {
-          const diff = (state.roomTemp - state.targetTemp).toFixed(1);
-          if (Math.abs(diff) <= 0.5) deltaBadge.innerText = "Comfort Balanced";
-          else if (diff > 0) deltaBadge.innerText = `Cooling (${diff}° to target)`;
-          else deltaBadge.innerText = "Target Reached";
-        }
+        const diff = Number((state.roomTemp - state.targetTemp).toFixed(1));
+        if (Math.abs(diff) <= 0.5) deltaBadge.textContent = "Comfort balanced";
+        else if (diff > 0) deltaBadge.textContent = `${diff.toFixed(1)}° to target`;
+        else deltaBadge.textContent = "Target reached";
       } else {
         pBtn.classList.remove("on");
-        pTxt.innerText = "Standby";
-        hero.style.opacity = "0.6";
-        deltaBadge.innerText = "System Standby";
+        pBtn.setAttribute("aria-pressed", "false");
+        pTxt.textContent = "Standby";
+        hero.style.opacity = "0.74";
+        deltaBadge.textContent = "System standby";
       }
 
-      document.getElementById("targetTempNum").innerText = Math.round(state.targetTemp);
-      document.getElementById("ambientReadout").innerText = `${state.roomTemp.toFixed(1)}°C`;
+      document.getElementById("targetTempNum").textContent = Math.round(state.targetTemp);
+      document.getElementById("ambientReadout").textContent = `${state.roomTemp.toFixed(1)}°C`;
 
+      const circumference = 2 * Math.PI * 72;
       const norm = Math.max(0, Math.min(1, (state.targetTemp - 16) / 14));
-      document.getElementById("dialBar").style.strokeDashoffset = 402 - (norm * 295);
+      const visibleArc = 24 + norm * 315;
+      document.getElementById("dialBar").style.strokeDashoffset = String(circumference - visibleArc);
 
       // Modes
-      const modeNames = ["", "Cooling", "Dehumidify (Dry)", "Fan Only", "AI Auto Pro"];
-      document.getElementById("modeBadge").innerText = modeNames[state.mode] || "Cooling";
+      const modeNames = ["", "Cooling", "Dry", "Fan only", "Auto"];
+      document.getElementById("modeBadge").textContent = modeNames[state.mode] || "Cooling";
       for (let i = 1; i <= 4; i++) {
         const el = document.getElementById(`modeBtn${i}`);
-        if (el) el.classList.toggle("active", state.mode === i);
+        if (el) {
+          const active = state.mode === i;
+          el.classList.toggle("active", active);
+          el.setAttribute("aria-pressed", active ? "true" : "false");
+        }
       }
 
-      // Fan Speeds
+      // Fan speeds
       const fanNames = ["", "Quiet", "Low", "Medium", "High", "Turbo", "Auto"];
-      document.getElementById("fanBadge").innerText = `${fanNames[state.fan]} (Stage ${state.fan})`;
+      document.getElementById("fanBadge").textContent = state.fan === 6
+        ? "Auto"
+        : `${fanNames[state.fan] || "High"} / Stage ${state.fan}`;
       for (let i = 1; i <= 6; i++) {
         const el = document.getElementById(`fanBtn${i}`);
-        if (el) el.classList.toggle("active", state.fan === i);
+        if (el) {
+          const active = state.fan === i;
+          el.classList.toggle("active", active);
+          el.setAttribute("aria-pressed", active ? "true" : "false");
+        }
       }
 
-      // Louver
-      const vaneNames = { 0: "Auto Swing (↕)", 1: "Top Step (1)", 3: "Middle Step (3)", 5: "Bottom Step (5)" };
-      document.getElementById("vaneBadge").innerText = vaneNames[state.vane] || "Custom Vane";
-      [0, 1, 3, 5].forEach(v => {
-        const el = document.getElementById(`vaneBtn${v}`);
-        if (el) el.classList.toggle("active", state.vane === v);
+      // Louver direction
+      const vaneNames = { 0: "Auto swing", 1: "Top / 1", 3: "Middle / 3", 5: "Low / 5" };
+      document.getElementById("vaneBadge").textContent = vaneNames[state.vane] || "Custom vane";
+      [0, 1, 3, 5].forEach((value) => {
+        const el = document.getElementById(`vaneBtn${value}`);
+        if (el) {
+          const active = state.vane === value;
+          el.classList.toggle("active", active);
+          el.setAttribute("aria-pressed", active ? "true" : "false");
+        }
       });
-      document.getElementById("hSwingBtn").classList.toggle("active", state.hSwing === 1);
+      const swingBtn = document.getElementById("hSwingBtn");
+      swingBtn.classList.toggle("active", state.hSwing === 1);
+      swingBtn.setAttribute("aria-pressed", state.hSwing === 1 ? "true" : "false");
 
-      // 5-in-1 Convertible
-      const convNames = ["", "100% (Full Ton)", "80% Capacity", "60% Eco Saving", "40% Maximum Eco"];
-      document.getElementById("convBadge").innerText = convNames[state.convertible] || "100%";
+      // 5-in-1 convertible
+      const convNames = ["", "100% / Full ton", "80% / Capacity", "60% / Eco", "40% / Max eco"];
+      document.getElementById("convBadge").textContent = convNames[state.convertible] || "100%";
       for (let i = 1; i <= 4; i++) {
         const el = document.getElementById(`convBtn${i}`);
-        if (el) el.classList.toggle("active", state.convertible === i);
+        if (el) {
+          const active = state.convertible === i;
+          el.classList.toggle("active", active);
+          el.setAttribute("aria-pressed", active ? "true" : "false");
+        }
       }
 
-      // Features
-      document.getElementById("cardTurbo").classList.toggle("on", state.turbo === 1);
-      document.getElementById("cardEco").classList.toggle("on", state.eco === 1);
-      document.getElementById("cardSleep").classList.toggle("on", state.sleep === 1);
-      document.getElementById("cardLight").classList.toggle("on", state.light === 1);
+      // Smart features
+      const featureCards = [
+        ["cardTurbo", state.turbo],
+        ["cardEco", state.eco],
+        ["cardSleep", state.sleep],
+        ["cardLight", state.light]
+      ];
+      featureCards.forEach(([id, value]) => {
+        const card = document.getElementById(id);
+        if (!card) return;
+        const active = value === 1;
+        card.classList.toggle("on", active);
+        card.setAttribute("aria-checked", active ? "true" : "false");
+      });
 
       // Telemetry
-      document.getElementById("compHzVal").innerText = (state.power === 1 && state.compHz > 0) ? `${state.compHz} Hz` : "Idle";
-      document.getElementById("coilTempVal").innerText = `${state.coilTemp.toFixed(1)}°C`;
-      document.getElementById("compHoursVal").innerText = `${Math.round(state.compHours)} h`;
+      document.getElementById("compHzVal").textContent = (state.power === 1 && state.compHz > 0) ? `${state.compHz} Hz` : "Idle";
+      document.getElementById("coilTempVal").textContent = `${state.coilTemp.toFixed(1)}°C`;
+      document.getElementById("compHoursVal").textContent = `${Math.round(state.compHours).toLocaleString()} h`;
 
       const filterVal = document.getElementById("filterConditionVal");
       if (state.filterAlert === 1) {
-        filterVal.innerText = "Alert (FC)";
+        filterVal.textContent = "Alert";
         filterVal.style.color = "var(--rose)";
       } else {
-        filterVal.innerText = "Clean";
-        filterVal.style.color = "var(--emerald)";
+        filterVal.textContent = "Clean";
+        filterVal.style.color = "var(--mint)";
       }
+
+      renderMobileDock();
+    }
+
+    function renderMobileDock() {
+      const dockTemp = document.getElementById("dockTemp");
+      const dockMode = document.getElementById("dockMode");
+      const dockPower = document.getElementById("dockPower");
+      const dockMinus = document.getElementById("dockMinus");
+      const dockPlus = document.getElementById("dockPlus");
+      if (!dockTemp || !dockMode || !dockPower) return;
+
+      const modeNames = ["", "Cooling", "Dry", "Fan", "Auto"];
+      dockTemp.textContent = `${Math.round(state.targetTemp)}°C`;
+      dockMode.textContent = state.power === 1 ? (modeNames[state.mode] || "Cooling") : "Standby";
+      dockPower.classList.toggle("on", state.power === 1);
+      dockPower.setAttribute("aria-pressed", state.power === 1 ? "true" : "false");
+      dockPower.setAttribute("aria-label", state.power === 1 ? "Turn system off" : "Turn system on");
+      if (dockMinus) dockMinus.disabled = state.power === 0;
+      if (dockPlus) dockPlus.disabled = state.power === 0;
     }
 
     // =========================================================================
@@ -2396,7 +4614,7 @@
         return;
       }
 
-      updateConnectionStatus("connecting", "Connecting...");
+      updateConnectionStatus("connecting", "Syncing");
       const url = `wss://${mqttConfig.host}:${mqttConfig.port}/mqtt`;
       const clientId = `BlueStar3D-${Math.random().toString(16).substring(2, 8)}`;
 
@@ -2411,7 +4629,8 @@
         });
 
         mqttClient.on('connect', () => {
-          updateConnectionStatus("connected", "Hardware Live");
+          updateConnectionStatus("connected", "Live");
+          setSyncLabel("Bridge live");
           const statusTopic = `${mqttConfig.username}/feeds/bluestar-ac-status`;
           mqttClient.subscribe(statusTopic);
         });
@@ -2423,6 +4642,7 @@
             if (data.pinHash !== undefined) {
               devicePinHash = data.pinHash;
               state.pinHash = data.pinHash;
+              updatePinHint();
               if (activePin && hashPin(activePin) !== data.pinHash) {
                 lockConsole();
               }
@@ -2447,13 +4667,20 @@
             renderUI();
             updateDisplayTexture();
             updateFanHumAudio();
+            setSyncLabel("Synced just now");
           } catch (e) {
             console.warn("MQTT Parse error:", e);
           }
         });
 
-        mqttClient.on('error', () => updateConnectionStatus("error", "Error / Retrying"));
-        mqttClient.on('close', () => updateConnectionStatus("offline", "Offline"));
+        mqttClient.on('error', () => {
+          updateConnectionStatus("error", "Retrying");
+          setSyncLabel("Reconnecting");
+        });
+        mqttClient.on('close', () => {
+          updateConnectionStatus("offline", "Offline");
+          setSyncLabel("Waiting for bridge");
+        });
       } catch (err) {
         updateConnectionStatus("error", "Connection Failed");
       }
@@ -2462,7 +4689,7 @@
     function updateConnectionStatus(type, label) {
       const pill = document.getElementById("connPill");
       const txt = document.getElementById("connStatusText");
-      if (txt) txt.innerText = label;
+      if (txt) txt.textContent = label;
       if (pill) {
         if (type === "connected") {
           pill.className = "connection-pill connected";
@@ -2471,7 +4698,13 @@
         } else {
           pill.className = "connection-pill";
         }
+        pill.setAttribute("aria-label", `Connection status: ${label}. Open MQTT settings.`);
       }
+    }
+
+    function setSyncLabel(label) {
+      const sync = document.getElementById("syncLabel");
+      if (sync) sync.textContent = label;
     }
 
     function openConfigModal() {
@@ -2479,11 +4712,22 @@
       document.getElementById("cfgPort").value = mqttConfig.port || 443;
       document.getElementById("cfgUser").value = mqttConfig.username || DEFAULT_USER;
       document.getElementById("cfgPass").value = mqttConfig.password || DEFAULT_KEY;
-      document.getElementById("cfgModal").classList.add("open");
+      const modal = document.getElementById("cfgModal");
+      modal.classList.add("open");
+      modal.setAttribute("aria-hidden", "false");
+      document.documentElement.classList.add("modal-open");
+      window.setTimeout(() => {
+        const host = document.getElementById("cfgHost");
+        if (host) host.focus({ preventScroll: true });
+      }, 80);
     }
 
     function closeConfigModal() {
-      document.getElementById("cfgModal").classList.remove("open");
+      const modal = document.getElementById("cfgModal");
+      if (!modal) return;
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+      document.documentElement.classList.remove("modal-open");
     }
 
     function saveConfigModal() {
@@ -2493,16 +4737,66 @@
       mqttConfig.password = document.getElementById("cfgPass").value.trim() || DEFAULT_KEY;
       localStorage.setItem("bluestar_mqtt_cfg", JSON.stringify(mqttConfig));
       closeConfigModal();
+      updateConnectionStatus("connecting", "Syncing");
+      setSyncLabel("Connecting");
       if (mqttClient) mqttClient.end(true);
       initMqtt();
     }
 
+    // PWA install prompt
+    let deferredInstallPrompt = null;
+
+    window.addEventListener("beforeinstallprompt", (event) => {
+      event.preventDefault();
+      deferredInstallPrompt = event;
+      const button = document.getElementById("installAppBtn");
+      if (button) button.hidden = false;
+    });
+
+    window.addEventListener("appinstalled", () => {
+      deferredInstallPrompt = null;
+      const button = document.getElementById("installAppBtn");
+      if (button) button.hidden = true;
+    });
+
+    function installPwa() {
+      if (!deferredInstallPrompt) return;
+      deferredInstallPrompt.prompt();
+      deferredInstallPrompt.userChoice.finally(() => {
+        deferredInstallPrompt = null;
+        const button = document.getElementById("installAppBtn");
+        if (button) button.hidden = true;
+      });
+    }
+
     // Bootstrap
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") {
+        const modal = document.getElementById("cfgModal");
+        if (modal && modal.classList.contains("open")) {
+          event.preventDefault();
+          closeConfigModal();
+        }
+      }
+    });
+
     window.addEventListener('DOMContentLoaded', () => {
+      const modal = document.getElementById("cfgModal");
+      if (modal) modal.setAttribute("aria-hidden", "true");
+
       checkInitialLock();
-      init3D();
       renderUI();
+      init3D();
       initMqtt();
+
+      const soundBtn = document.getElementById("soundBtn");
+      if (soundBtn) soundBtn.style.color = "var(--cyan)";
+
+      if ("serviceWorker" in navigator && location.protocol.startsWith("http")) {
+        navigator.serviceWorker.register("sw.js").catch(() => {
+          // Local file previews and unsupported browsers simply run without an offline shell.
+        });
+      }
     });
   </script>
 </body>
