@@ -57,7 +57,8 @@ flowchart TD
 * **Smart Command Batching Engine**:
   * Adjusting multiple settings in the dashboard (e.g., Mode, Fan, and Temperature) queues and merges them into **a single consolidated JSON request**.
   * Eliminates broker rate limiting and prevents UART collisions with the AC display board.
-* **Deep Hardware Diagnostics**:
+* **Deep Hardware Diagnostics & Test Modes**:
+  * **C1 Mode (Full Load Test)**: Full capacity technician test mode (Cool 17°C, High Fan, 6× Turbo pulses) that drives the compressor at 100% rated capacity with display showing `C1`.
   * **Inverter Compressor Frequency (Hz)**: Live motor speed (Key 24).
   * **Heat Exchanger Coil Temperature (°C)**: Evaporator cooling temperature (Key 62).
   * **Lifetime Run Counters**: Total AC powered hours and compressor runtime (Keys 43, 44, 59).
@@ -288,6 +289,7 @@ $$\texttt{*LLKKV...CCCC\#}$$
 | **`05`** | R/W | Vertical Vane | `0` (Auto Swing), `1` (Top) … `5` (Bottom), `6` (Off) |
 | **`06`** | R/W | Horizontal Swing | `0` (Auto Swing), `6` (Off) |
 | **`07`** | R/W | Turbo Cool | `3` (On), `0` (Off) — Forces 16°C and Turbo fan for ~20 mins |
+| **`C1`** | Special | **C1 Mode (Full Load Test)** | Cool 17°C, High Fan, 6× Turbo pulses. Locks compressor to **100% full capacity** (display reads `C1`) |
 | **`11`** | R/W | Comfort Sleep | `1` (On), `0` (Off) — Raises temperature by +1°C/hr internally |
 | **`15`** | R/W | Display Light | `1` (On), `0` (Off) |
 | **`22`** | R/W | Eco Mode | `1` (On), `0` (Off) — Sets setpoint to 24°C, displays "E" |

@@ -2128,6 +2128,16 @@ html.modal-open body {
             </span>
             <span class="toggle-pill" aria-hidden="true"></span>
           </button>
+
+          <button class="feature-card" id="cardC1" type="button" role="switch" aria-checked="false" onclick="toggleFeature('c1')">
+            <span class="feature-info">
+              <span class="feature-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+              </span>
+              <span class="feature-name">C1 Full load</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
         </div>
       </section>
 
@@ -3908,6 +3918,14 @@ html.modal-open body {
           sendCommand({ c1Mode: 0, turbo: 0 });
         }
       }
+      if (featKey === 'c1') {
+        const next = state.c1Mode === 1 ? 0 : 1;
+        if (next === 1) {
+          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
+        } else {
+          sendCommand({ c1Mode: 0, turbo: 0 });
+        }
+      }
     }
 
     function renderUI() {
@@ -4110,6 +4128,11 @@ html.modal-open body {
             if (data.compHz !== undefined) state.compHz = data.compHz;
             if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
             if (data.compHours !== undefined) state.compHours = parseFloat(data.compHours);
+            if (data.c1Mode !== undefined) {
+              state.c1Mode = data.c1Mode;
+            } else {
+              state.c1Mode = (state.power === 1 && state.mode === 1 && Math.round(state.targetTemp) === 17 && state.fan === 4 && state.turbo === 1) ? 1 : 0;
+            }
             if (data.c1Mode !== undefined) {
               state.c1Mode = data.c1Mode;
             } else {

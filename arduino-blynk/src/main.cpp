@@ -93,6 +93,7 @@ int acMode = 2; // 2 = Cool
 int acFan = 7;  // 7 = Auto
 int acVane = 6; // 6 = Off, 0 = Swing
 bool displayLight = true;
+bool c1Mode = false;
 float roomTemp = 0.0;
 long compressorHz = 0;
 float coilTemp = 0.0;
@@ -246,6 +247,8 @@ void handleBlueStarKey(const String &key, const String &value) {
   else if (key == "07") { // 5-in-1 Turbo Cool ("HC" on display)
     bool turbo = (value == "3");
     Blynk.virtualWrite(V10, turbo ? 1 : 0);
+    c1Mode = (acPower && acMode == 2 && ((int)round(targetTemp)) == 17 && acFan == 4 && turbo);
+    Blynk.virtualWrite(V12, c1Mode ? 1 : 0);
   }
   else if (key == "11") { // Comfort Sleep
     bool sleep = (value == "1");
@@ -489,6 +492,7 @@ void processTelnet() {
       telnetClient.println(" Blue Star AC Live Diagnostic Console (ESP32)");
       telnetClient.println(" Model: IC318QNU | Blynk IoT Controller");
       telnetClient.println(" Commands:");
+      telnetClient.println("   c1 -> Trigger C1 Full Load Mode");
       telnetClient.println("   h -> Trigger Tuya Handshake Sequence");
       telnetClient.println("   p -> Toggle Power (01)");
       telnetClient.println("   d -> Request State Dump (00)");
@@ -507,7 +511,26 @@ void processTelnet() {
     line.trim();
     if (line.length() == 0) continue;
     char c = line[0];
-    if (line.startsWith("c") || line.startsWith("C")) {
+    if (line.equalsIgnoreCase("c1")) {
+      telnetClient.println("\n[CMD] Triggering C1 Full Load Mode (Cool 17C, High Fan, 6x Turbo)...");
+      c1Mode = true;
+      acPower = true;
+      sendBlueStarRecord("01", "1");
+      sendBlueStarRecord("03", "2");
+      sendBlueStarRecord("02", "0AA");
+      sendBlueStarRecord("04", "4");
+      for (int i = 0; i < 6; i++) {
+        sendBlueStarRecord("07", "3");
+        sendBlueStarRecord("07", "0");
+      }
+      sendBlueStarRecord("07", "3");
+      Blynk.virtualWrite(V12, 1);
+      Blynk.virtualWrite(V0, 1);
+      Blynk.virtualWrite(V1, 17);
+      Blynk.virtualWrite(V2, 1);
+      Blynk.virtualWrite(V3, 4);
+      Blynk.virtualWrite(V10, 1);
+    } else if (line.startsWith("c") || line.startsWith("C")) {
       String step = (line.length() > 1) ? line.substring(1) : "1";
       telnetClient.printf("\n[CMD] Sending Key 55 (Convertible Mode) = %s\n", step.c_str());
       sendBlueStarRecord("55", step);
@@ -670,6 +693,36 @@ BLYNK_WRITE(V11) {
   bool sleep = (param.asInt() == 1);
   dbgPrintf("[Blynk] Sleep Mode: %d\n", sleep ? 1 : 0);
   sendBlueStarRecord("11", sleep ? "1" : "0");
+}
+
+// V12: C1 Mode (Full Load Test Mode: Cool 17°C, High Fan, 6x Turbo pulses)
+BLYNK_WRITE(V12) {
+  bool active = (param.asInt() == 1);
+  dbgPrintf("[Blynk] C1 Full Load Mode: %d\n", active ? 1 : 0);
+  if (active) {
+    c1Mode = true;
+    acPower = true;
+    sendBlueStarRecord("01", "1");
+    sendBlueStarRecord("03", "2"); // Cool
+    sendBlueStarRecord("02", "0AA"); // 17C
+    sendBlueStarRecord("04", "4"); // High Fan
+    for (int i = 0; i < 6; i++) {
+      sendBlueStarRecord("07", "3");
+      sendBlueStarRecord("07", "0");
+    }
+    sendBlueStarRecord("07", "3");
+    Blynk.virtualWrite(V12, 1);
+    Blynk.virtualWrite(V0, 1);
+    Blynk.virtualWrite(V1, 17);
+    Blynk.virtualWrite(V2, 1); // Cool
+    Blynk.virtualWrite(V3, 4); // High
+    Blynk.virtualWrite(V10, 1); // Turbo
+  } else {
+    c1Mode = false;
+    sendBlueStarRecord("07", "0");
+    Blynk.virtualWrite(V12, 0);
+    Blynk.virtualWrite(V10, 0);
+  }
 }
 
 // V15: Buzzer Mute (1: Mute On, 0: Mute Off)

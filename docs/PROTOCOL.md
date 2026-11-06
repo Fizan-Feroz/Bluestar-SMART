@@ -77,7 +77,7 @@ of echoing (worked for keys 24, 25, 29, 61, 62). Writing key `00` = `0` returns 
 | 04 | 1 quiet · 2 · 3 · 4 · 6 turbo · 7 auto | fan. **1** is a quieter step than the remote's lowest; **0** stops the indoor fan (don't use while cooling: the coil can ice). |
 | 05 | 0 swing · 1 top … 5 bottom · 6 off | vertical vane |
 | 06 | 0 swing · 6 off | horizontal swing |
-| 07 | 3 on · 0 off | Turbo ("110 % boost"): forces setpoint 16 and fan 6, **cancels itself after ~17–20 min** |
+| 07 | 3 on · 0 off | Turbo ("110 % boost"): forces setpoint 16 and fan 6, **cancels itself after ~17–20 min**. Pulsing 6× within 10s in Cool 17°C High Fan triggers **C1 Full Load Mode** (see below). |
 | 11 | 1 / 0 | Comfort Sleep: raises the real target +1 °C/h for 2 h **internally**; key 02 never shows it |
 | 12 | 1 / 0 | temperature unit °F (setpoint is then re-sent as °F × 10) |
 | 13 | 0 off · 1 Autumn · 2 Summer · 3 Monsoon | "Climate"/season mode (remote Mode+Eco) |
@@ -86,6 +86,14 @@ of echoing (worked for keys 24, 25, 29, 61, 62). Writing key `00` = `0` returns 
 | 23 | `1`/`2` + packed settings | "Dual user preference" profiles |
 | 55 | 0 normal · 1 100 % · 2 80 % · 3 60 % · 4 40 % | convertible capacity (also caps the fan). **Note:** On Megmeet MD50BS / IC318QNU, Key 55 is **read-only / reported** over the Wi-Fi port when changed via the physical IR remote. The AC MCU ignores serial writes (`0x06`) to Key 55. |
 | 58 | 1 muted · 0 | buzzer mute (remote: hold Display 5 s). Every remote press sends `58=0`. |
+
+### Special Modes & Technician Test States ✅
+
+* **C1 Mode (Full Load Capacity Test)**:
+  * **Settings**: Cool mode (`Key 03 = 2`), Setpoint `17°C` (`Key 02 = 0AA`), High fan speed (`Key 04 = 4`).
+  * **How to activate**: Press the **Turbo** button 6 times within 10 seconds.
+  * **Display Readout**: The indoor unit display shows `C1`.
+  * **What it does**: Runs the compressor and inverter drive at **100% full load capacity** (maximum rated Hz), bypassing normal thermostatic PID modulation. Used by technicians to test refrigerant circuit pressure, ISEER full-load power draw, and maximum cooling output.
 
 ### Timers ✅
 

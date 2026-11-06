@@ -569,6 +569,14 @@
         <div class="toggle-switch"></div>
       </div>
 
+      <div class="toggle-card" id="cardC1" onclick="toggleC1()">
+        <div class="toggle-info">
+          <span class="toggle-label">C1 Mode (Full Load)</span>
+          <span class="toggle-sub">100% Full Capacity (17°C High Fan)</span>
+        </div>
+        <div class="toggle-switch"></div>
+      </div>
+
       <div class="toggle-card" id="cardSleep" onclick="toggleSleep()">
         <div class="toggle-info">
           <span class="toggle-label">Comfort Sleep</span>
@@ -657,6 +665,7 @@
   let turbo = 0;
   let sleep = 0;
   let light = 1;
+  let c1Mode = 0;
   let mute = 0;
 
   async function updatePin(pin, val) {
@@ -731,6 +740,19 @@
     turbo = turbo === 1 ? 0 : 1;
     renderUI();
     updatePin('v10', turbo);
+  }
+
+  function toggleC1() {
+    c1Mode = c1Mode === 1 ? 0 : 1;
+    if (c1Mode === 1) {
+      power = 1;
+      mode = 1;
+      targetTemp = 17;
+      fan = 4;
+      turbo = 1;
+    }
+    renderUI();
+    updatePin('v12', c1Mode);
   }
 
   function toggleSleep() {
@@ -840,6 +862,7 @@
     document.getElementById("cardEco").classList.toggle("active", eco === 1);
     document.getElementById("cardTurbo").classList.toggle("active", turbo === 1);
     document.getElementById("cardSleep").classList.toggle("active", sleep === 1);
+    document.getElementById("cardC1").classList.toggle("active", c1Mode === 1);
     document.getElementById("cardLight").classList.toggle("active", light === 1);
     document.getElementById("cardMute").classList.toggle("active", mute === 1);
 
@@ -882,6 +905,7 @@
       const ec = await getPin('v9'); if (ec !== null) eco = parseInt(ec) || 0;
       const tb = await getPin('v10'); if (tb !== null) turbo = parseInt(tb) || 0;
       const sl = await getPin('v11'); if (sl !== null) sleep = parseInt(sl) || 0;
+      const c1 = await getPin('v12'); if (c1 !== null) c1Mode = parseInt(c1) || 0;
       const ah = await getPin('v13'); 
       if (ah !== null) {
         acHours = parseFloat(ah) || 0.0;

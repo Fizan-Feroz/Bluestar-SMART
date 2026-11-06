@@ -135,6 +135,68 @@ button:disabled {
   border-radius: 8px;
 }
 
+
+/* Disabled / Restricted Controls */
+.restricted,
+button:disabled,
+.feature-card:disabled,
+.seg-btn:disabled,
+.step:disabled {
+  opacity: 0.34 !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  filter: grayscale(40%);
+}
+
+.feature-card.restricted {
+  opacity: 0.38 !important;
+  cursor: not-allowed !important;
+  pointer-events: auto !important; /* allows trigger of warning toast when clicked */
+}
+
+/* Luxury Feedback Toast */
+.feedback-toast {
+  position: fixed;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-24px);
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(92vw, 540px);
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: rgba(14, 20, 29, 0.94);
+  color: #f2f5f9;
+  font-family: var(--font-body);
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(0, 0, 0, 0.2);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 220ms ease, transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1), visibility 220ms ease;
+  pointer-events: none;
+}
+.feedback-toast.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.feedback-toast.warn {
+  border-color: rgba(251, 191, 36, 0.45);
+  color: #fef3c7;
+}
+html[data-theme="light"] .feedback-toast {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0e1620;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.15);
+}
+
 /* ------------------------------------------------------------------
    Top bar
    ------------------------------------------------------------------ */
@@ -1808,19 +1870,19 @@ html.modal-open body {
       <div class="telemetry" role="group" aria-label="Live unit telemetry">
         <div class="tel-pill">
           <span class="tel-lbl"><span class="tel-full">Compressor</span><span class="tel-short">Comp.</span></span>
-          <span class="tel-val glow-cyan" id="compHzVal">48 Hz</span>
+          <span class="tel-val glow-cyan" id="compHzVal">—</span>
         </div>
         <div class="tel-pill">
           <span class="tel-lbl">Coil temp</span>
-          <span class="tel-val" id="coilTempVal">7.8°C</span>
+          <span class="tel-val" id="coilTempVal">—</span>
         </div>
         <div class="tel-pill">
           <span class="tel-lbl">Run hours</span>
-          <span class="tel-val" id="compHoursVal">1,248 h</span>
+          <span class="tel-val" id="compHoursVal">—</span>
         </div>
         <div class="tel-pill">
           <span class="tel-lbl">Filter</span>
-          <span class="tel-val glow-emerald" id="filterConditionVal">Clean</span>
+          <span class="tel-val glow-emerald" id="filterConditionVal">—</span>
         </div>
       </div>
 
@@ -1835,13 +1897,13 @@ html.modal-open body {
 
       <section class="hero" id="heroCard" aria-label="Thermostat">
         <div class="hero-head">
-          <button class="power-btn on" id="mainPowerBtn" type="button" aria-pressed="true" onclick="togglePower()">
+          <button class="power-btn" id="mainPowerBtn" type="button" aria-pressed="false" onclick="togglePower()">
             <span class="power-icon" aria-hidden="true"></span>
-            <span id="powerBtnText">On</span>
+            <span id="powerBtnText">Standby</span>
           </button>
           <div class="room">
             <span class="room-lbl">Room</span>
-            <span class="room-val" id="ambientReadout">27.0°C</span>
+            <span class="room-val" id="ambientReadout">--</span>
           </div>
         </div>
 
@@ -1859,18 +1921,18 @@ html.modal-open body {
           <div class="dial-center">
             <span class="set-lbl">Set temperature</span>
             <div class="temp">
-              <span id="targetTempNum">24</span>
+              <span id="targetTempNum">--</span>
               <span class="deg">°</span>
             </div>
-            <span class="delta" id="climateDeltaBadge">Cooling to target</span>
+            <span class="delta" id="climateDeltaBadge">Waiting for AC connection…</span>
           </div>
         </div>
 
         <div class="stepper">
-          <button class="step" type="button" aria-label="Decrease temperature" onclick="adjustTemp(-1)">
+          <button class="step" id="stepMinus" type="button" aria-label="Decrease temperature" onclick="adjustTemp(-1)" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13H5v-2h14v2z"/></svg>
           </button>
-          <button class="step" type="button" aria-label="Increase temperature" onclick="adjustTemp(+1)">
+          <button class="step" id="stepPlus" type="button" aria-label="Increase temperature" onclick="adjustTemp(+1)" disabled>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
           </button>
         </div>
@@ -1953,7 +2015,7 @@ html.modal-open body {
               <span class="feature-icon-box" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M7 2v11h3v9l7-12h-4l4-8z"/></svg>
               </span>
-              <span class="feature-name">Turbo cool</span>
+              <span class="feature-name">Turbo cool (HC)</span>
             </span>
             <span class="toggle-pill" aria-hidden="true"></span>
           </button>
@@ -1987,6 +2049,16 @@ html.modal-open body {
             </span>
             <span class="toggle-pill" aria-hidden="true"></span>
           </button>
+
+          <button class="feature-card" id="cardC1" type="button" role="switch" aria-checked="false" onclick="toggleFeature('c1')">
+            <span class="feature-info">
+              <span class="feature-icon-box" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M20.38 8.57l-1.23 1.85a8 8 0 0 1-.22 7.58H5.07A8 8 0 0 1 15.58 6.85l1.85-1.23A10 10 0 0 0 3.35 19a2 2 0 0 0 1.72 1h13.85a2 2 0 0 0 1.74-1 10 10 0 0 0-.28-10.43zM10.59 15.41a2 2 0 0 0 2.83 0l5.66-8.49-8.49 5.66a2 2 0 0 0 0 2.83z"/></svg>
+              </span>
+              <span class="feature-name">C1 Full load</span>
+            </span>
+            <span class="toggle-pill" aria-hidden="true"></span>
+          </button>
         </div>
       </section>
 
@@ -1994,7 +2066,7 @@ html.modal-open body {
         <span class="foot-dot" aria-hidden="true"></span>
         <span>Megmeet MD50BS</span>
         <span aria-hidden="true">·</span>
-        <span id="syncLabel">Waiting for bridge</span>
+        <span id="syncLabel">Offline</span>
       </footer>
 
     </aside>
@@ -2006,16 +2078,18 @@ html.modal-open body {
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13H5v-2h14v2z"/></svg>
     </button>
     <div class="dock-readout" aria-live="polite">
-      <span class="dock-mode" id="dockMode">Cooling</span>
-      <span class="dock-temp" id="dockTemp">24°C</span>
+      <span class="dock-mode" id="dockMode">Offline</span>
+      <span class="dock-temp" id="dockTemp">--</span>
     </div>
     <button class="dock-step" id="dockPlus" type="button" aria-label="Increase temperature" onclick="adjustTemp(+1)">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/></svg>
     </button>
-    <button class="dock-power on" id="dockPower" type="button" aria-label="Turn system off" aria-pressed="true" onclick="togglePower()">
+    <button class="dock-power" id="dockPower" type="button" aria-label="Turn system on" aria-pressed="false" onclick="togglePower()">
       <span class="power-icon" aria-hidden="true"></span>
     </button>
   </nav>
+
+  <div class="feedback-toast" id="feedbackToast" role="status" aria-live="polite"></div>
 
   <!-- Settings sheet -->
   <div class="modal-backdrop" id="cfgModal" role="dialog" aria-modal="true" aria-labelledby="cfgTitle" aria-hidden="true" onclick="if (event.target === this) closeConfigModal()">
@@ -2142,6 +2216,7 @@ html.modal-open body {
       light: 1,
       mute: 0,
       filterAlert: 0,
+      c1Mode: 0,
       compHz: 48,
       coilTemp: 7.8,
       compHours: 1248,
@@ -3146,6 +3221,16 @@ html.modal-open body {
           ctx.fillStyle = "rgba(255, 216, 222, 0.72)";
           ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
           ctx.fillText("FILTER", 256, 166);
+        } else if (state.c1Mode === 1) {
+          ctx.shadowColor = "rgba(245, 158, 11, 0.6)";
+          ctx.shadowBlur = 24;
+          ctx.fillStyle = "#fef3c7";
+          ctx.font = "650 112px Outfit, sans-serif";
+          ctx.fillText("C1", 256, 96);
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = "rgba(254, 243, 199, 0.75)";
+          ctx.font = "600 24px 'Plus Jakarta Sans', sans-serif";
+          ctx.fillText("FULL LOAD", 256, 166);
         } else {
           const temperature = `${Math.round(state.targetTemp)}°`;
           ctx.font = "620 142px Outfit, sans-serif";
@@ -3715,6 +3800,14 @@ html.modal-open body {
       if (featKey === 'eco') sendCommand({ eco: state.eco === 1 ? 0 : 1 });
       if (featKey === 'sleep') sendCommand({ sleep: state.sleep === 1 ? 0 : 1 });
       if (featKey === 'light') sendCommand({ light: state.light === 1 ? 0 : 1 });
+      if (featKey === 'c1') {
+        const next = state.c1Mode === 1 ? 0 : 1;
+        if (next === 1) {
+          sendCommand({ power: 1, mode: 1, targetTemp: 17, fan: 4, turbo: 1, c1Mode: 1 });
+        } else {
+          sendCommand({ c1Mode: 0, turbo: 0 });
+        }
+      }
     }
 
     function renderUI() {
@@ -3807,7 +3900,8 @@ html.modal-open body {
         ["cardTurbo", state.turbo],
         ["cardEco", state.eco],
         ["cardSleep", state.sleep],
-        ["cardLight", state.light]
+        ["cardLight", state.light],
+        ["cardC1", state.c1Mode]
       ];
       featureCards.forEach(([id, value]) => {
         const card = document.getElementById(id);
@@ -3914,6 +4008,11 @@ html.modal-open body {
             if (data.compHz !== undefined) state.compHz = data.compHz;
             if (data.coilTemp !== undefined) state.coilTemp = parseFloat(data.coilTemp);
             if (data.compHours !== undefined) state.compHours = parseFloat(data.compHours);
+            if (data.c1Mode !== undefined) {
+              state.c1Mode = data.c1Mode;
+            } else {
+              state.c1Mode = (state.power === 1 && state.mode === 1 && Math.round(state.targetTemp) === 17 && state.fan === 4 && state.turbo === 1) ? 1 : 0;
+            }
 
             renderUI();
             updateDisplayTexture();

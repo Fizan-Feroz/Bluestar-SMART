@@ -79,6 +79,7 @@ bool comfortSleep = false;
 bool displayLight = true;
 bool buzzerMute = false;
 bool filterAlert = false;
+bool c1ModeActive = false;
 float roomTemp = 0.0;
 float acRunHours = 0.0;
 float compRunHours = 0.0;
@@ -145,7 +146,7 @@ void queueTuyaFrame(uint8_t cmd, const std::vector<uint8_t> &payload = {}) {
   uint8_t sum = 0;
   for (uint8_t b : frame) sum += b;
   frame.push_back(sum);
-  if (txQueue.size() >= 20) {
+  if (txQueue.size() >= 32) {
     txQueue.pop_front();
   }
   txQueue.push_back(std::move(frame));
@@ -238,6 +239,7 @@ void publishState(bool force = false) {
   doc["light"]        = displayLight ? 1 : 0;
   doc["mute"]         = buzzerMute ? 1 : 0;
   doc["filterAlert"]  = filterAlert ? 1 : 0;
+  doc["c1Mode"]       = c1ModeActive ? 1 : 0;
   doc["compHz"]       = acPower ? compressorHz : 0;
   doc["coilTemp"]     = serialized(String(coilTemp, 1));
   doc["acHours"]      = serialized(String(acRunHours, 1));
@@ -357,6 +359,7 @@ void handleBlueStarKey(const String &key, const String &value) {
   }
 
   if (stateChanged) {
+    c1ModeActive = (acPower && acMode == 2 && ((int)round(targetTemp)) == 17 && acFan == 4 && turboCool);
     publishState();
   }
 }
@@ -477,6 +480,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   // Power OFF handling: if turning off, clear any pending TX queue and send power=0 immediately
   if (doc.containsKey("power") && doc["power"] == 0) {
     acPower = false;
+    c1ModeActive = false;
     txQueue.clear();
     sendBlueStarRecord("01", "0");
     publishState(true);
@@ -495,6 +499,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     targetTemp = round(t);
     if (targetTemp < 16.0) targetTemp = 16.0;
     if (targetTemp > 30.0) targetTemp = 30.0;
+    if (targetTemp != 17.0f) c1ModeActive = false;
     int val = (int)(targetTemp * 10 + 0.5);
     char buf[4];
     snprintf(buf, sizeof(buf), "%03X", val);
@@ -504,6 +509,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   // Mode: 1=Cool, 2=Dry, 3=Fan, 4=Auto
   if (doc.containsKey("mode")) {
     int m = doc["mode"];
+    if (m != 1) c1ModeActive = false;
     int acM = 2;
     if (m == 1) acM = 2;
     else if (m == 2) acM = 3;
@@ -564,6 +570,32 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     sendBlueStarRecord("07", turboCool ? "3" : "0");
   }
 
+  // C1 Mode (Full Load Test Mode: Cool 17°C, High Fan, 6x Turbo pulses)
+  if (doc.containsKey("c1Mode")) {
+    int c1 = doc["c1Mode"];
+    if (c1 == 1) {
+      c1ModeActive = true;
+      acPower = true;
+      sendBlueStarRecord("01", "1");
+      acMode = 2;
+      sendBlueStarRecord("03", "2");
+      targetTemp = 17.0f;
+      sendBlueStarRecord("02", "0AA");
+      acFan = 4;
+      sendBlueStarRecord("04", "4");
+      for (int i = 0; i < 6; i++) {
+        sendBlueStarRecord("07", "3");
+        sendBlueStarRecord("07", "0");
+      }
+      turboCool = true;
+      sendBlueStarRecord("07", "3");
+    } else {
+      c1ModeActive = false;
+      turboCool = false;
+      sendBlueStarRecord("07", "0");
+    }
+  }
+
   // Sleep
   if (doc.containsKey("sleep")) {
     comfortSleep = (doc["sleep"] == 1);
@@ -617,7 +649,7 @@ void processTelnet() {
                           WiFi.RSSI(),
                           mqttClient.connected() ? "CONNECTED" : "DISCONNECTED",
                           mqttClient.state());
-      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [i]nfo, [r]eboot ESP");
+      telnetClient.println("Commands: [h]andshake, [s]end heartbeat, [q]uery extended diag, [c]1 full load, [i]nfo, [r]eboot ESP");
     } else {
       WiFiClient rejectClient = telnetServer.available();
       rejectClient.stop();
@@ -635,6 +667,23 @@ void processTelnet() {
     } else if (c == 's' || c == 'S') {
       telnetClient.println("\n[CMD] Sending Heartbeat...");
       queueTuyaFrame(CMD_HEARTBEAT);
+    } else if (c == 'c' || c == 'C') {
+      telnetClient.println("\n[CMD] Triggering C1 Full Load Mode (Cool 17C, High Fan, 6x Turbo)...");
+      c1ModeActive = true;
+      acPower = true;
+      sendBlueStarRecord("01", "1");
+      sendBlueStarRecord("03", "2");
+      targetTemp = 17.0f;
+      sendBlueStarRecord("02", "0AA");
+      acFan = 4;
+      sendBlueStarRecord("04", "4");
+      for (int i = 0; i < 6; i++) {
+        sendBlueStarRecord("07", "3");
+        sendBlueStarRecord("07", "0");
+      }
+      turboCool = true;
+      sendBlueStarRecord("07", "3");
+      publishState(true);
     } else if (c == 'q' || c == 'Q') {
       telnetClient.println("\n[CMD] Querying Extended Diagnostics (24, 62)...");
       sendBlueStarRecord("24", "0");
