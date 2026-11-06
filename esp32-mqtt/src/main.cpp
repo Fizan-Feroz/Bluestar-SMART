@@ -568,17 +568,11 @@ void processTxQueue() {
 // ==================== C1 FULL LOAD SEQUENCE STATE MACHINE ====================
 void startC1Sequence(int type) {
   c1PulseType = type;
-  if (type == 1) {
-    c1TotalPulses = 6; // Exactly 6 button presses (3, 0, 3, 0, 3, 0)
-  } else if (type == 2) {
-    c1TotalPulses = 6; // 6 consecutive "3" pulses (3, 3, 3, 3, 3, 3)
-  } else {
-    c1TotalPulses = 11; // 6 ONs with OFFs in between (3, 0, 3, 0, 3, 0, 3, 0, 3, 0, 3)
-  }
+  c1TotalPulses = 6; // Exactly 6 presses of Turbo button within 10 seconds
 
   dbgPrintln("\n[C1] ==================================================");
-  dbgPrintf("[C1] Starting C1 Full Load Sequence (Type %d, %d pulses)\n", c1PulseType, c1TotalPulses);
-  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan...");
+  dbgPrintln("[C1] Starting C1 Full Load Sequence: 6 Turbo presses");
+  dbgPrintln("[C1] Step 1: Setting Cool Mode, 17C Setpoint, High Fan, Turbo OFF...");
   dbgPrintln("[C1] ==================================================");
 
   c1ModeActive = true;
@@ -591,11 +585,12 @@ void startC1Sequence(int type) {
   // Clear any existing pending commands
   txQueue.clear();
 
-  // Step 1: Set 17C and High Fan
+  // Step 1: Set 17C, High Fan, and ensure Turbo is OFF first
   sendBlueStarRecord("01", "1");   // Power ON
   sendBlueStarRecord("03", "2");   // Mode = Cool
   sendBlueStarRecord("02", "0AA"); // Setpoint = 17C
   sendBlueStarRecord("04", "4");   // Fan = High
+  sendBlueStarRecord("07", "0");   // Turbo = OFF (ensures AC settles before Turbo cycle)
 
   c1SeqStep = C1_SEQ_WAIT_SETTLE;
   c1SeqTimer = millis();
@@ -621,45 +616,35 @@ void processC1Sequence() {
 
   if (c1SeqStep == C1_SEQ_WAIT_SETTLE) {
     // Step 2: WAIT
-    // Ensure all 4 setting frames have been transmitted over UART first
+    // Ensure all 5 setting frames have been transmitted over UART first
     if (!txQueue.empty()) {
       c1SeqTimer = now;
       return;
     }
-    // Now wait a full 3 seconds for AC MCU to process and settle in Cool 17C High Fan
+    // Wait a full 3 seconds for AC MCU to process and settle in Cool 17C High Fan
     if (now - c1SeqTimer >= 3000) {
-      dbgPrintln("\n[C1] Step 2: Settings settled at 17C High Fan!");
-      dbgPrintf("[C1] Step 3: Starting HC cycle (%d Turbo pulses within 10s)...\n", c1TotalPulses);
+      dbgPrintln("\n[C1] Step 2: AC settled at 17C High Fan!");
+      dbgPrintln("[C1] Step 3: Sending 6 exact Turbo presses spaced by 1000ms...");
       c1SeqStep = C1_SEQ_HC_PULSE;
       c1PulseCount = 0;
-      c1SeqTimer = now;
+      c1SeqTimer = now - 1000; // Trigger first pulse immediately
     }
   }
   else if (c1SeqStep == C1_SEQ_HC_PULSE) {
-    // Step 3: HC cycle - pulse every 600ms
-    if (now - c1SeqTimer >= 600 && txQueue.empty()) {
+    // Step 3: Exactly 6 presses of Turbo, spaced by 1000ms
+    if (now - c1SeqTimer >= 1000 && txQueue.empty()) {
       c1SeqTimer = now;
       c1PulseCount++;
-      
-      String turboVal = "3";
-      if (c1PulseType == 1 || c1PulseType == 3) {
-        // Alternating: odd = 3 (ON), even = 0 (OFF)
-        turboVal = (c1PulseCount % 2 != 0) ? "3" : "0";
-      } else {
-        // Type 2: always 3
-        turboVal = "3";
-      }
 
-      dbgPrintf("[C1] HC Pulse %d/%d -> Turbo Key 07 = %s\n",
-                c1PulseCount, c1TotalPulses, turboVal.c_str());
-      sendBlueStarRecord("07", turboVal);
+      dbgPrintf("[C1] Turbo Press %d/6 -> Sending Turbo (Key 07 = 3)...\n", c1PulseCount);
+      sendBlueStarRecord("07", "3");
 
       if (c1PulseCount >= c1TotalPulses) {
-        // STOP here! DO NOT SEND ANY MORE COMMANDS!
+        // Exactly 6 presses completed! STOP here!
         c1SeqStep = C1_SEQ_DONE;
         dbgPrintln("[C1] ==================================================");
-        dbgPrintln("[C1] HC pulse cycle complete! Finished at exact pulse count.");
-        dbgPrintln("[C1] If AC registered 6 presses, Indoor Display now shows 'C1'.");
+        dbgPrintln("[C1] Completed exactly 6 Turbo presses within 5 seconds!");
+        dbgPrintln("[C1] AC Indoor Unit Display should now show 'C1'.");
         dbgPrintln("[C1] ==================================================");
         publishState(true);
       }
@@ -1004,8 +989,10 @@ void loop() {
     publishState();
   }
 
-  // Heartbeat every 15 seconds
-  if (millis() - lastHeartbeatTime >= 15000) {
+  // Heartbeat every 15 seconds (suppressed during C1 sequence)
+  if (c1SeqStep != C1_SEQ_IDLE) {
+    lastHeartbeatTime = millis();
+  } else if (millis() - lastHeartbeatTime >= 15000) {
     lastHeartbeatTime = millis();
     if (millis() - lastValidFrameTime > SILENCE_REHANDSHAKE_MS) {
       sendHandshake();
