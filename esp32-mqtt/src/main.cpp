@@ -698,8 +698,10 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
     sendBlueStarRecord("01", "1");
   }
 
+  bool isActivatingTurbo = (doc.containsKey("turbo") && doc["turbo"] == 1);
+
   // Target Temperature (1-degree increments, 16C - 30C)
-  if (doc.containsKey("targetTemp")) {
+  if (doc.containsKey("targetTemp") && !isActivatingTurbo) {
     float t = doc["targetTemp"];
     targetTemp = round(t);
     if (targetTemp < 16.0) targetTemp = 16.0;
@@ -725,7 +727,7 @@ void onMqttMessage(char* topic, byte* payload, unsigned int length) {
   }
 
   // Fan: 1=Quiet, 2=Low, 3=Med, 4=High, 5=Turbo, 6=Auto
-  if (doc.containsKey("fan")) {
+  if (doc.containsKey("fan") && !isActivatingTurbo) {
     int f = doc["fan"];
     int acF = 7;
     if (f == 1) acF = 1;

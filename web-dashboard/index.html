@@ -4253,16 +4253,8 @@ html.modal-open body {
         }
         playAudio('chime');
         showToast("HC (Turbo) Active · 110% Boost (Temp & Fan locked)", "info");
-        // Turbo Cool forces: Mode=Cool (1), Fan=Turbo (5), Temp=16, cancels Eco & Sleep
-        sendCommand({
-          turbo: 1,
-          mode: 1,
-          fan: 5,
-          targetTemp: 16,
-          eco: 0,
-          sleep: 0,
-          c1Mode: 0
-        });
+        // AC automatically sets max fan, 16C, and shows HC on indoor unit
+        sendCommand({ turbo: 1 });
       } else if (featKey === 'eco') {
         if (state.eco === 1) {
           playAudio('click');
